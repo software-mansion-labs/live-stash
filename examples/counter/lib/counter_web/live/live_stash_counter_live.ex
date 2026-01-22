@@ -1,6 +1,14 @@
 defmodule CounterWeb.LiveStashCounterLive do
   use CounterWeb, :live_view
 
+  @live_stash_opts [
+    mode: :server,
+    ttl: 1000,
+    stashed_assigns: [:count, :step, :form_data, :user_id]
+  ]
+
+  on_mount {LiveStash, @live_stash_opts}
+
   def mount(_params, _session, socket) do
     {:ok, assign(socket, :count, 0)}
   end
