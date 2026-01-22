@@ -12,6 +12,11 @@ defmodule LiveStash do
     {:cont, init(socket, opts)}
   end
 
+  defguard reconnected?(socket)
+           when is_map(socket) and is_map_key(socket, :private) and is_map(socket.private) and
+                  is_map_key(socket.private, :live_stash_reconnected?) and
+                  socket.private.live_stash_reconnected? == true
+
   defp init(socket, opts) do
     mode = Keyword.fetch!(opts, :mode)
 

@@ -1,6 +1,8 @@
 defmodule CounterWeb.LiveStashCounterLive do
   use CounterWeb, :live_view
 
+  import LiveStash
+
   @live_stash_opts [
     mode: :server,
     ttl: 1000,
@@ -9,7 +11,13 @@ defmodule CounterWeb.LiveStashCounterLive do
 
   on_mount {LiveStash, @live_stash_opts}
 
+  def mount(_params, _session, socket) when reconnected?(socket) do
+    dbg("reconnected")
+    {:ok, assign(socket, :count, 0)}
+  end
+
   def mount(_params, _session, socket) do
+    dbg("not reconnected")
     {:ok, assign(socket, :count, 0)}
   end
 
