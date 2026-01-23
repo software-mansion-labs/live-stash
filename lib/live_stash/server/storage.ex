@@ -48,24 +48,6 @@ defmodule LiveStash.Server.Storage do
       {:error, error}
   end
 
-  @spec change_owner(id :: term(), new_owner :: pid()) :: :ok | {:error, any()}
-  def change_owner(id, new_owner) do
-    :ets.update_element(@table_name, id, [{2, new_owner}])
-    :ok
-  rescue
-    error ->
-      {:error, error}
-  end
-
-  @spec bump_timestamp(id :: term()) :: :ok | {:error, any()}
-  def bump_timestamp(id) do
-    :ets.update_element(@table_name, id, [{3, System.os_time()}])
-    :ok
-  rescue
-    error ->
-      {:error, error}
-  end
-
   @spec delete_state(id :: term()) :: :ok | {:error, any()}
   def delete_state(id) do
     :ets.delete(@table_name, id)
