@@ -1,7 +1,7 @@
 defmodule LiveStash do
   @moduledoc false
 
-  @default_opts [mode: :server, ttl: 5 * 60 * 1000, stashed_assigns: []]
+  @default_opts [mode: :server, ttl: 5 * 60 * 1000]
 
   def on_mount(:default, _params, _session, socket) do
     {:cont, init(socket, @default_opts)}
