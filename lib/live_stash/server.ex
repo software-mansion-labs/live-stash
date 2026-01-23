@@ -12,14 +12,15 @@ defmodule LiveStash.Server do
   require Logger
 
   @impl true
-  def init(socket, opts) do
+  def init_stash(socket, opts) do
     ttl = Keyword.fetch!(opts, :ttl)
     mounts = LiveView.get_connect_params(socket)["_mounts"]
+    reconnected? = not is_nil(mounts) and mounts > 0
 
     socket
     |> LiveView.put_private(:live_stash_mode, :server)
     |> LiveView.put_private(:live_stash_ttl, ttl)
-    |> LiveView.put_private(:live_stash_reconnected?, not is_nil(mounts) and mounts > 0)
+    |> LiveView.put_private(:live_stash_reconnected?, reconnected?)
   end
 
   @impl true
@@ -33,7 +34,7 @@ defmodule LiveStash.Server do
         socket
 
       {:error, error} ->
-        Logger.warning(
+        Logger.error(
           "[LiveStash] Failed to put state for LiveView with id: #{id}\n#{inspect(error)}"
         )
 
@@ -50,21 +51,17 @@ defmodule LiveStash.Server do
     |> Storage.get_state()
     |> case do
       {:ok, state} ->
-        Component.assign(socket, state)
+        {:recovered, Component.assign(socket, state)}
 
       {:error, :not_found} ->
-        Logger.info(
-          "[LiveStash] No state found for LiveView with id: #{id}, recovering from scratch"
-        )
-
-        socket
+        {:not_found, socket}
 
       {:error, error} ->
-        Logger.warning(
+        Logger.error(
           "[LiveStash] Failed to recover state for LiveView with id: #{id}\n#{inspect(error)}"
         )
 
-        socket
+        {:error, socket}
     end
   end
 

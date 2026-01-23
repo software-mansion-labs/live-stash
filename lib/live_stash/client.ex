@@ -8,7 +8,7 @@ defmodule LiveStash.Client do
   require Logger
 
   @impl true
-  def init(socket, _opts) do
+  def init_stash(socket, _opts) do
     Logger.warning("[LiveStash] Client mode is not implemented yet")
     socket
   end

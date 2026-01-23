@@ -8,14 +8,15 @@ defmodule CounterWeb.LiveStashCounterLive do
     ttl: 1000
   ]
 
-  on_mount {LiveStash, @live_stash_opts}
-
-  def mount(_params, _session, socket) when reconnected?(socket) do
-    {:ok, recover_state(socket)}
-  end
-
   def mount(_params, _session, socket) do
-    {:ok, stash_assign(socket, :count, 0)}
+    socket
+    |> init_stash(@live_stash_opts)
+    |> recover_state()
+    |> case do
+      {:recovered, recovered_socket} -> recovered_socket
+      {_, socket} -> stash_assign(socket, :count, 0)
+    end
+    |> then(&{:ok, &1})
   end
 
   def render(assigns) do
