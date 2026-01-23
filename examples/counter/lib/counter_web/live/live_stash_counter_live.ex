@@ -11,13 +11,11 @@ defmodule CounterWeb.LiveStashCounterLive do
   on_mount {LiveStash, @live_stash_opts}
 
   def mount(_params, _session, socket) when reconnected?(socket) do
-    dbg("reconnected")
-    {:ok, assign(socket, :count, 0)}
+    {:ok, recover_state(socket)}
   end
 
   def mount(_params, _session, socket) do
-    dbg("not reconnected")
-    {:ok, assign(socket, :count, 0)}
+    {:ok, stash_assign(socket, :count, 0)}
   end
 
   def render(assigns) do
@@ -71,5 +69,13 @@ defmodule CounterWeb.LiveStashCounterLive do
       </div>
     </div>
     """
+  end
+
+  def handle_event("increment", _, socket) do
+    {:noreply, stash_assign(socket, :count, socket.assigns.count + 1)}
+  end
+
+  def handle_event("decrement", _, socket) do
+    {:noreply, stash_assign(socket, :count, socket.assigns.count - 1)}
   end
 end

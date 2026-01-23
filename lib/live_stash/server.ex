@@ -6,6 +6,10 @@ defmodule LiveStash.Server do
   @behaviour LiveStash.Stash
 
   alias Phoenix.LiveView
+  alias Phoenix.Component
+  alias LiveStash.Server.Storage
+
+  require Logger
 
   @impl true
   def init(socket, opts) do
@@ -16,5 +20,55 @@ defmodule LiveStash.Server do
     |> LiveView.put_private(:live_stash_mode, :server)
     |> LiveView.put_private(:live_stash_ttl, ttl)
     |> LiveView.put_private(:live_stash_reconnected?, not is_nil(mounts) and mounts > 0)
+  end
+
+  @impl true
+  def stash_assign(socket, key, value) do
+    id = get_id(socket)
+
+    id
+    |> Storage.put_state(key, value)
+    |> case do
+      :ok ->
+        socket
+
+      {:error, error} ->
+        Logger.warning(
+          "[LiveStash] Failed to put state for LiveView with id: #{id}\n#{inspect(error)}"
+        )
+
+        socket
+    end
+    |> Component.assign(key, value)
+  end
+
+  @impl true
+  def recover_state(socket) do
+    id = get_id(socket)
+
+    id
+    |> Storage.get_state()
+    |> case do
+      {:ok, state} ->
+        Component.assign(socket, state)
+
+      {:error, :not_found} ->
+        Logger.info(
+          "[LiveStash] No state found for LiveView with id: #{id}, recovering from scratch"
+        )
+
+        socket
+
+      {:error, error} ->
+        Logger.warning(
+          "[LiveStash] Failed to recover state for LiveView with id: #{id}\n#{inspect(error)}"
+        )
+
+        socket
+    end
+  end
+
+  defp get_id(socket) do
+    socket.id
   end
 end

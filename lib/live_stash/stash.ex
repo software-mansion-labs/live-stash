@@ -6,4 +6,6 @@ defmodule LiveStash.Stash do
   alias Phoenix.LiveView.Socket
 
   @callback init(socket :: Socket.t(), opts :: Keyword.t()) :: Socket.t()
+  @callback stash_assign(socket :: Socket.t(), key :: atom(), value :: term()) :: Socket.t()
+  @callback recover_state(socket :: Socket.t()) :: Socket.t()
 end

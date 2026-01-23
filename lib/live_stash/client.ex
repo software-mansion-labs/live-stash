@@ -5,9 +5,23 @@ defmodule LiveStash.Client do
 
   @behaviour LiveStash.Stash
 
+  require Logger
+
   @impl true
-  def init(socket, opts) do
-    dbg(opts)
+  def init(socket, _opts) do
+    Logger.warning("[LiveStash] Client mode is not implemented yet")
+    socket
+  end
+
+  @impl true
+  def stash_assign(socket, _key, _value) do
+    Logger.warning("[LiveStash] Client mode is not implemented yet")
+    socket
+  end
+
+  @impl true
+  def recover_state(socket) do
+    Logger.warning("[LiveStash] Client mode is not implemented yet")
     socket
   end
 end

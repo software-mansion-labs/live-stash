@@ -31,8 +31,8 @@ defmodule LiveStash.Server.Storage do
       {:error, error}
   end
 
-  @spec update_state(id :: term(), key :: term(), value :: term()) :: :ok | {:error, any()}
-  def update_state(id, key, value) do
+  @spec put_state(id :: term(), key :: term(), value :: term()) :: :ok | {:error, any()}
+  def put_state(id, key, value) do
     @table_name
     |> :ets.lookup(id)
     |> case do
@@ -41,7 +41,7 @@ defmodule LiveStash.Server.Storage do
         insert_state(id, new_map)
 
       [] ->
-        {:error, :not_found}
+        insert_state(id, %{key => value})
     end
   rescue
     error ->
