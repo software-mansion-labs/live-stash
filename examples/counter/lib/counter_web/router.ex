@@ -20,7 +20,8 @@ defmodule CounterWeb.Router do
     live "/", HomeLive
 
     live "/default", DefaultCounterLive
-    live "/live_stash", LiveStashCounterLive
+    live "/live_stash_server", LiveStashServerCounterLive
+    live "/live_stash_client", LiveStashClientCounterLive
   end
 
   # Other scopes may use custom stacks.

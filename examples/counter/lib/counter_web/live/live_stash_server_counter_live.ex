@@ -1,4 +1,4 @@
-defmodule CounterWeb.LiveStashCounterLive do
+defmodule CounterWeb.LiveStashServerCounterLive do
   use CounterWeb, :live_view
 
   import LiveStash
