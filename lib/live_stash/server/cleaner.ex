@@ -6,8 +6,9 @@ defmodule LiveStash.Server.Cleaner do
   require Logger
 
   alias LiveStash.Server.State
+  alias LiveStash.Utils
 
-  @cleanup_interval Application.compile_env(:live_stash, :ets_cleanup_interval, 60_000)
+  @cleanup_interval Application.compile_env(:live_stash, :ets_cleanup_interval, 10_000)
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -21,17 +22,26 @@ defmodule LiveStash.Server.Cleaner do
 
   @impl true
   def handle_info(:cleanup, state) do
-    Logger.info("[LiveStash] Cleaning up expired states")
+    Logger.debug("[LiveStash] Cleaning up expired states...")
+
     clean_expired_states!()
     schedule_cleanup()
+
+    Logger.debug("[LiveStash] Expired states cleaned up")
+
     {:noreply, state}
+  rescue
+    error ->
+      err = Utils.error_message("Could not clean up expired states", error, __STACKTRACE__)
+      Logger.error(err)
+
+      {:noreply, state}
   end
 
   @doc """
   Cleans up expired states from the ETS table.
   It uses a batching approach to avoid locking the table for too long.
   It bumps the delete_at time for records with alive processes and deletes records with dead processes.
-
   """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do

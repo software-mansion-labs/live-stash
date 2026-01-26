@@ -5,9 +5,11 @@ defmodule LiveStash.Server do
 
   @behaviour LiveStash.Stash
 
+  alias LiveStash.Server.State
+  alias LiveStash.Utils
+
   alias Phoenix.LiveView
   alias Phoenix.Component
-  alias LiveStash.Server.State
 
   require Logger
 
@@ -29,6 +31,12 @@ defmodule LiveStash.Server do
 
     State.put_assign!(id, key, value, get_opts(socket))
     Component.assign(socket, key, value)
+  rescue
+    error ->
+      err = Utils.error_message("Could not stash assign", error, __STACKTRACE__)
+      Logger.error(err)
+
+      Component.assign(socket, key, value)
   end
 
   @impl true
@@ -42,6 +50,12 @@ defmodule LiveStash.Server do
       :not_found ->
         {:not_found, socket}
     end
+  rescue
+    error ->
+      err = Utils.error_message("Could not recover state", error, __STACKTRACE__)
+      Logger.error(err)
+
+      {:error, socket}
   end
 
   defp get_id(socket) do
