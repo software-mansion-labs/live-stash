@@ -8,7 +8,7 @@ defmodule LiveStash.Server.Cleaner do
   alias LiveStash.Server.State
   alias LiveStash.Utils
 
-  @cleanup_interval Application.compile_env(:live_stash, :ets_cleanup_interval, 10_000)
+  @cleanup_interval Application.compile_env(:live_stash, :ets_cleanup_interval, 1 * 60 * 1_000)
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
