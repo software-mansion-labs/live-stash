@@ -7,7 +7,7 @@ defmodule LiveStash.Server do
 
   alias Phoenix.LiveView
   alias Phoenix.Component
-  alias LiveStash.Server.Storage
+  alias LiveStash.Server.State
 
   require Logger
 
@@ -27,45 +27,28 @@ defmodule LiveStash.Server do
   def stash_assign(socket, key, value) do
     id = get_id(socket)
 
-    id
-    |> Storage.put_state(key, value)
-    |> case do
-      :ok ->
-        socket
-
-      {:error, error} ->
-        Logger.error(
-          "[LiveStash] Failed to put state for LiveView with id: #{id}\n#{inspect(error)}"
-        )
-
-        socket
-    end
-    |> Component.assign(key, value)
+    State.put_assign!(id, key, value, get_opts(socket))
+    Component.assign(socket, key, value)
   end
 
   @impl true
   def recover_state(socket) do
     id = get_id(socket)
 
-    id
-    |> Storage.get_state()
-    |> case do
+    case State.get_by_id!(id) do
       {:ok, state} ->
         {:recovered, Component.assign(socket, state)}
 
-      {:error, :not_found} ->
+      :not_found ->
         {:not_found, socket}
-
-      {:error, error} ->
-        Logger.error(
-          "[LiveStash] Failed to recover state for LiveView with id: #{id}\n#{inspect(error)}"
-        )
-
-        {:error, socket}
     end
   end
 
   defp get_id(socket) do
     socket.id
+  end
+
+  defp get_opts(socket) do
+    [ttl: socket.private.live_stash_ttl]
   end
 end
