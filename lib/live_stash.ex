@@ -33,14 +33,14 @@ defmodule LiveStash do
 
   defp module(:server), do: LiveStash.Server
   defp module(:client), do: LiveStash.Client
-  defp module(mode), do: raise(ArgumentError, "invalid mode: #{inspect(mode)}")
+  defp module(mode), do: raise(ArgumentError, "[LiveStash] Invalid mode: #{inspect(mode)}")
 
   defp get_mode(%{private: %{live_stash_mode: mode}}), do: mode
 
   defp get_mode(_) do
     raise(
       ArgumentError,
-      "LiveStash has not been initialized, please use on_mount/1 to initialize it"
+      "[LiveStash] LiveStash has not been initialized, please use on_mount/1 to initialize it"
     )
   end
 end
