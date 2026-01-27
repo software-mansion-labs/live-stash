@@ -15,10 +15,12 @@ defmodule LiveStash.Client do
   @impl true
   def init_stash(socket, _opts) do
     status = LiveView.get_connect_params(socket)["live-stash-state"]["status"]
+    mounts = LiveView.get_connect_params(socket)["_mounts"]
+    reconnected? = not is_nil(mounts) and mounts > 0 and status == "initialized"
 
     socket
     |> LiveView.put_private(:live_stash_mode, :client)
-    |> LiveView.put_private(:live_stash_reconnected?, status == "initialized")
+    |> LiveView.put_private(:live_stash_reconnected?, reconnected?)
     |> send_init_message()
   end
 
