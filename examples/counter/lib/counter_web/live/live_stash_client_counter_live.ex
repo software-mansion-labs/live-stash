@@ -5,7 +5,6 @@ defmodule CounterWeb.LiveStashClientCounterLive do
 
   @live_stash_opts [
     mode: :client,
-    ttl: 1000
   ]
 
   def mount(_params, _session, socket) do
