@@ -23,10 +23,10 @@ defmodule ShowcaseAppWeb.UsersLive do
         <tbody>
           <%= for user <- @users do %>
             <tr>
-              <td><%= user.username %></td>
-              <td><%= user.email %></td>
-              <td><%= user.area %></td>
-              <td><%= Enum.join(user.techs, ", ") %></td>
+              <td>{user.username}</td>
+              <td>{user.email}</td>
+              <td>{user.area}</td>
+              <td>{Enum.join(user.techs, ", ")}</td>
             </tr>
           <% end %>
         </tbody>
