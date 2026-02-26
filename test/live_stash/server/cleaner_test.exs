@@ -88,7 +88,7 @@ defmodule LiveStash.Server.CleanerTest do
       Process.sleep(100)
 
       assert Cleaner.clean_expired_states!() == :ok
-      assert length(:ets.tab2list(@table_name)) == 0
+      assert :ets.tab2list(@table_name) == []
     end
 
     test "handles mixed alive and dead processes" do
