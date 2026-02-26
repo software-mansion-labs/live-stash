@@ -7,16 +7,15 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
     mode: :client
   ]
 
-  # These have to be strings since because of the current JSON encoding of the stash state
   @winning_lines [
-    ["0", "1", "2"],
-    ["3", "4", "5"],
-    ["6", "7", "8"],
-    ["0", "3", "6"],
-    ["1", "4", "7"],
-    ["2", "5", "8"],
-    ["0", "4", "8"],
-    ["2", "4", "6"]
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
   ]
 
   def mount(_params, _session, socket) do
@@ -60,20 +59,20 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
               <button
                 phx-click="play"
                 phx-value-idx={i}
-                disabled={@board[to_string(i)] != nil || @winner != nil}
+                disabled={@board[i] != nil || @winner != nil}
                 class={[
                   "h-24 sm:h-28 text-5xl font-extrabold rounded-xl flex items-center justify-center transition-all duration-200",
-                  @board[to_string(i)] == nil && @winner == nil &&
+                  @board[i] == nil && @winner == nil &&
                     "bg-base-200 hover:bg-gray-700 cursor-pointer",
-                  @board[to_string(i)] == nil && @winner != nil &&
+                  @board[i] == nil && @winner != nil &&
                     "bg-base-200 cursor-not-allowed opacity-50",
-                  @board[to_string(i)] != nil && "bg-base-300 cursor-default",
-                  @board[to_string(i)] == "X" && "text-purple-400",
-                  @board[to_string(i)] == "O" && "text-blue-400",
+                  @board[i] != nil && "bg-base-300 cursor-default",
+                  @board[i] == "X" && "text-purple-400",
+                  @board[i] == "O" && "text-blue-400",
                   i in @winning_line && "bg-[#4e2a8e]/40 ring-2 ring-[#4e2a8e] scale-105"
                 ]}
               >
-                {@board[to_string(i)]}
+                {@board[i]}
               </button>
             <% end %>
           </div>
@@ -92,7 +91,8 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
   end
 
   def handle_event("play", %{"idx" => idx_str}, socket) do
-    new_board = Map.put(socket.assigns.board, idx_str, socket.assigns.current_player)
+    idx = String.to_integer(idx_str)
+    new_board = Map.put(socket.assigns.board, idx, socket.assigns.current_player)
 
     {winner, winning_line} = check_game_state(new_board)
 
@@ -112,7 +112,8 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
   end
 
   defp start_new_game(socket) do
-    stash_assign(socket, :board, Map.new(0..8, fn i -> {to_string(i), nil} end))
+    socket
+    |> stash_assign(:board, Map.new(0..8, fn i -> {i, nil} end))
     |> stash_assign(:current_player, "X")
     |> stash_assign(:winner, nil)
     |> stash_assign(:winning_line, [])
