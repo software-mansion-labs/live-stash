@@ -2,9 +2,14 @@ defmodule ShowcaseAppWeb.DefaultTicTacToeLive do
   use ShowcaseAppWeb, :live_view
 
   @winning_lines [
-    [0, 1, 2], [3, 4, 5], [6, 7, 8],
-    [0, 3, 6], [1, 4, 7], [2, 5, 8],
-    [0, 4, 8], [2, 4, 6]
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
   ]
 
   def mount(_params, _session, socket) do
@@ -15,28 +20,23 @@ defmodule ShowcaseAppWeb.DefaultTicTacToeLive do
     ~H"""
     <div class="min-h-screen bg-base-300 flex flex-col items-center py-12 px-6" data-theme="dark">
       <div class="w-full max-w-lg">
-
         <div class="flex justify-between items-center mb-10">
           <h1 class="text-4xl font-bold text-white">Tic Tac Toe</h1>
-          <.link navigate={~p"/"} class="btn btn-outline border-gray-600 text-gray-300 hover:bg-gray-800 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-            Return
-          </.link>
+          <.return_link />
         </div>
 
         <div class="bg-base-100 rounded-3xl p-8 shadow-2xl border border-gray-800 flex flex-col items-center">
-
           <div class="text-2xl font-bold mb-8 h-8 flex items-center justify-center w-full rounded-xl bg-base-200 py-6">
             <%= cond do %>
               <% @winner == "Draw" -> %>
-                <span class="text-gray-400">It's a Draw! 🤝</span>
+                <span class="text-gray-400">It's a Draw!</span>
               <% @winner -> %>
-                <span class="text-green-400">Player {@winner} Wins! 🎉</span>
+                <span class="text-green-400">Player {@winner} Wins!</span>
               <% true -> %>
                 <span class="text-white">
-                  Player <span class={if @current_player == "X", do: "text-purple-400", else: "text-blue-400"}>{@current_player}</span>'s Turn
+                  Player <span class={
+                    if @current_player == "X", do: "text-purple-400", else: "text-blue-400"
+                  }>{@current_player}</span>'s Turn
                 </span>
             <% end %>
           </div>
@@ -69,7 +69,6 @@ defmodule ShowcaseAppWeb.DefaultTicTacToeLive do
             Restart Game
           </button>
         </div>
-
       </div>
       <.socket_debugger />
     </div>
@@ -79,36 +78,26 @@ defmodule ShowcaseAppWeb.DefaultTicTacToeLive do
   def handle_event("play", %{"idx" => idx_str}, socket) do
     idx = String.to_integer(idx_str)
 
-    # Zabezpieczenie: ignorujemy kliknięcie, jeśli pole jest zajęte lub gra się skończyła
-    if socket.assigns.board[idx] != nil || socket.assigns.winner != nil do
-      {:noreply, socket}
-    else
-      # 1. Zaktualizuj planszę
-      new_board = Map.put(socket.assigns.board, idx, socket.assigns.current_player)
+    new_board = Map.put(socket.assigns.board, idx, socket.assigns.current_player)
 
-      # 2. Sprawdź, czy ktoś wygrał lub czy jest remis
-      {winner, winning_line} = check_game_state(new_board)
+    {winner, winning_line} = check_game_state(new_board)
 
-      # 3. Zmień gracza (jeśli gramy dalej)
-      next_player = if socket.assigns.current_player == "X", do: "O", else: "X"
+    next_player = if socket.assigns.current_player == "X", do: "O", else: "X"
 
-      {:noreply, assign(socket,
-        board: new_board,
-        current_player: next_player,
-        winner: winner,
-        winning_line: winning_line
-      )}
-    end
+    {:noreply,
+     assign(socket,
+       board: new_board,
+       current_player: next_player,
+       winner: winner,
+       winning_line: winning_line
+     )}
   end
 
   def handle_event("reset", _params, socket) do
     {:noreply, start_new_game(socket)}
   end
 
-  # --- Funkcje pomocnicze ---
-
   defp start_new_game(socket) do
-    # Plansza to prosta mapa: %{0 => nil, 1 => nil, ..., 8 => nil}
     empty_board = Map.new(0..8, fn i -> {i, nil} end)
 
     assign(socket,
@@ -120,24 +109,22 @@ defmodule ShowcaseAppWeb.DefaultTicTacToeLive do
   end
 
   defp check_game_state(board) do
-    # Szukamy pierwszej linii z 3 identycznymi, niepustymi znakami
-    winner_tuple = Enum.find_value(@winning_lines, fn [a, b, c] = line ->
-      if board[a] != nil and board[a] == board[b] and board[a] == board[c] do
-        {board[a], line} # np. {"X", [0, 1, 2]}
-      else
-        nil
-      end
-    end)
+    winner_tuple =
+      Enum.find_value(@winning_lines, fn [a, b, c] = line ->
+        if board[a] != nil and board[a] == board[b] and board[a] == board[c] do
+          {board[a], line}
+        else
+          nil
+        end
+      end)
 
     cond do
       winner_tuple != nil ->
         winner_tuple
 
-      # Jeśli nie ma pustych miejsc (nil), to jest remis
       not Enum.any?(Map.values(board), &is_nil/1) ->
         {"Draw", []}
 
-      # W przeciwnym razie gra toczy się dalej
       true ->
         {nil, []}
     end

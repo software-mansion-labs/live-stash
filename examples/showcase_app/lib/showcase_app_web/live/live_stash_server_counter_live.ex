@@ -23,6 +23,8 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
     ~H"""
     <div class="min-h-screen bg-base-200 flex items-center justify-center p-4">
       <div class="card bg-base-100 shadow-xl w-full max-w-md">
+        <.return_link />
+
         <div class="card-body items-center text-center">
           <h1 class="card-title text-4xl mb-2">Counter</h1>
 
@@ -68,6 +70,7 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
           </div>
         </div>
       </div>
+      <.socket_debugger />
     </div>
     """
   end

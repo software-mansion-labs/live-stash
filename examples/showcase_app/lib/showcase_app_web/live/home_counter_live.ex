@@ -1,24 +1,17 @@
 defmodule ShowcaseAppWeb.HomeCounterLive do
   use ShowcaseAppWeb, :live_view
 
-def render(assigns) do
+  def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-base-300 flex flex-col items-center py-12 px-6" data-theme="dark">
       <div class="w-full max-w-6xl">
-
         <div class="flex justify-between items-center mb-10">
           <h1 class="text-4xl font-bold text-white">Counter Examples</h1>
 
-          <.link navigate={~p"/"} class="btn btn-outline border-gray-600 text-gray-300 hover:bg-gray-800 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-            </svg>
-            Return
-          </.link>
+          <.return_link />
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
           <.feature_card
             title="Default Counter"
             navigate={~p"/counter/default"}
@@ -42,7 +35,6 @@ def render(assigns) do
           >
             A counter using LiveStash client mode that persists state in the browser.
           </.feature_card>
-
         </div>
       </div>
     </div>
@@ -50,18 +42,21 @@ def render(assigns) do
   end
 
   def feature_card(assigns) do
-  ~H"""
-  <div class="bg-base-100 rounded-2xl p-6 shadow-xl flex flex-col justify-between border border-gray-800 hover:border-[#4e2a8e] transition-colors">
-    <div>
-      <h2 class="text-xl font-bold text-white mb-2">{@title}</h2>
-      <p class="text-gray-400 text-sm mb-6">
-        {render_slot(@inner_block)}
-      </p>
+    ~H"""
+    <div class="bg-base-100 rounded-2xl p-6 shadow-xl flex flex-col justify-between border border-gray-800 hover:border-[#4e2a8e] transition-colors">
+      <div>
+        <h2 class="text-xl font-bold text-white mb-2">{@title}</h2>
+        <p class="text-gray-400 text-sm mb-6">
+          {render_slot(@inner_block)}
+        </p>
+      </div>
+      <.link
+        navigate={@navigate}
+        class="btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none w-full"
+      >
+        {@button_text}
+      </.link>
     </div>
-    <.link navigate={@navigate} class="btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none w-full">
-      {@button_text}
-    </.link>
-  </div>
-  """
+    """
   end
 end

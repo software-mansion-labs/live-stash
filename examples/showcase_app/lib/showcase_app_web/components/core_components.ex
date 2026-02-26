@@ -496,7 +496,6 @@ defmodule ShowcaseAppWeb.CoreComponents do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
 
-
   def socket_debugger(assigns) do
     ~H"""
     <button
@@ -506,13 +505,13 @@ defmodule ShowcaseAppWeb.CoreComponents do
         if(window.liveSocket) {
           if(window.liveSocket.isConnected()) {
             window.liveSocket.disconnect();
-            this.innerHTML = '🔌 Reconnect Socket';
+            this.innerHTML = 'Reconnect Socket';
             this.classList.remove('border-red-800', 'text-red-400', 'hover:bg-red-900/30');
             this.classList.add('border-green-800', 'text-green-400', 'hover:bg-green-900/30');
           } else {
             window.liveSocket.connect();
             // Po połączeniu LiveView samo nadpisze DOM, przywracając domyślny, czerwony wygląd
-            this.innerHTML = '⚡ Connecting...';
+            this.innerHTML = 'Connecting...';
           }
         } else {
           console.error('window.liveSocket is not accessible. Check your app.js');
@@ -520,8 +519,29 @@ defmodule ShowcaseAppWeb.CoreComponents do
       "
       class="btn btn-sm bg-base-300 border border-red-800 text-red-400 hover:bg-red-900/30 fixed bottom-6 right-6 z-50 shadow-2xl font-mono text-xs rounded-full px-4 transition-colors"
     >
-      ⚡ Disconnect Socket
+      Disconnect Socket
     </button>
+    """
+  end
+
+  def return_link(assigns) do
+    ~H"""
+    <.link
+      navigate="/"
+      class="btn btn-outline border-gray-600 text-gray-300 hover:bg-gray-800 flex items-center gap-2"
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="2"
+        stroke="currentColor"
+        class="w-5 h-5"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
+      Return
+    </.link>
     """
   end
 end
