@@ -19,6 +19,13 @@ defmodule LiveStash.Server do
     mounts = LiveView.get_connect_params(socket)["_mounts"]
     reconnected? = not is_nil(mounts) and mounts > 0
 
+    # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
+    if not reconnected? do
+      socket
+      |> get_id()
+      |> State.delete_by_id!()
+    end
+
     socket
     |> LiveView.put_private(:live_stash_mode, :server)
     |> LiveView.put_private(:live_stash_ttl, ttl)

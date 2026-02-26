@@ -14,14 +14,17 @@ defmodule LiveStash.Client do
 
   @impl true
   def init_stash(socket, _opts) do
-    status = LiveView.get_connect_params(socket)["live-stash-state"]["status"]
     mounts = LiveView.get_connect_params(socket)["_mounts"]
-    reconnected? = not is_nil(mounts) and mounts > 0 and status == "initialized"
+    reconnected? = not is_nil(mounts) and mounts > 0
+
+    # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
+    if not reconnected? do
+      LiveView.push_event(socket, "live-stash:reset", %{})
+    end
 
     socket
     |> LiveView.put_private(:live_stash_mode, :client)
     |> LiveView.put_private(:live_stash_reconnected?, reconnected?)
-    |> send_init_message()
   end
 
   @impl true
@@ -33,16 +36,14 @@ defmodule LiveStash.Client do
 
   @impl true
   def recover_state(socket) do
-    liveStashState = LiveView.get_connect_params(socket)["live-stash-state"]
-
-    case liveStashState do
-      %{"stashedState" => stashedState} ->
-        parsedAssigns =
-          stashedState
+    case LiveView.get_connect_params(socket) do
+      %{"stashedState" => stashed_state} ->
+        parsed_assigns =
+          stashed_state
           |> Enum.map(fn {key, value} -> {String.to_existing_atom(key), value} end)
           |> Enum.into(%{})
 
-        {:recovered, Component.assign(socket, parsedAssigns)}
+        {:recovered, Component.assign(socket, parsed_assigns)}
 
       _ ->
         {:not_found, socket}
@@ -53,11 +54,5 @@ defmodule LiveStash.Client do
       Logger.error(err)
 
       {:error, socket}
-  end
-
-  defp send_init_message(socket) do
-    LiveView.push_event(socket, "live-stash:init", %{
-      status: "initialized"
-    })
   end
 end
