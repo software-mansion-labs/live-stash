@@ -1,20 +1,15 @@
-const liveStashDefaultState = {
-  status: "not-initialized",
-  stashedState: {},
-}
+let stashedState = {}
 
-let state = liveStashDefaultState
-
-window.addEventListener("phx:live-stash:init", (event) => {
-  state = { ...state, ...event.detail };
+window.addEventListener("phx:live-stash:reset", (_event) => {
+  stashedState = {}
 })
 
 window.addEventListener("phx:live-stash:stash", (event) => {
-  state.stashedState[event.detail.key] = event.detail.value;
+  stashedState[event.detail.key] = event.detail.value;
 })
 
 export default function initLiveStash(params) {
   return () => {
-    return { "live-stash-state": state, ...params }
+    return { "stashedState": stashedState, ...params }
   }
 }

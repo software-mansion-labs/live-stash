@@ -19,6 +19,10 @@ defmodule LiveStash.Server do
     mounts = LiveView.get_connect_params(socket)["_mounts"]
     reconnected? = not is_nil(mounts) and mounts > 0
 
+    if not reconnected? do
+      State.delete_by_id!(get_id(socket))
+    end
+
     socket
     |> LiveView.put_private(:live_stash_mode, :server)
     |> LiveView.put_private(:live_stash_ttl, ttl)
