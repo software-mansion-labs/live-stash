@@ -21,7 +21,9 @@ defmodule LiveStash.Server do
 
     # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
     if not reconnected? do
-      State.delete_by_id!(get_id(socket))
+      socket
+      |> get_id()
+      |> State.delete_by_id!()
     end
 
     socket
