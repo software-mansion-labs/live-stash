@@ -7,6 +7,7 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
     mode: :client
   ]
 
+  # These have to be strings since because of the current JSON encoding of the stash state
   @winning_lines [
     ["0", "1", "2"],
     ["3", "4", "5"],

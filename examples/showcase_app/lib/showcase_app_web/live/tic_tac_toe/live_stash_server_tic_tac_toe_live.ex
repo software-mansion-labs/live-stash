@@ -5,7 +5,7 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
 
   @live_stash_opts [
     mode: :server,
-    ttl: 1000
+    ttl: 60000
   ]
 
   @winning_lines [
