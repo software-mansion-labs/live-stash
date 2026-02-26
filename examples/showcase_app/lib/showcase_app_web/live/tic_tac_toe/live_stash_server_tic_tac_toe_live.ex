@@ -112,7 +112,8 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
   end
 
   defp start_new_game(socket) do
-    stash_assign(socket, :board, Map.new(0..8, fn i -> {i, nil} end))
+    socket
+    |> stash_assign(:board, Map.new(0..8, fn i -> {i, nil} end))
     |> stash_assign(:current_player, "X")
     |> stash_assign(:winner, nil)
     |> stash_assign(:winning_line, [])
