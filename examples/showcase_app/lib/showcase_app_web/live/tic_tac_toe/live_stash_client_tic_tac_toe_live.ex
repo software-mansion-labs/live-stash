@@ -20,6 +20,7 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
 
   def mount(_params, _session, socket) do
     socket
+    # manual stash initialization, can be replaced with `use LiveStash, mode: :client` which will automatically initialize the stash on mount
     |> init_stash(@live_stash_opts)
     |> recover_state()
     |> case do

@@ -1,12 +1,9 @@
 defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
   use ShowcaseAppWeb, :live_view
+  # automatic stash initialization on mount, can be replaced with manual initialization using init_stash/2 in mount
+  use LiveStash, mode: :server, ttl: 60 * 1000
 
   import LiveStash
-
-  @live_stash_opts [
-    mode: :server,
-    ttl: 60000
-  ]
 
   @winning_lines [
     [0, 1, 2],
@@ -21,7 +18,6 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
 
   def mount(_params, _session, socket) do
     socket
-    |> init_stash(@live_stash_opts)
     |> recover_state()
     |> case do
       {:recovered, recovered_socket} -> recovered_socket

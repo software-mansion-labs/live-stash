@@ -5,7 +5,18 @@ defmodule LiveStash do
 
   @default_opts [mode: :server, ttl: 5 * 60 * 1000]
 
-  @impl true
+  defmacro __using__(opts) do
+    quote do
+      on_mount {LiveStash, unquote(opts)}
+    end
+  end
+
+  def on_mount(opts, _params, _session, socket) do
+    socket = init_stash(socket, opts)
+
+    {:cont, socket}
+  end
+
   def init_stash(socket, opts \\ []) do
     opts = Keyword.merge(@default_opts, opts)
     mode = Keyword.fetch!(opts, :mode)
@@ -13,7 +24,6 @@ defmodule LiveStash do
     module(mode).init_stash(socket, opts)
   end
 
-  @impl true
   def stash_assign(socket, key, value) do
     socket
     |> get_mode()
@@ -21,7 +31,6 @@ defmodule LiveStash do
     |> (& &1.stash_assign(socket, key, value)).()
   end
 
-  @impl true
   def recover_state(%{private: %{live_stash_reconnected?: true}} = socket) do
     socket
     |> get_mode()
