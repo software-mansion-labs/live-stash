@@ -38,7 +38,7 @@ defmodule LiveStash do
     |> (& &1.recover_state(socket)).()
   end
 
-  def recover_state(socket), do: {:new, socket}
+  def recover_state(_socket), do: {:new, %{}}
 
   defp module(:server), do: LiveStash.Server
   defp module(:client), do: LiveStash.Client

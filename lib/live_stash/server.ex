@@ -52,17 +52,17 @@ defmodule LiveStash.Server do
 
     case State.get_by_id!(id) do
       {:ok, state} ->
-        {:recovered, Component.assign(socket, state)}
+        {:recovered, state}
 
       :not_found ->
-        {:not_found, socket}
+        {:not_found, %{}}
     end
   rescue
     error ->
       err = Utils.error_message("Could not recover state", error, __STACKTRACE__)
       Logger.error(err)
 
-      {:error, socket}
+      {:error, err}
   end
 
   defp get_id(socket) do

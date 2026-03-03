@@ -29,11 +29,13 @@ defmodule LiveStash.Client do
 
   @impl true
   def stash_assign(socket, key, value) do
-    encoded_value = value
+    encoded_value =
+    value
     |> :erlang.term_to_binary()
     |> Base.encode64()
 
-    encoded_key = key
+    encoded_key =
+    key
     |> :erlang.term_to_binary()
     |> Base.encode64()
 
@@ -46,25 +48,32 @@ defmodule LiveStash.Client do
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
       %{"stashedState" => stashed_state} ->
+        parsed_state = parse_state(stashed_state)
 
-        parsed_assigns =
-          stashed_state
-          |> Enum.map(fn {key, value} ->
-            {key |> Base.decode64!() |> :erlang.binary_to_term(),
-            value |> Base.decode64!() |> :erlang.binary_to_term()}
-          end)
-          |> Enum.into(%{})
-
-        {:recovered, Component.assign(socket, parsed_assigns)}
-
+        {:recovered, parsed_state}
       _ ->
-        {:not_found, socket}
+        {:not_found, %{}}
     end
   rescue
+    error in [ArgumentError, FunctionClauseError] ->
+      handle_recovery_error(error, __STACKTRACE__, "Could not recover stashed state. Error when decoding key and value to term.")
     error ->
-      err = Utils.error_message("Could not recover state", error, __STACKTRACE__)
-      Logger.error(err)
+      handle_recovery_error(error, __STACKTRACE__, "Could not recover stashed state.")
+  end
 
-      {:error, socket}
+  defp parse_state(stashed_state) do
+    stashed_state
+    |> Enum.map(fn {key, value} ->
+      {key |> Base.decode64!() |> :erlang.binary_to_term([:safe]),
+      value |> Base.decode64!() |> :erlang.binary_to_term([:safe])}
+    end)
+    |> Enum.into(%{})
+  end
+
+  defp handle_recovery_error(error, stacktrace, message) do
+    err = Utils.error_message(message, error, stacktrace)
+    Logger.error(err)
+
+    {:error, err}
   end
 end
