@@ -75,4 +75,9 @@ defmodule LiveStash.Client do
 
     {:error, err}
   end
+
+  @impl true
+  def reset_stash(socket) do
+    LiveView.push_event(socket, "live-stash:reset", %{})
+  end
 end

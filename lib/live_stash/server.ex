@@ -63,6 +63,20 @@ defmodule LiveStash.Server do
       {:error, err}
   end
 
+  @impl true
+  def reset_stash(socket) do
+    id = get_id(socket)
+    State.delete_by_id!(id)
+
+    socket
+  rescue
+    error ->
+      err = Utils.error_message("Could not reset stash", error, __STACKTRACE__)
+      Logger.error(err)
+
+      socket
+  end
+
   defp get_id(socket) do
     socket.id
   end

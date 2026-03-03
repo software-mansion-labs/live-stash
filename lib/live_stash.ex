@@ -40,6 +40,13 @@ defmodule LiveStash do
 
   def recover_state(_socket), do: {:new, %{}}
 
+  def reset_stash(socket) do
+    socket
+    |> get_mode()
+    |> module()
+    |> (& &1.reset_stash(socket)).()
+  end
+
   defp module(:server), do: LiveStash.Server
   defp module(:client), do: LiveStash.Client
   defp module(mode), do: raise(ArgumentError, "[LiveStash] Invalid mode: #{inspect(mode)}")
