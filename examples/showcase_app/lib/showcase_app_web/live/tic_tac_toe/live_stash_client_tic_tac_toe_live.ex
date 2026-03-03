@@ -1,11 +1,8 @@
 defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
+  use LiveStash, mode: :client
 
   import LiveStash
-
-  @live_stash_opts [
-    mode: :client
-  ]
 
   @winning_lines [
     [0, 1, 2],
@@ -20,12 +17,12 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
 
   def mount(_params, _session, socket) do
     socket
-    # manual stash initialization, can be replaced with `use LiveStash, mode: :client` which will automatically initialize the stash on mount
-    |> init_stash(@live_stash_opts)
     |> recover_state()
     |> case do
-      {:recovered, recovered_socket} -> recovered_socket
-      {_, socket} -> start_new_game(socket)
+      {:recovered, %{board: board, current_player: current_player, winner: winner, winning_line: winning_line}} ->
+        restore_game_state(socket, %{board: board, current_player: current_player, winner: winner, winning_line: winning_line})
+
+      _ -> start_new_game(socket)
     end
     |> then(&{:ok, &1})
   end
@@ -99,25 +96,35 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
 
     next_player = if socket.assigns.current_player == "X", do: "O", else: "X"
 
-    socket =
-      stash_assign(socket, :board, new_board)
-      |> stash_assign(:current_player, next_player)
-      |> stash_assign(:winner, winner)
-      |> stash_assign(:winning_line, winning_line)
-
-    {:noreply, socket}
+    socket
+    |> stash(:board, new_board)
+    |> stash(:current_player, next_player)
+    |> stash(:winner, winner)
+    |> stash(:winning_line, winning_line)
+    |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
+    |> then(&{:noreply, &1})
   end
 
   def handle_event("reset", _params, socket) do
     {:noreply, start_new_game(socket)}
   end
 
+  defp restore_game_state(socket, recovered_state) do
+    socket
+    |> stash(:board, recovered_state[:board])
+    |> stash(:current_player, recovered_state[:current_player])
+    |> stash(:winner, recovered_state[:winner])
+    |> stash(:winning_line, recovered_state[:winning_line])
+    |> assign(board: recovered_state[:board], current_player: recovered_state[:current_player], winner: recovered_state[:winner], winning_line: recovered_state[:winning_line])
+  end
+
   defp start_new_game(socket) do
     socket
-    |> stash_assign(:board, Map.new(0..8, fn i -> {i, nil} end))
-    |> stash_assign(:current_player, "X")
-    |> stash_assign(:winner, nil)
-    |> stash_assign(:winning_line, [])
+    |> stash(:board, Map.new(0..8, fn i -> {i, nil} end))
+    |> stash(:current_player, "X")
+    |> stash(:winner, nil)
+    |> stash(:winning_line, [])
+    |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
   end
 
   defp check_game_state(board) do

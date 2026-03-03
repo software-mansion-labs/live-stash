@@ -1,19 +1,22 @@
 defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
   use ShowcaseAppWeb, :live_view
+  use LiveStash, mode: :client
 
   import LiveStash
 
-  @live_stash_opts [
-    mode: :client
-  ]
-
   def mount(_params, _session, socket) do
     socket
-    |> init_stash(@live_stash_opts)
     |> recover_state()
     |> case do
-      {:recovered, recovered_socket} -> recovered_socket
-      {_, socket} -> stash_assign(socket, :count, 0)
+        {:recovered, %{count: count}} ->
+          socket
+          |> stash(:count, count)
+          |> assign(count: count)
+
+        _ ->
+          socket
+          |> stash(:count, 0)
+          |> assign(count: 0)
     end
     |> then(&{:ok, &1})
   end
@@ -75,10 +78,16 @@ defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
   end
 
   def handle_event("increment", _, socket) do
-    {:noreply, stash_assign(socket, :count, socket.assigns.count + 1)}
+    socket
+    |> stash(:count, socket.assigns.count + 1)
+    |> assign(:count, socket.assigns.count + 1)
+    |> then(&{:noreply, &1})
   end
 
   def handle_event("decrement", _, socket) do
-    {:noreply, stash_assign(socket, :count, socket.assigns.count - 1)}
+    socket
+    |> stash(:count, socket.assigns.count - 1)
+    |> assign(:count, socket.assigns.count - 1)
+    |> then(&{:noreply, &1})
   end
 end

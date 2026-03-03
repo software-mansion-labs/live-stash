@@ -24,11 +24,11 @@ defmodule LiveStash do
     module(mode).init_stash(socket, opts)
   end
 
-  def stash_assign(socket, key, value) do
+  def stash(socket, key, value) do
     socket
     |> get_mode()
     |> module()
-    |> (& &1.stash_assign(socket, key, value)).()
+    |> (& &1.stash(socket, key, value)).()
   end
 
   def recover_state(%{private: %{live_stash_reconnected?: true}} = socket) do

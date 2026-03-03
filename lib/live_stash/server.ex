@@ -9,7 +9,6 @@ defmodule LiveStash.Server do
   alias LiveStash.Utils
 
   alias Phoenix.LiveView
-  alias Phoenix.Component
 
   require Logger
 
@@ -33,17 +32,16 @@ defmodule LiveStash.Server do
   end
 
   @impl true
-  def stash_assign(socket, key, value) do
+  def stash(socket, key, value) do
     id = get_id(socket)
 
     State.put_assign!(id, key, value, get_opts(socket))
-    Component.assign(socket, key, value)
+    socket
   rescue
     error ->
       err = Utils.error_message("Could not stash assign", error, __STACKTRACE__)
       Logger.error(err)
-
-      Component.assign(socket, key, value)
+      socket
   end
 
   @impl true
