@@ -29,8 +29,16 @@ defmodule LiveStash.Client do
 
   @impl true
   def stash_assign(socket, key, value) do
+    encoded_value = value
+    |> :erlang.term_to_binary()
+    |> Base.encode64()
+
+    encoded_key = key
+    |> :erlang.term_to_binary()
+    |> Base.encode64()
+
     socket
-    |> LiveView.push_event("live-stash:stash", %{key: key, value: value})
+    |> LiveView.push_event("live-stash:stash", %{key: encoded_key, value: encoded_value})
     |> Component.assign(key, value)
   end
 
@@ -38,9 +46,13 @@ defmodule LiveStash.Client do
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
       %{"stashedState" => stashed_state} ->
+
         parsed_assigns =
           stashed_state
-          |> Enum.map(fn {key, value} -> {String.to_existing_atom(key), value} end)
+          |> Enum.map(fn {key, value} ->
+            {key |> Base.decode64!() |> :erlang.binary_to_term(),
+            value |> Base.decode64!() |> :erlang.binary_to_term()}
+          end)
           |> Enum.into(%{})
 
         {:recovered, Component.assign(socket, parsed_assigns)}
