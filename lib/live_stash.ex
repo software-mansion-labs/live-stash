@@ -7,7 +7,7 @@ defmodule LiveStash do
 
   defmacro __using__(opts) do
     quote do
-      on_mount {LiveStash, unquote(opts)}
+      on_mount({LiveStash, unquote(opts)})
     end
   end
 

@@ -10,6 +10,7 @@ defmodule LiveStash.Stash do
   @callback init_stash(socket :: Socket.t(), opts :: Keyword.t()) :: Socket.t()
   @callback stash(socket :: Socket.t(), state :: map() | keyword()) :: Socket.t()
   @callback stash(socket :: Socket.t(), key :: atom(), value :: term()) :: Socket.t()
-  @callback recover_state(socket :: Socket.t()) :: {recovery_status(), Socket.t()} | {:error, String.t()}
+  @callback recover_state(socket :: Socket.t()) ::
+              {recovery_status(), Socket.t()} | {:error, String.t()}
   @callback reset_stash(socket :: Socket.t()) :: Socket.t()
 end
