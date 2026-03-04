@@ -1,26 +1,20 @@
 defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
   use ShowcaseAppWeb, :live_view
+  use LiveStash, mode: :server, ttl: 60 * 1000
 
   import LiveStash
 
-  @live_stash_opts [
-    mode: :server,
-    ttl: 60000
-  ]
-
   def mount(_params, _session, socket) do
-    socket_p = init_stash(socket, @live_stash_opts)
-
-    socket_p
+    socket
     |> recover_state()
     |> case do
         {:recovered, %{count: count}} ->
-          socket_p
+          socket
           |> stash(:count, count)
           |> assign(count: count)
 
         _ ->
-          socket_p
+          socket
           |> stash(:count, 0)
           |> assign(count: 0)
     end

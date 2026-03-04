@@ -72,8 +72,8 @@ defmodule LiveStash.Server.State do
   @doc """
   Puts a new assign into the state of a LiveView or creates a new state record if it doesn't exist.
   """
-  @spec put_assign!(id :: term(), key :: term(), value :: term(), opts :: Keyword.t()) :: :ok
-  def put_assign!(id, key, value, opts) do
+  @spec put!(id :: term(), key :: term(), value :: term(), opts :: Keyword.t()) :: :ok
+  def put!(id, key, value, opts) do
     @table_name
     |> :ets.lookup(id)
     |> case do

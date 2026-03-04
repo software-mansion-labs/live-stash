@@ -45,7 +45,6 @@ defmodule LiveStash.Client do
     |> :erlang.term_to_binary()
     |> Base.encode64()
 
-    dbg([encoded_key, encoded_value])
     LiveView.push_event(socket, "live-stash:stash", %{key: encoded_key, value: encoded_value})
   end
 
@@ -53,9 +52,7 @@ defmodule LiveStash.Client do
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
       %{"stashedState" => stashed_state} ->
-        dbg(stashed_state)
         parsed_state = parse_state(stashed_state)
-        dbg(parsed_state)
         {:recovered, parsed_state}
       _ ->
         {:not_found, %{}}

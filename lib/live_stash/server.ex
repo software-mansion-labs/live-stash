@@ -42,7 +42,7 @@ defmodule LiveStash.Server do
   def stash(socket, key, value) do
     id = get_id(socket)
 
-    State.put_assign!(id, key, value, get_opts(socket))
+    State.put!(id, key, value, get_opts(socket))
     socket
   rescue
     error ->
