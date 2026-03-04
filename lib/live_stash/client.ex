@@ -27,13 +27,6 @@ defmodule LiveStash.Client do
   end
 
   @impl true
-  def stash(socket, state) do
-    Enum.reduce(state, socket, fn {key, value}, acc_socket ->
-      stash(acc_socket, key, value)
-    end)
-  end
-
-  @impl true
   def stash(socket, key, value) do
     encoded_value =
       value
@@ -52,7 +45,7 @@ defmodule LiveStash.Client do
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
       %{"stashedState" => stashed_state} ->
-        parsed_state = parse_state(stashed_state)
+        parsed_state = parse_state!(stashed_state)
         {:recovered, parsed_state}
 
       _ ->
@@ -70,7 +63,7 @@ defmodule LiveStash.Client do
       handle_recovery_error(error, __STACKTRACE__, "Could not recover stashed state.")
   end
 
-  defp parse_state(stashed_state) do
+  defp parse_state!(stashed_state) do
     stashed_state
     |> Enum.map(fn {key, value} ->
       {key |> Base.decode64!() |> :erlang.binary_to_term([:safe]),

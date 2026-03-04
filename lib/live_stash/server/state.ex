@@ -70,7 +70,7 @@ defmodule LiveStash.Server.State do
   end
 
   @doc """
-  Puts a new assign into the state of a LiveView or creates a new state record if it doesn't exist.
+  Puts a new key-value pair into the state of a LiveView or creates a new state record if it doesn't exist.
   """
   @spec put!(id :: term(), key :: term(), value :: term(), opts :: Keyword.t()) :: :ok
   def put!(id, key, value, opts) do

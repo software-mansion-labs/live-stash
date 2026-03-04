@@ -32,22 +32,17 @@ defmodule LiveStash.Server do
   end
 
   @impl true
-  def stash(socket, state) do
-    Enum.reduce(state, socket, fn {key, value}, acc_socket ->
-      stash(acc_socket, key, value)
-    end)
-  end
-
-  @impl true
   def stash(socket, key, value) do
-    id = get_id(socket)
+    socket
+    |> get_id()
+    |> State.put!(key, value, get_opts(socket))
 
-    State.put!(id, key, value, get_opts(socket))
     socket
   rescue
     error ->
       err = Utils.error_message("Could not stash assign", error, __STACKTRACE__)
       Logger.error(err)
+
       socket
   end
 
@@ -72,8 +67,9 @@ defmodule LiveStash.Server do
 
   @impl true
   def reset_stash(socket) do
-    id = get_id(socket)
-    State.delete_by_id!(id)
+    socket
+    |> get_id()
+    |> State.delete_by_id!()
 
     socket
   rescue

@@ -5,6 +5,8 @@ defmodule LiveStash do
 
   @default_opts [mode: :server, ttl: 5 * 60 * 1000]
 
+  @internal_assigns [:__changed__, :flash, :live_action, :myself]
+
   defmacro __using__(opts) do
     quote do
       on_mount({LiveStash, unquote(opts)})
@@ -24,11 +26,27 @@ defmodule LiveStash do
     module(mode).init_stash(socket, opts)
   end
 
+  def stash_assigned(socket, :all) do
+    socket.assigns
+    |> Map.drop(@internal_assigns)
+    |> Enum.reduce(socket, fn {key, value}, acc_socket ->
+      stash(acc_socket, key, value)
+    end)
+  end
+
+  def stash_assigned(socket, keys) when is_list(keys) do
+    Enum.reduce(keys, socket, fn key, acc_socket ->
+      case Map.fetch(socket.assigns, key) do
+        {:ok, value} -> stash(acc_socket, key, value)
+        :error -> acc_socket
+      end
+    end)
+  end
+
   def stash(socket, state) do
-    socket
-    |> get_mode()
-    |> module()
-    |> (& &1.stash(socket, state)).()
+    Enum.reduce(state, socket, fn {key, value}, acc_socket ->
+      stash(acc_socket, key, value)
+    end)
   end
 
   def stash(socket, key, value) do
