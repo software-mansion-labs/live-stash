@@ -24,6 +24,13 @@ defmodule LiveStash do
     module(mode).init_stash(socket, opts)
   end
 
+  def stash(socket, state) do
+    socket
+    |> get_mode()
+    |> module()
+    |> (& &1.stash(socket, state)).()
+  end
+
   def stash(socket, key, value) do
     socket
     |> get_mode()

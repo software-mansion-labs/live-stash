@@ -14,10 +14,10 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
     socket_p
     |> recover_state()
     |> case do
-        {:recovered, recovered_state} ->
+        {:recovered, %{count: count}} ->
           socket_p
-          |> stash(:count, recovered_state[:count] || 0)
-          |> assign(count: recovered_state[:count] || 0)
+          |> stash(:count, count)
+          |> assign(count: count)
 
         _ ->
           socket_p

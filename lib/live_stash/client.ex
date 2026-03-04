@@ -27,6 +27,13 @@ defmodule LiveStash.Client do
   end
 
   @impl true
+  def stash(socket, state) do
+    Enum.reduce(state, socket, fn {key, value}, acc_socket ->
+      stash(acc_socket, key, value)
+    end)
+  end
+
+  @impl true
   def stash(socket, key, value) do
     encoded_value =
     value
