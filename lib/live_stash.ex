@@ -26,7 +26,7 @@ defmodule LiveStash do
     module(mode).init_stash(socket, opts)
   end
 
-  def stash_assigned(socket, :all) do
+  def stash_assigned(socket) do
     socket.assigns
     |> Map.drop(@internal_assigns)
     |> Enum.reduce(socket, fn {key, value}, acc_socket ->
