@@ -15,8 +15,12 @@ defmodule LiveStash.Server do
   @impl true
   def init_stash(socket, opts) do
     ttl = Keyword.fetch!(opts, :ttl)
+    secret_fun = Keyword.fetch!(opts, :secret_fun)
     mounts = LiveView.get_connect_params(socket)["_mounts"]
     reconnected? = not is_nil(mounts) and mounts > 0
+
+    socket =
+      LiveView.put_private(socket, :live_stash_security_secret, secret_fun.(socket))
 
     # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
     if not reconnected? do
@@ -80,8 +84,12 @@ defmodule LiveStash.Server do
       socket
   end
 
-  defp get_id(socket) do
-    socket.id
+  defp get_id(%{id: id, private: %{live_stash_security_secret: secret}}) do
+    raw_key = id <> secret
+
+    hashed_binary = :crypto.hash(:sha256, raw_key)
+
+    Base.encode16(hashed_binary, case: :lower)
   end
 
   defp get_opts(socket) do

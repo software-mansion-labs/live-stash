@@ -3,9 +3,16 @@ defmodule LiveStash do
 
   @behaviour LiveStash.Stash
 
-  @default_opts [mode: :server, ttl: 5 * 60 * 1000]
-
   @internal_assigns [:__changed__, :flash, :live_action, :myself]
+
+  @default_opts [
+    mode: :server,
+    ttl: 5 * 60 * 1000,
+    security_mode: :encode,
+    secret_fun: &__MODULE__.default_secret_fun/1
+  ]
+
+  def default_secret_fun(_), do: "live_stash"
 
   defmacro __using__(opts) do
     quote do
