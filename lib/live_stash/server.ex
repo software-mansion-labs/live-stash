@@ -8,19 +8,11 @@ defmodule LiveStash.Server do
   alias LiveStash.Server.State
   alias LiveStash.Utils
 
-  alias Phoenix.LiveView
-
   require Logger
 
   @impl true
-  def init_stash(socket, opts) do
-    ttl = Keyword.fetch!(opts, :ttl)
-    secret_fun = Keyword.fetch!(opts, :secret_fun)
-    mounts = LiveView.get_connect_params(socket)["_mounts"]
-    reconnected? = not is_nil(mounts) and mounts > 0
-
-    socket =
-      LiveView.put_private(socket, :live_stash_security_secret, secret_fun.(socket))
+  def init_stash(socket, _opts) do
+    reconnected? = socket.private.live_stash.reconnected?
 
     # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
     if not reconnected? do
@@ -30,9 +22,6 @@ defmodule LiveStash.Server do
     end
 
     socket
-    |> LiveView.put_private(:live_stash_mode, :server)
-    |> LiveView.put_private(:live_stash_ttl, ttl)
-    |> LiveView.put_private(:live_stash_reconnected?, reconnected?)
   end
 
   @impl true
@@ -84,15 +73,17 @@ defmodule LiveStash.Server do
       socket
   end
 
-  defp get_id(%{id: id, private: %{live_stash_security_secret: secret}}) do
+  defp get_id(
+         %{id: id, private: %{live_stash: %LiveStash.Settings{security_secret: secret}}} = _socket
+       )
+       when is_binary(id) and is_binary(secret) do
     raw_key = id <> secret
-
     hashed_binary = :crypto.hash(:sha256, raw_key)
 
     Base.encode16(hashed_binary, case: :lower)
   end
 
   defp get_opts(socket) do
-    [ttl: socket.private.live_stash_ttl]
+    [ttl: socket.private.live_stash.ttl]
   end
 end

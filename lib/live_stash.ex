@@ -3,14 +3,10 @@ defmodule LiveStash do
 
   @behaviour LiveStash.Stash
 
-  @internal_assigns [:__changed__, :flash, :live_action, :myself]
+  alias Phoenix.LiveView
+  alias LiveStash.Settings
 
-  @default_opts [
-    mode: :server,
-    ttl: 5 * 60 * 1000,
-    security_mode: :encode,
-    secret_fun: &__MODULE__.default_secret_fun/1
-  ]
+  @internal_assigns [:__changed__, :flash, :live_action, :myself]
 
   def default_secret_fun(_), do: "live_stash"
 
@@ -27,10 +23,19 @@ defmodule LiveStash do
   end
 
   def init_stash(socket, opts \\ []) do
-    opts = Keyword.merge(@default_opts, opts)
+    secret_fun = Keyword.get(opts, :secret_fun, &__MODULE__.default_secret_fun/1)
+    evaluated_secret = secret_fun.(socket)
+
+    mounts = LiveView.get_connect_params(socket)["_mounts"]
+    reconnected? = not is_nil(mounts) and mounts > 0
+
     mode = Keyword.fetch!(opts, :mode)
 
-    module(mode).init_stash(socket, opts)
+    settings = Settings.new(opts, reconnected?, evaluated_secret)
+
+    socket
+    |> LiveView.put_private(:live_stash, settings)
+    |> module(mode).init_stash(opts)
   end
 
   def stash_assigned(socket) do
@@ -56,14 +61,14 @@ defmodule LiveStash do
     end)
   end
 
-  def stash(socket, key, value) do
+  def stash(socket, key, value) when is_atom(key) or is_number(key) or is_binary(key) do
     socket
     |> get_mode()
     |> module()
     |> (& &1.stash(socket, key, value)).()
   end
 
-  def recover_state(%{private: %{live_stash_reconnected?: true}} = socket) do
+  def recover_state(%{private: %{live_stash: %LiveStash.Settings{reconnected?: true}}} = socket) do
     socket
     |> get_mode()
     |> module()
@@ -83,7 +88,7 @@ defmodule LiveStash do
   defp module(:client), do: LiveStash.Client
   defp module(mode), do: raise(ArgumentError, "[LiveStash] Invalid mode: #{inspect(mode)}")
 
-  defp get_mode(%{private: %{live_stash_mode: mode}}), do: mode
+  defp get_mode(%{private: %{live_stash: %LiveStash.Settings{mode: mode}}}), do: mode
 
   defp get_mode(_) do
     raise(
