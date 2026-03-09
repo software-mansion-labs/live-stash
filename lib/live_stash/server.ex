@@ -50,7 +50,7 @@ defmodule LiveStash.Server do
   def recover_state(socket) do
     id = get_id(socket)
 
-    case State.get_by_id!(id) do
+    case get_state_from_cluster!(id) do
       {:ok, state} ->
         {:recovered, state}
 
@@ -78,6 +78,54 @@ defmodule LiveStash.Server do
       Logger.error(err)
 
       socket
+  end
+
+  defp get_state_from_cluster!(id) do
+    case State.get_by_id!(id) do
+      {:ok, state} ->
+        {:ok, state}
+
+      :not_found ->
+        search_in_other_nodes(id)
+    end
+  end
+
+  defp search_in_other_nodes(id) do
+    nodes = Node.list()
+
+    recovery_result =
+      if Enum.empty?(nodes) do
+        :not_found
+      else
+        results = :erpc.multicall(nodes, State, :get_by_id!, [id])
+
+        nodes_with_results = Enum.zip(nodes, results)
+
+        Enum.find_value(nodes_with_results, fn
+          {_node, {:ok, {:ok, state}}} ->
+            {:ok, state}
+
+          {_node, {:ok, :not_found}} ->
+            nil
+
+          {node, {:error, {:exception, error, stacktrace}}} ->
+            msg =
+              Utils.error_message(
+                "Exception on node #{inspect(node)} for id #{inspect(id)}",
+                error,
+                stacktrace
+              )
+
+            Logger.error(msg)
+            nil
+
+          {node, error} ->
+            Logger.error("RPC communication error with node #{inspect(node)}: #{inspect(error)}")
+            nil
+        end)
+      end
+
+    recovery_result || :not_found
   end
 
   defp get_id(socket) do

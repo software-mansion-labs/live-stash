@@ -63,7 +63,8 @@ defmodule ShowcaseApp.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
-      {:live_stash, path: "../../"}
+      {:live_stash, path: "../../"},
+      {:libcluster, "~> 3.5"}
     ]
   end
 

@@ -7,7 +7,15 @@ defmodule ShowcaseApp.Application do
 
   @impl true
   def start(_type, _args) do
+    topologies = [
+      example: [
+        strategy: Cluster.Strategy.Epmd,
+        config: [hosts: [:"a@127.0.0.1", :"b@127.0.0.1"]],
+      ]
+    ]
+
     children = [
+      {Cluster.Supervisor, [topologies, [name: ShowcaseApp.ClusterSupervisor]]},
       ShowcaseAppWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:showcase_app, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ShowcaseApp.PubSub},
