@@ -21,14 +21,14 @@ defmodule LiveStash.Settings do
           mode: :client | :server,
           reconnected?: boolean(),
           security_secret: binary(),
-          security_mode: :encode | :sign | :encrypt,
+          security_mode: :sign | :encrypt,
           ttl: integer()
         }
 
   @default_opts [
     mode: :server,
     ttl: 5 * 60 * 1000,
-    security_mode: :encode
+    security_mode: :sign
   ]
 
   def new(user_opts, reconnected?, evaluated_secret) do

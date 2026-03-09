@@ -17,9 +17,12 @@ defmodule LiveStash.Client do
     reconnected? = socket.private.live_stash.reconnected?
 
     # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
-    if not reconnected? do
-      LiveView.push_event(socket, "live-stash:reset", %{})
-    end
+    socket =
+      if not reconnected? do
+        LiveView.push_event(socket, "live-stash:reset", %{})
+      else
+        socket
+      end
 
     socket
   end

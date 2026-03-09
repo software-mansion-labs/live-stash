@@ -43,7 +43,7 @@ defmodule LiveStash.Serializer do
 
   defp safe_decode(encoded_value) do
     with {:ok, decoded64} <- Base.decode64(encoded_value) do
-      {:ok, Plug.Crypto.non_executable_binary_to_term(decoded64, [:safe])}
+      {:ok, Plug.Crypto.non_executable_binary_to_term(decoded64)}
     else
       :error -> {:error, :invalid_base64}
     end
