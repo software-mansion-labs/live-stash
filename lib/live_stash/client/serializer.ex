@@ -3,63 +3,64 @@ defmodule LiveStash.Serializer do
 
   require Logger
 
-  def term_to_external(socket, opts, key, value) do
-    {encode(key), secure_value(socket, opts, value)}
+  alias LiveStash.Utils
+
+  @spec term_to_external(Phoenix.LiveView.Socket.t(), term(), term(), map()) ::
+          {binary(), binary()}
+  def term_to_external(socket, key, value, opts) do
+    {term_to_string(key), encode_token(socket, value, opts)}
   end
 
-  def external_to_term(socket, opts, stashed_state) do
+  @spec external_to_term(Phoenix.LiveView.Socket.t(), map(), map()) :: map()
+  def external_to_term(socket, stashed_state, opts) do
     Enum.reduce(stashed_state, %{}, fn {key, value}, acc ->
-      with {:ok, decoded_key} <- safe_decode(key),
-           {:ok, processed_value} <- decode_value(socket, opts, value) do
+      with {:ok, decoded_key} <- string_to_term(key),
+           {:ok, processed_value} <- decode_token(socket, value, opts) do
         Map.put(acc, decoded_key, processed_value)
       else
         {:error, reason} ->
-          Logger.warning(
-            "Could not recover a stashed item (reason: #{inspect(reason)}). Skipping."
-          )
+          warning =
+            Utils.warning_message(
+              "Could not recover a stashed item. Skipping.",
+              reason
+            )
+
+          Logger.warning(warning)
 
           acc
       end
     end)
   end
 
-  defp secure_value(_socket, %{security_mode: :encode}, value) do
-    encode(value)
+  defp encode_token(socket, value, %{security_mode: :sign} = opts) do
+    Phoenix.Token.sign(socket, opts.secret, value, max_age: opts.ttl)
   end
 
-  defp secure_value(socket, %{security_mode: :sign} = opts, value) do
-    Phoenix.Token.sign(socket, opts[:security_secret], value, max_age: opts[:ttl])
+  defp encode_token(socket, value, %{security_mode: :encrypt} = opts) do
+    Phoenix.Token.encrypt(socket, opts.secret, value, max_age: opts.ttl)
   end
 
-  defp secure_value(socket, %{security_mode: :encrypt} = opts, value) do
-    Phoenix.Token.encrypt(socket, opts[:security_secret], value, max_age: opts[:ttl])
+  defp decode_token(socket, value, %{security_mode: :sign} = opts) do
+    Phoenix.Token.verify(socket, opts.secret, value, max_age: opts.ttl)
   end
 
-  defp encode(value) do
+  defp decode_token(socket, value, %{security_mode: :encrypt} = opts) do
+    Phoenix.Token.decrypt(socket, opts.secret, value, max_age: opts.ttl)
+  end
+
+  defp term_to_string(value) do
     value
     |> :erlang.term_to_binary()
     |> Base.encode64()
   end
 
-  defp safe_decode(encoded_value) do
+  defp string_to_term(encoded_value) do
     with {:ok, decoded64} <- Base.decode64(encoded_value) do
-      {:ok, Plug.Crypto.non_executable_binary_to_term(decoded64)}
+      {:ok, Plug.Crypto.non_executable_binary_to_term(decoded64, [:safe])}
     else
       :error -> {:error, :invalid_base64}
     end
   rescue
     ArgumentError -> {:error, :invalid_term}
-  end
-
-  defp decode_value(_socket, %{security_mode: :encode}, value) do
-    safe_decode(value)
-  end
-
-  defp decode_value(socket, %{security_mode: :sign} = opts, value) do
-    Phoenix.Token.verify(socket, opts[:security_secret], value, max_age: opts[:ttl])
-  end
-
-  defp decode_value(socket, %{security_mode: :encrypt} = opts, value) do
-    Phoenix.Token.decrypt(socket, opts[:security_secret], value, max_age: opts[:ttl])
   end
 end

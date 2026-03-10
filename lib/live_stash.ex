@@ -68,6 +68,11 @@ defmodule LiveStash do
     |> (& &1.stash(socket, key, value)).()
   end
 
+  def stash(_socket, key, _value) do
+    raise ArgumentError,
+          "Invalid stash key: #{inspect(key)}. The key can only be an atom, number, or string (binary)."
+  end
+
   def recover_state(%{private: %{live_stash: %LiveStash.Settings{reconnected?: true}}} = socket) do
     socket
     |> get_mode()

@@ -4,7 +4,7 @@ defmodule LiveStash.Settings do
   @enforce_keys [
     :mode,
     :reconnected?,
-    :security_secret,
+    :secret,
     :security_mode,
     :ttl
   ]
@@ -12,7 +12,7 @@ defmodule LiveStash.Settings do
   defstruct [
     :mode,
     :reconnected?,
-    :security_secret,
+    :secret,
     :security_mode,
     :ttl
   ]
@@ -20,7 +20,7 @@ defmodule LiveStash.Settings do
   @type t :: %__MODULE__{
           mode: :client | :server,
           reconnected?: boolean(),
-          security_secret: binary(),
+          secret: binary(),
           security_mode: :sign | :encrypt,
           ttl: integer()
         }
@@ -39,7 +39,7 @@ defmodule LiveStash.Settings do
       security_mode: Keyword.fetch!(opts, :security_mode),
       ttl: Keyword.fetch!(opts, :ttl),
       reconnected?: reconnected?,
-      security_secret: evaluated_secret
+      secret: evaluated_secret
     }
   end
 end

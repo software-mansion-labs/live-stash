@@ -73,9 +73,7 @@ defmodule LiveStash.Server do
       socket
   end
 
-  defp get_id(
-         %{id: id, private: %{live_stash: %LiveStash.Settings{security_secret: secret}}} = _socket
-       )
+  defp get_id(%{id: id, private: %{live_stash: %LiveStash.Settings{secret: secret}}} = _socket)
        when is_binary(id) and is_binary(secret) do
     raw_key = id <> secret
     hashed_binary = :crypto.hash(:sha256, raw_key)

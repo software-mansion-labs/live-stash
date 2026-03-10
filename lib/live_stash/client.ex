@@ -17,14 +17,11 @@ defmodule LiveStash.Client do
     reconnected? = socket.private.live_stash.reconnected?
 
     # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
-    socket =
-      if not reconnected? do
-        LiveView.push_event(socket, "live-stash:reset", %{})
-      else
-        socket
-      end
-
-    socket
+    if not reconnected? do
+      LiveView.push_event(socket, "live-stash:reset", %{})
+    else
+      socket
+    end
   end
 
   @impl true
@@ -32,9 +29,9 @@ defmodule LiveStash.Client do
     {external_key, external_value} =
       Serializer.term_to_external(
         socket,
-        get_opts(socket),
         key,
-        value
+        value,
+        get_settings(socket)
       )
 
     LiveView.push_event(socket, "live-stash:stash", %{key: external_key, value: external_value})
@@ -44,7 +41,7 @@ defmodule LiveStash.Client do
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
       %{"stashedState" => stashed_state} when is_map(stashed_state) ->
-        recovered_state = Serializer.external_to_term(socket, get_opts(socket), stashed_state)
+        recovered_state = Serializer.external_to_term(socket, stashed_state, get_settings(socket))
 
         {:recovered, recovered_state}
 
@@ -72,10 +69,10 @@ defmodule LiveStash.Client do
     {:error, err}
   end
 
-  defp get_opts(socket) do
+  defp get_settings(socket) do
     %{
       ttl: socket.private.live_stash.ttl,
-      security_secret: socket.private.live_stash.security_secret,
+      secret: socket.private.live_stash.secret,
       security_mode: socket.private.live_stash.security_mode
     }
   end
