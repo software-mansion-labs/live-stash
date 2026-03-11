@@ -96,7 +96,7 @@ defmodule LiveStash.Server do
         :not_found
 
       nodes ->
-        results = :erpc.multicall(nodes, LiveStash.Server.State, :get_by_id!, [id])
+        results = :erpc.multicall(nodes, LiveStash.Server.State, :pop_by_id!, [id])
 
         nodes
         |> Enum.zip(results)
@@ -105,8 +105,7 @@ defmodule LiveStash.Server do
     end
   end
 
-  defp handle_search_result({node, {:ok, {:ok, state}}}, id) do
-    clear_old_state(node, id)
+  defp handle_search_result({_node, {:ok, {:ok, state}}}, _id) do
     {:ok, state}
   end
 
@@ -115,16 +114,6 @@ defmodule LiveStash.Server do
   defp handle_search_result({node, error_payload}, id) do
     log_rpc_error(node, id, "Exception during search", error_payload)
     nil
-  end
-
-  defp clear_old_state(node, id) do
-    case :erpc.multicall([node], LiveStash.Server.State, :delete_by_id!, [id]) do
-      [{:ok, _result}] ->
-        :ok
-
-      [error_payload] ->
-        log_rpc_error(node, id, "Failed to clear old state", error_payload)
-    end
   end
 
   defp log_rpc_error(node, id, context_msg, error_payload) do
