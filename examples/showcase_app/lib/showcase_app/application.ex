@@ -9,6 +9,7 @@ defmodule ShowcaseApp.Application do
   def start(_type, _args) do
     children = [
       ShowcaseAppWeb.Telemetry,
+      ShowcaseApp.Repo,
       {DNSCluster, query: Application.get_env(:showcase_app, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ShowcaseApp.PubSub},
       # Start a worker by calling: ShowcaseApp.Worker.start_link(arg)
