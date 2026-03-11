@@ -2,19 +2,16 @@ defmodule LiveStash.Settings do
   @moduledoc false
 
   @enforce_keys [
-    :mode,
     :reconnected?,
-    :secret,
-    :security_mode,
-    :ttl
+    :secret
   ]
 
   defstruct [
-    :mode,
     :reconnected?,
     :secret,
-    :security_mode,
-    :ttl
+    mode: :server,
+    security_mode: :sign,
+    ttl: 5 * 60 * 1000
   ]
 
   @type t :: %__MODULE__{
@@ -25,21 +22,12 @@ defmodule LiveStash.Settings do
           ttl: integer()
         }
 
-  @default_opts [
-    mode: :server,
-    ttl: 5 * 60 * 1000,
-    security_mode: :sign
-  ]
-
   def new(user_opts, reconnected?, evaluated_secret) do
-    opts = Keyword.merge(@default_opts, user_opts)
+    attrs =
+      user_opts
+      |> Keyword.put(:reconnected?, reconnected?)
+      |> Keyword.put(:secret, evaluated_secret)
 
-    %__MODULE__{
-      mode: Keyword.fetch!(opts, :mode),
-      security_mode: Keyword.fetch!(opts, :security_mode),
-      ttl: Keyword.fetch!(opts, :ttl),
-      reconnected?: reconnected?,
-      secret: evaluated_secret
-    }
+    struct!(__MODULE__, attrs)
   end
 end

@@ -5,7 +5,7 @@ window.addEventListener("phx:live-stash:reset", (_event) => {
 })
 
 window.addEventListener("phx:live-stash:stash", (event) => {
-  stashedState[event.detail.key] = event.detail.value;
+  stashedState[event.detail.key_hash] = { "key": event.detail.key, "value": event.detail.value };
 })
 
 export default function initLiveStash(params) {

@@ -26,7 +26,7 @@ defmodule LiveStash.Client do
 
   @impl true
   def stash(socket, key, value) do
-    {external_key, external_value} =
+    {key_hash, external_key, external_value} =
       Serializer.term_to_external(
         socket,
         key,
@@ -34,7 +34,11 @@ defmodule LiveStash.Client do
         get_settings(socket)
       )
 
-    LiveView.push_event(socket, "live-stash:stash", %{key: external_key, value: external_value})
+    LiveView.push_event(socket, "live-stash:stash", %{
+      key_hash: key_hash,
+      key: external_key,
+      value: external_value
+    })
   end
 
   @impl true
