@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :client
+  use LiveStash, mode: :client, security_mode: :encrypt
 
   import LiveStash
 
