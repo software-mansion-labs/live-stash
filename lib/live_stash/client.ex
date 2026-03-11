@@ -73,10 +73,10 @@ defmodule LiveStash.Client do
   end
 
   defp handle_recovery_error(error, stacktrace, message) do
-    err = Utils.error_message(message, error, stacktrace)
-    Logger.error(err)
+    msg = Utils.error_message(message, error, stacktrace)
+    Logger.error(msg)
 
-    {:error, err}
+    {:error, msg}
   end
 
   @impl true

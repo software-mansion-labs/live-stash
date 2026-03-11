@@ -91,41 +91,65 @@ defmodule LiveStash.Server do
   end
 
   defp search_in_other_nodes(id) do
-    nodes = Node.list()
-
-    recovery_result =
-      if Enum.empty?(nodes) do
+    case Node.list() do
+      [] ->
         :not_found
-      else
-        results = :erpc.multicall(nodes, State, :get_by_id!, [id])
 
-        nodes_with_results = Enum.zip(nodes, results)
+      nodes ->
+        results = :erpc.multicall(nodes, LiveStash.Server.State, :get_by_id!, [id])
 
-        Enum.find_value(nodes_with_results, fn
-          {_node, {:ok, {:ok, state}}} ->
-            {:ok, state}
+        nodes
+        |> Enum.zip(results)
+        |> Enum.find_value(&handle_search_result(&1, id))
+        |> Kernel.||(:not_found)
+    end
+  end
 
-          {_node, {:ok, :not_found}} ->
-            nil
+  defp handle_search_result({node, {:ok, {:ok, state}}}, id) do
+    clear_old_state(node, id)
+    {:ok, state}
+  end
 
-          {node, {:error, {:exception, error, stacktrace}}} ->
-            msg =
-              Utils.error_message(
-                "Exception on node #{inspect(node)} for id #{inspect(id)}",
-                error,
-                stacktrace
-              )
+  defp handle_search_result({_node, {:ok, :not_found}}, _id), do: nil
 
-            Logger.error(msg)
-            nil
+  defp handle_search_result({node, error_payload}, id) do
+    log_rpc_error(node, id, "Exception during search", error_payload)
+    nil
+  end
 
-          {node, error} ->
-            Logger.error("RPC communication error with node #{inspect(node)}: #{inspect(error)}")
-            nil
-        end)
-      end
+  defp clear_old_state(node, id) do
+    case :erpc.multicall([node], LiveStash.Server.State, :delete_by_id!, [id]) do
+      [{:ok, _result}] ->
+        :ok
 
-    recovery_result || :not_found
+      [error_payload] ->
+        log_rpc_error(node, id, "Failed to clear old state", error_payload)
+    end
+  end
+
+  defp log_rpc_error(node, id, context_msg, error_payload) do
+    case error_payload do
+      {:error, {:exception, %UndefinedFunctionError{}, _stacktrace}} ->
+        :ok
+
+      {:error, {:exception, :undef, _stacktrace}} ->
+        :ok
+
+      {:error, {:exception, error, stacktrace}} ->
+        msg =
+          Utils.error_message(
+            "#{context_msg} on node #{inspect(node)} for id #{inspect(id)}",
+            error,
+            stacktrace
+          )
+
+        Logger.error(msg)
+
+      rpc_error ->
+        Logger.error(
+          "RPC error (#{context_msg}) with node #{inspect(node)}: #{inspect(rpc_error)}"
+        )
+    end
   end
 
   defp get_id(socket) do
