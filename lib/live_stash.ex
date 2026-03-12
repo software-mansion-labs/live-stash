@@ -117,7 +117,7 @@ defmodule LiveStash do
             __STACKTRACE__
           )
 
-        raise ArgumentError, msg
+        reraise ArgumentError.exception(msg), __STACKTRACE__
     end
   end
 
@@ -133,8 +133,7 @@ defmodule LiveStash do
             __STACKTRACE__
           )
 
-        raise RuntimeError,
-              msg
+        reraise RuntimeError.exception(msg), __STACKTRACE__
     end
   end
 end
