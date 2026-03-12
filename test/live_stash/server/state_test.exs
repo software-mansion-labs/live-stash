@@ -47,10 +47,10 @@ defmodule LiveStash.Server.StateTest do
     end
   end
 
-  describe "put_assign!/4" do
+  describe "put!/4" do
     test "creates a new state record when id doesn't exist" do
       id = "new_id"
-      assert State.put_assign!(id, :key, "value", ttl: 1000) == :ok
+      assert State.put!(id, :key, "value", ttl: 1000) == :ok
 
       assert {:ok, %{key: "value"}} = State.get_by_id!(id)
     end
@@ -58,8 +58,8 @@ defmodule LiveStash.Server.StateTest do
     test "updates existing state record when id exists" do
       id = "existing_id"
       opts = [ttl: 1000]
-      State.put_assign!(id, :key1, "value1", opts)
-      State.put_assign!(id, :key2, "value2", opts)
+      State.put!(id, :key1, "value1", opts)
+      State.put!(id, :key2, "value2", opts)
 
       assert {:ok, state} = State.get_by_id!(id)
       assert state.key1 == "value1"
@@ -69,8 +69,8 @@ defmodule LiveStash.Server.StateTest do
     test "overwrites existing key when updating" do
       id = "update_id"
       opts = [ttl: 1000]
-      State.put_assign!(id, :key, "value1", opts)
-      State.put_assign!(id, :key, "value2", opts)
+      State.put!(id, :key, "value1", opts)
+      State.put!(id, :key, "value2", opts)
 
       assert {:ok, %{key: "value2"}} = State.get_by_id!(id)
     end
@@ -103,6 +103,33 @@ defmodule LiveStash.Server.StateTest do
 
     test "returns :ok even when record doesn't exist" do
       assert State.delete_by_id!("non_existent_id") == :ok
+    end
+  end
+
+  describe "pop_by_id!/1" do
+    test "returns {:ok, state} and deletes the record when it exists" do
+      id = "pop_id_exists"
+      state_map = %{key: "value"}
+      opts = [ttl: 5000]
+
+      record = State.new(id, state_map, opts)
+      State.insert!(record)
+
+      assert {:ok, ^state_map} = State.get_by_id!(id)
+
+      assert {:ok, popped_state} = State.pop_by_id!(id)
+
+      assert popped_state == state_map
+
+      assert :not_found == State.get_by_id!(id)
+    end
+
+    test "returns :not_found when the record does not exist" do
+      id = "pop_id_missing"
+
+      assert :not_found == State.get_by_id!(id)
+
+      assert :not_found == State.pop_by_id!(id)
     end
   end
 

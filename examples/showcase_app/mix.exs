@@ -67,7 +67,8 @@ defmodule ShowcaseApp.MixProject do
       {:live_stash, path: "../../"},
       {:ecto_sql, "~> 3.10"},
       {:ecto_sqlite3, ">= 0.0.0"},
-      {:phoenix_ecto, "~> 4.4"}
+      {:phoenix_ecto, "~> 4.4"},
+      {:libcluster, "~> 3.5"}
     ]
   end
 

@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  node_a:
+    build: .
+    hostname: node_a
+    working_dir: /workspace/examples/showcase_app
+    command: sh -c "mix deps.get && epmd -daemon && iex --sname a@node_a --cookie livestashexamplecluster -S mix phx.server"
+    environment:
+      - PORT=4000
+    ports:
+      - "4000:4000"
+    volumes:
+      - ../../:/workspace
+      - /workspace/examples/showcase_app/_build
+      - /workspace/examples/showcase_app/deps
+      - /workspace/_build
+      - /workspace/deps
+
+  node_b:
+    build: .
+    hostname: node_b
+    working_dir: /workspace/examples/showcase_app
+    command: sh -c "mix deps.get && epmd -daemon && iex --sname b@node_b --cookie livestashexamplecluster -S mix phx.server"
+    environment:
+      - PORT=4000
+    ports:
+      - "4001:4000"
+    volumes:
+      - ../../:/workspace
+      - /workspace/examples/showcase_app/_build
+      - /workspace/examples/showcase_app/deps
+      - /workspace/_build
+      - /workspace/deps
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - node_a
+      - node_b

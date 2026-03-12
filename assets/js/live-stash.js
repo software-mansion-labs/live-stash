@@ -1,15 +1,18 @@
-let stashedState = {}
+let stashedState = {};
 
-window.addEventListener("phx:live-stash:reset", (_event) => {
-  stashedState = {}
-})
+window.addEventListener('phx:live-stash:reset', (_event) => {
+  stashedState = {};
+});
 
-window.addEventListener("phx:live-stash:stash", (event) => {
-  stashedState[event.detail.key_hash] = { "key": event.detail.key, "value": event.detail.value };
-})
+window.addEventListener('phx:live-stash:stash', (event) => {
+  stashedState[event.detail.key_hash] = {
+    key: event.detail.key,
+    value: event.detail.value,
+  };
+});
 
 export default function initLiveStash(params) {
   return () => {
-    return { "stashedState": stashedState, ...params }
-  }
+    return { stashedState: stashedState, ...params };
+  };
 }
