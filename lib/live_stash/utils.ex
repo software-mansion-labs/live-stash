@@ -19,4 +19,9 @@ defmodule LiveStash.Utils do
   def error_message(message, error) do
     "[LiveStash] #{message} - report issue to LiveStash maintainers:\n#{Exception.format(:error, error)}"
   end
+
+  @spec warning_message(message :: String.t(), reason :: term()) :: String.t()
+  def warning_message(message, reason) do
+    "#{message}, reason: #{inspect(reason)}"
+  end
 end
