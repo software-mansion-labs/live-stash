@@ -8,68 +8,58 @@ defmodule LiveStash.Client do
   require Logger
 
   alias LiveStash.Utils
+  alias LiveStash.Serializer
 
   alias Phoenix.LiveView
 
   @impl true
   def init_stash(socket, _opts) do
-    mounts = LiveView.get_connect_params(socket)["_mounts"]
-    reconnected? = not is_nil(mounts) and mounts > 0
+    reconnected? = socket.private.live_stash.reconnected?
 
     # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
     if not reconnected? do
       LiveView.push_event(socket, "live-stash:reset", %{})
+    else
+      socket
     end
-
-    socket
-    |> LiveView.put_private(:live_stash_mode, :client)
-    |> LiveView.put_private(:live_stash_reconnected?, reconnected?)
   end
 
   @impl true
   def stash(socket, key, value) do
-    encoded_value =
-      value
-      |> :erlang.term_to_binary()
-      |> Base.encode64()
+    payload =
+      Serializer.term_to_external(
+        socket,
+        key,
+        value,
+        get_settings(socket)
+      )
 
-    encoded_key =
-      key
-      |> :erlang.term_to_binary()
-      |> Base.encode64()
-
-    LiveView.push_event(socket, "live-stash:stash", %{key: encoded_key, value: encoded_value})
+    LiveView.push_event(socket, "live-stash:stash", payload)
   end
 
   @impl true
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
-      %{"stashedState" => stashed_state} ->
-        parsed_state = parse_state!(stashed_state)
-        {:recovered, parsed_state}
+      %{"stashedState" => stashed_state} when is_map(stashed_state) ->
+        recovered_state = Serializer.external_to_term(socket, stashed_state, get_settings(socket))
+
+        {:recovered, recovered_state}
 
       _ ->
         {:not_found, %{}}
     end
   rescue
-    error in [ArgumentError, FunctionClauseError] ->
+    error ->
       handle_recovery_error(
         error,
         __STACKTRACE__,
-        "Could not recover stashed state. Error when decoding key and value to term."
+        "Could not recover stashed state due to an unexpected error."
       )
-
-    error ->
-      handle_recovery_error(error, __STACKTRACE__, "Could not recover stashed state.")
   end
 
-  defp parse_state!(stashed_state) do
-    stashed_state
-    |> Enum.map(fn {key, value} ->
-      {key |> Base.decode64!() |> :erlang.binary_to_term([:safe]),
-       value |> Base.decode64!() |> :erlang.binary_to_term([:safe])}
-    end)
-    |> Enum.into(%{})
+  @impl true
+  def reset_stash(socket) do
+    LiveView.push_event(socket, "live-stash:reset", %{})
   end
 
   defp handle_recovery_error(error, stacktrace, message) do
@@ -79,8 +69,11 @@ defmodule LiveStash.Client do
     {:error, err}
   end
 
-  @impl true
-  def reset_stash(socket) do
-    LiveView.push_event(socket, "live-stash:reset", %{})
+  defp get_settings(socket) do
+    %{
+      ttl: socket.private.live_stash.ttl,
+      secret: socket.private.live_stash.secret,
+      security_mode: socket.private.live_stash.security_mode
+    }
   end
 end
