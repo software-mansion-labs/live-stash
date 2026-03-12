@@ -22,6 +22,6 @@ defmodule LiveStash.Utils do
 
   @spec warning_message(message :: String.t(), reason :: term()) :: String.t()
   def warning_message(message, reason) do
-    "#{message}, reason: #{inspect(reason)}"
+    "[LiveStash] #{message}, reason: #{inspect(reason)}"
   end
 end
