@@ -1,0 +1,7 @@
+{
+  "name": "live-stash-assets",
+  "private": true,
+  "devDependencies": {
+    "prettier": "^3.5.1"
+  }
+}

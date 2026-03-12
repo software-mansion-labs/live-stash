@@ -22,3 +22,6 @@ erl_crash.dump
 .expert/
 
 .elixir_ls/
+
+# Node dependencies (assets)
+/assets/node_modules/
