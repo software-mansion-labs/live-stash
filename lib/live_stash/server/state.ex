@@ -114,6 +114,19 @@ defmodule LiveStash.Server.State do
   end
 
   @doc """
+  Pops the state of a LiveView from the ETS table, returning it and deleting the record.
+  """
+  @spec pop_by_id!(id :: term()) :: :not_found | {:ok, map()}
+  def pop_by_id!(id) do
+    @table_name
+    |> :ets.take(id)
+    |> case do
+      [{:state, ^id, _pid, _delete_at, _ttl, state}] -> {:ok, state}
+      [] -> :not_found
+    end
+  end
+
+  @doc """
   Gets a batch of state records from the ETS table.
   """
   @spec get_batch!(now :: integer()) ::

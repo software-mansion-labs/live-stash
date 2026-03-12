@@ -36,7 +36,13 @@ defmodule LiveStash.Serializer do
         end
 
       {_key_hash, _malformed_payload}, acc ->
-        Logger.warning("Malformed stashed state item received from client. Skipping.")
+        msg =
+          Utils.warning_message(
+            "Malformed stashed state item received from client. Skipping.",
+            :invalid
+          )
+
+        Logger.warning(msg)
         acc
     end)
   end
