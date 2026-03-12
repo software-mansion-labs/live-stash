@@ -64,6 +64,7 @@ defmodule ShowcaseAppWeb.Router do
       on_mount: [{ShowcaseAppWeb.UserAuth, :require_authenticated}] do
 
       live "/auth/tic-tac-toe/live_stash_client", Auth.LiveStashClientTicTacToeLive
+      live "/auth/tic-tac-toe/live_stash_server", Auth.LiveStashServerTicTacToeLive
 
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email

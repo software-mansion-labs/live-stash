@@ -109,19 +109,28 @@ defmodule LiveStash do
   end
 
   defp evaluate_secret_fun(secret_fun, socket) do
-    try do
-      secret_fun.(socket)
-    rescue
-      e ->
-        msg =
-          Utils.error_message(
-            "The provided secret_fun failed to return a valid secret.",
-            e,
-            __STACKTRACE__
-          )
+    secret =
+      try do
+        secret_fun.(socket)
+      rescue
+        e ->
+          msg =
+            Utils.error_message(
+              "The provided secret_fun failed to return a valid secret.",
+              e,
+              __STACKTRACE__
+            )
 
-        reraise ArgumentError.exception(msg), __STACKTRACE__
+          reraise ArgumentError.exception(msg), __STACKTRACE__
+      end
+
+    unless is_binary(secret) do
+      raise ArgumentError,
+            "The provided secret_fun returned an invalid type. Expected a binary string, got: #{inspect(secret)}"
     end
+
+    :crypto.hash(:sha256, secret)
+    |> Base.encode64(padding: false)
   end
 
   defp get_connect_params(socket) do
