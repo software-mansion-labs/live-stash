@@ -16,15 +16,15 @@ defmodule LiveStash do
     end
   end
 
-  def on_mount(opts, _params, _session, socket) do
-    socket = init_stash(socket, opts)
+  def on_mount(opts, _params, session, socket) do
+    socket = init_stash(socket, session, opts)
 
     {:cont, socket}
   end
 
-  def init_stash(socket, opts \\ []) do
-    secret_fun = Keyword.get(opts, :secret_fun, &__MODULE__.default_secret_fun/1)
-    evaluated_secret = secret_fun.(socket)
+  def init_stash(socket, session, opts \\ []) do
+    {secret_fun, opts} = Keyword.pop(opts, :secret_fun, &__MODULE__.default_secret_fun/1)
+    evaluated_secret = secret_fun.(session)
 
     mounts = LiveView.get_connect_params(socket)["_mounts"]
     reconnected? = not is_nil(mounts) and mounts > 0
@@ -35,7 +35,7 @@ defmodule LiveStash do
 
     socket
     |> LiveView.put_private(:live_stash, settings)
-    |> module(mode).init_stash(opts)
+    |> module(mode).init_stash(session, opts)
   end
 
   def stash_assigned(socket) do
