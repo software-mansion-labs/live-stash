@@ -1,5 +1,9 @@
 defmodule LiveStash do
-  @moduledoc false
+  @moduledoc """
+
+  LiveStash is a library that fixes problem of losing state on LiveView reconnects.
+  It allows you to store and retrieve data in a LiveView application.
+  """
 
   @behaviour LiveStash.Stash
 
@@ -117,7 +121,7 @@ defmodule LiveStash do
             __STACKTRACE__
           )
 
-        raise ArgumentError, msg
+        reraise ArgumentError.exception(msg), __STACKTRACE__
     end
   end
 
@@ -133,8 +137,7 @@ defmodule LiveStash do
             __STACKTRACE__
           )
 
-        raise RuntimeError,
-              msg
+        reraise RuntimeError.exception(msg), __STACKTRACE__
     end
   end
 end

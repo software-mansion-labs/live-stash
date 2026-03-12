@@ -18,7 +18,7 @@ defmodule LiveStash.SerializerTest do
 
   describe ":sign mode" do
     setup do
-      {:ok, opts: %{security_mode: :sign, secret: "my_signing_secret", ttl: 86400}}
+      {:ok, opts: %{security_mode: :sign, secret: "my_signing_secret", ttl: 86_400}}
     end
 
     test "correctly serializes and deserializes data", %{socket: socket, opts: opts} do
@@ -41,7 +41,7 @@ defmodule LiveStash.SerializerTest do
 
   describe ":encrypt mode" do
     setup do
-      {:ok, opts: %{security_mode: :encrypt, secret: "my_encryption_secret", ttl: 86400}}
+      {:ok, opts: %{security_mode: :encrypt, secret: "my_encryption_secret", ttl: 86_400}}
     end
 
     test "correctly encrypts and decrypts data", %{socket: socket, opts: opts} do
@@ -64,7 +64,7 @@ defmodule LiveStash.SerializerTest do
 
   describe "external_to_term/3 error cases" do
     setup do
-      {:ok, opts: %{security_mode: :sign, secret: "my_secret", ttl: 86400}}
+      {:ok, opts: %{security_mode: :sign, secret: "my_secret", ttl: 86_400}}
     end
 
     test "ignores failed decoding and logs a warning", %{socket: socket, opts: opts} do
