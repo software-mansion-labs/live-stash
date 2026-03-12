@@ -8,6 +8,15 @@ defmodule LiveStash.Utils do
         ) ::
           String.t()
   def error_message(message, error, stacktrace) do
-    "#{message} - report issue to LiveStash maintainers:\n#{Exception.format(:error, error, stacktrace)}"
+    "[LiveStash] #{message} - report issue to LiveStash maintainers:\n#{Exception.format(:error, error, stacktrace)}"
+  end
+
+  @spec error_message(
+          message :: String.t(),
+          error :: Exception.t()
+        ) ::
+          String.t()
+  def error_message(message, error) do
+    "[LiveStash] #{message} - report issue to LiveStash maintainers:\n#{Exception.format(:error, error)}"
   end
 end

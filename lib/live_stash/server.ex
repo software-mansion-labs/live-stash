@@ -116,29 +116,33 @@ defmodule LiveStash.Server do
     nil
   end
 
-  defp log_rpc_error(node, id, context_msg, error_payload) do
-    case error_payload do
-      {:error, {:exception, %UndefinedFunctionError{}, _stacktrace}} ->
-        :ok
+  defp log_rpc_error(
+         _node,
+         _id,
+         _context_msg,
+         {:error, {:exception, %UndefinedFunctionError{}, _stacktrace}}
+       ) do
+    :ok
+  end
 
-      {:error, {:exception, :undef, _stacktrace}} ->
-        :ok
+  defp log_rpc_error(_node, _id, _context_msg, {:error, {:exception, :undef, _stacktrace}}) do
+    :ok
+  end
 
-      {:error, {:exception, error, stacktrace}} ->
-        msg =
-          Utils.error_message(
-            "#{context_msg} on node #{inspect(node)} for id #{inspect(id)}",
-            error,
-            stacktrace
-          )
+  defp log_rpc_error(node, id, context_msg, {:error, {:exception, error, stacktrace}}) do
+    msg =
+      Utils.error_message(
+        "#{context_msg} on node #{inspect(node)} for id #{inspect(id)}",
+        error,
+        stacktrace
+      )
 
-        Logger.error(msg)
+    Logger.error(msg)
+  end
 
-      rpc_error ->
-        Logger.error(
-          "RPC error (#{context_msg}) with node #{inspect(node)}: #{inspect(rpc_error)}"
-        )
-    end
+  defp log_rpc_error(node, _id, context_msg, rpc_error) do
+    err = Utils.error_message("RPC error (#{context_msg}) with node #{inspect(node)}", rpc_error)
+    Logger.error(err)
   end
 
   defp get_id(socket) do
