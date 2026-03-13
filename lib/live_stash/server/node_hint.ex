@@ -4,9 +4,10 @@ defmodule LiveStash.Server.NodeHint do
   and decrypting the node from connect params on reconnect.
   """
 
-  alias Phoenix.LiveView
-
   require Logger
+
+  alias Phoenix.LiveView
+  alias LiveStash.Utils
 
   @doc """
   Pushes the current node (encrypted) to the client via a LiveView event so the client
@@ -30,7 +31,8 @@ defmodule LiveStash.Server.NodeHint do
     String.to_existing_atom(node)
   rescue
     error ->
-      Logger.warning("Failed to get node hint: #{inspect(error)}")
+      err = Utils.warning_message("Failed to decode node hint", error)
+      Logger.warning(err)
       nil
   end
 
