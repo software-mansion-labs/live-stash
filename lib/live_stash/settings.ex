@@ -1,6 +1,10 @@
 defmodule LiveStash.Settings do
   @moduledoc false
 
+  alias LiveStash.Server.NodeHint
+  alias LiveStash.Utils
+  alias Phoenix.LiveView
+
   @enforce_keys [
     :reconnected?,
     :secret
@@ -11,7 +15,8 @@ defmodule LiveStash.Settings do
     :secret,
     mode: :server,
     security_mode: :sign,
-    ttl: 5 * 60 * 1000
+    ttl: 5 * 60 * 1000,
+    node_hint: nil
   ]
 
   @type t :: %__MODULE__{
@@ -19,15 +24,68 @@ defmodule LiveStash.Settings do
           reconnected?: boolean(),
           secret: binary(),
           security_mode: :sign | :encrypt,
-          ttl: integer()
+          ttl: integer(),
+          node_hint: atom() | nil
         }
 
-  def new(user_opts, reconnected?, evaluated_secret) do
+  @spec default_secret_fun(term()) :: binary()
+  def default_secret_fun(_), do: "live_stash"
+
+  @doc """
+  Builds settings from socket and opts (e.g. in `on_mount` / `init_stash`).
+  """
+  @spec from_socket(LiveView.Socket.t(), keyword()) :: t()
+  def from_socket(socket, opts) do
+    secret_fun = Keyword.get(opts, :secret_fun, &__MODULE__.default_secret_fun/1)
+    evaluated_secret = evaluate_secret_fun(secret_fun, socket)
+    connect_params = get_connect_params(socket)
+    mounts = if connect_params, do: connect_params["_mounts"], else: nil
+    node_hint = NodeHint.get_node_hint(socket, connect_params, evaluated_secret)
+    reconnected? = not is_nil(mounts) and mounts > 0
+
+    new(opts, reconnected?, evaluated_secret, node_hint)
+  end
+
+  @spec new(keyword(), boolean(), binary(), node() | nil) :: t()
+  def new(user_opts, reconnected?, evaluated_secret, node_hint) do
     attrs =
       user_opts
       |> Keyword.put(:reconnected?, reconnected?)
       |> Keyword.put(:secret, evaluated_secret)
+      |> Keyword.put(:node_hint, node_hint)
 
     struct!(__MODULE__, attrs)
+  end
+
+  defp evaluate_secret_fun(secret_fun, socket) do
+    try do
+      secret_fun.(socket)
+    rescue
+      e ->
+        msg =
+          Utils.error_message(
+            "The provided secret_fun failed to return a valid secret.",
+            e,
+            __STACKTRACE__
+          )
+
+        reraise ArgumentError.exception(msg), __STACKTRACE__
+    end
+  end
+
+  defp get_connect_params(socket) do
+    try do
+      LiveView.get_connect_params(socket)
+    rescue
+      e in RuntimeError ->
+        msg =
+          Utils.error_message(
+            "Failed to get connect params. This likely means that LiveStash.init_stash/2 is being called outside of the mount lifecycle or before the socket is fully initialized.",
+            e,
+            __STACKTRACE__
+          )
+
+        reraise RuntimeError.exception(msg), __STACKTRACE__
+    end
   end
 end
