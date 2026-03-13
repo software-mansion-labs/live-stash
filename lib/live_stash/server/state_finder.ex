@@ -21,7 +21,7 @@ defmodule LiveStash.Server.StateFinder do
   end
 
   defp get_local(id) do
-    State.pop_by_id!(id)
+    State.get_by_id!(id)
   end
 
   defp get_from_node_hint(_id, nil), do: :not_found
