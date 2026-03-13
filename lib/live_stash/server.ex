@@ -44,7 +44,6 @@ defmodule LiveStash.Server do
   @impl true
   def recover_state(socket) do
     id = get_id(socket)
-
     node_hint = socket.private.live_stash.node_hint
 
     case StateFinder.get_from_cluster(id, node_hint) do
