@@ -1,4 +1,4 @@
-defmodule LiveStash.StateFinder do
+defmodule LiveStash.Server.StateFinder do
   @moduledoc """
   Finds LiveStash state in the cluster: local ETS, optional node hint, then remaining nodes via multicall.
   """

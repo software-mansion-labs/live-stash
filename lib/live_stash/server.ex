@@ -6,7 +6,7 @@ defmodule LiveStash.Server do
   @behaviour LiveStash.Stash
 
   alias LiveStash.Server.State
-  alias LiveStash.StateFinder
+  alias LiveStash.Server.StateFinder
   alias LiveStash.Utils
 
   require Logger
