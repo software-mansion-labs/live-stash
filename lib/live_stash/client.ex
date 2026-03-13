@@ -20,7 +20,7 @@ defmodule LiveStash.Client do
     if reconnected? do
       socket
     else
-      LiveView.push_event(socket, "live-stash:reset", %{})
+      LiveView.push_event(socket, "live-stash:reset-state", %{})
     end
   end
 
@@ -34,7 +34,7 @@ defmodule LiveStash.Client do
         get_settings(socket)
       )
 
-    LiveView.push_event(socket, "live-stash:stash", payload)
+    LiveView.push_event(socket, "live-stash:stash-state", payload)
   end
 
   @impl true
@@ -59,7 +59,7 @@ defmodule LiveStash.Client do
 
   @impl true
   def reset_stash(socket) do
-    LiveView.push_event(socket, "live-stash:reset", %{})
+    LiveView.push_event(socket, "live-stash:reset-state", %{})
   end
 
   defp handle_recovery_error(error, stacktrace, message) do

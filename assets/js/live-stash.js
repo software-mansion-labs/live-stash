@@ -1,10 +1,10 @@
 let stashedState = {};
 
-window.addEventListener('phx:live-stash:reset', (_event) => {
+window.addEventListener('phx:live-stash:reset-state', (_event) => {
   stashedState = {};
 });
 
-window.addEventListener('phx:live-stash:stash', (event) => {
+window.addEventListener('phx:live-stash:stash-state', (event) => {
   stashedState[event.detail.key_hash] = {
     key: event.detail.key,
     value: event.detail.value,
