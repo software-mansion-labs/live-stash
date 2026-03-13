@@ -9,13 +9,10 @@ defmodule LiveStash do
 
   alias Phoenix.LiveView
   alias LiveStash.Settings
-  alias LiveStash.Utils
 
   require Logger
 
   @internal_assigns [:__changed__, :flash, :live_action, :myself]
-
-  def default_secret_fun(_), do: "live_stash"
 
   defmacro __using__(opts) do
     quote do
@@ -30,22 +27,11 @@ defmodule LiveStash do
   end
 
   def init_stash(socket, opts \\ []) do
-    secret_fun = Keyword.get(opts, :secret_fun, &__MODULE__.default_secret_fun/1)
-
-    evaluated_secret = evaluate_secret_fun(secret_fun, socket)
-
-    connect_params = get_connect_params(socket)
-    mounts = if connect_params, do: connect_params["_mounts"], else: nil
-    node_hint = get_node_hint(socket, connect_params, evaluated_secret)
-
-    reconnected? = not is_nil(mounts) and mounts > 0
-    settings = Settings.new(opts, reconnected?, evaluated_secret, node_hint)
-
-    mode = settings.mode
+    settings = Settings.from_socket(socket, opts)
 
     socket
     |> LiveView.put_private(:live_stash, settings)
-    |> module(mode).init_stash(opts)
+    |> module(settings.mode).init_stash(opts)
   end
 
   def stash_assigned(socket) do
@@ -111,47 +97,4 @@ defmodule LiveStash do
       "[LiveStash] LiveStash has not been initialized, please use on_mount/1 to initialize it"
     )
   end
-
-  defp evaluate_secret_fun(secret_fun, socket) do
-    try do
-      secret_fun.(socket)
-    rescue
-      e ->
-        msg =
-          Utils.error_message(
-            "The provided secret_fun failed to return a valid secret.",
-            e,
-            __STACKTRACE__
-          )
-
-        reraise ArgumentError.exception(msg), __STACKTRACE__
-    end
-  end
-
-  defp get_connect_params(socket) do
-    try do
-      LiveView.get_connect_params(socket)
-    rescue
-      e in RuntimeError ->
-        msg =
-          Utils.error_message(
-            "Failed to get connect params. This likely means that LiveStash.init_stash/2 is being called outside of the mount lifecycle or before the socket is fully initialized.",
-            e,
-            __STACKTRACE__
-          )
-
-        reraise RuntimeError.exception(msg), __STACKTRACE__
-    end
-  end
-
-  defp get_node_hint(socket, %{"node" => node}, secret) when is_binary(node) do
-    {:ok, node} = Phoenix.Token.decrypt(socket, secret, node)
-    String.to_existing_atom(node)
-  rescue
-    error ->
-      Logger.warning("Failed to get node hint: #{inspect(error)}")
-      nil
-  end
-
-  defp get_node_hint(_socket, _connect_params, _secret), do: nil
 end
