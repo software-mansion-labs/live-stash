@@ -21,7 +21,7 @@ defmodule LiveStash.Server.StateFinder do
   end
 
   defp get_local(id) do
-    State.get_by_id!(id)
+    State.pop_by_id!(id)
   end
 
   defp get_from_node_hint(_id, nil), do: :not_found
@@ -29,7 +29,7 @@ defmodule LiveStash.Server.StateFinder do
   defp get_from_node_hint(id, node_hint) do
     if node_hint != Node.self() and node_hint in Node.list() do
       try do
-        :erpc.call(node_hint, State, :get_by_id!, [id])
+        :erpc.call(node_hint, State, :pop_by_id!, [id])
       rescue
         error ->
           log_rpc_error(
