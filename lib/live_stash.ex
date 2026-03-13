@@ -11,6 +11,8 @@ defmodule LiveStash do
   alias LiveStash.Settings
   alias LiveStash.Utils
 
+  require Logger
+
   @internal_assigns [:__changed__, :flash, :live_action, :myself]
 
   def default_secret_fun(_), do: "live_stash"
@@ -34,9 +36,10 @@ defmodule LiveStash do
 
     connect_params = get_connect_params(socket)
     mounts = if connect_params, do: connect_params["_mounts"], else: nil
+    node_hint = get_node_hint(socket, connect_params, evaluated_secret)
 
     reconnected? = not is_nil(mounts) and mounts > 0
-    settings = Settings.new(opts, reconnected?, evaluated_secret)
+    settings = Settings.new(opts, reconnected?, evaluated_secret, node_hint)
 
     mode = settings.mode
 
@@ -140,4 +143,15 @@ defmodule LiveStash do
         reraise RuntimeError.exception(msg), __STACKTRACE__
     end
   end
+
+  defp get_node_hint(socket, %{"node" => node}, secret) when is_binary(node) do
+    {:ok, node} = Phoenix.Token.decrypt(socket, secret, node)
+    String.to_existing_atom(node)
+  rescue
+    error ->
+      Logger.warning("Failed to get node hint: #{inspect(error)}")
+      nil
+  end
+
+  defp get_node_hint(_socket, _connect_params, _secret), do: nil
 end

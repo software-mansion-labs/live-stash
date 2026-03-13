@@ -21,7 +21,10 @@ defmodule LiveStash.Server do
       |> State.delete_by_id!()
     end
 
-    socket
+    node = Node.self() |> :erlang.atom_to_binary()
+    secret = socket.private.live_stash.secret
+    encrypted_node = Phoenix.Token.encrypt(socket, secret, node)
+    Phoenix.LiveView.push_event(socket, "live-stash:save-node", %{node: encrypted_node})
   end
 
   @impl true

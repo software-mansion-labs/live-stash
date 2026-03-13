@@ -1,4 +1,5 @@
 let stashedState = {};
+let node = null;
 
 window.addEventListener('phx:live-stash:reset-state', (_event) => {
   stashedState = {};
@@ -11,8 +12,16 @@ window.addEventListener('phx:live-stash:stash-state', (event) => {
   };
 });
 
+window.addEventListener('phx:live-stash:save-node', (event) => {
+  node = event.detail.node;
+});
+
+window.addEventListener('phx:live-stash:reset-node', (_event) => {
+  node = null;
+});
+
 export default function initLiveStash(params) {
   return () => {
-    return { stashedState: stashedState, ...params };
+    return { stashedState: stashedState, node: node, ...params };
   };
 }
