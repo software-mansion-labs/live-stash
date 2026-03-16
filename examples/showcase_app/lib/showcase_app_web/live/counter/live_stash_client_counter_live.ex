@@ -7,17 +7,6 @@ defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
   def mount(_params, _session, socket) do
     socket
     |> recover_state()
-    |> case do
-        {:recovered, %{count: count}} ->
-          socket
-          |> stash(:count, count)
-          |> assign(count: count)
-
-        _ ->
-          socket
-          |> stash(:count, 0)
-          |> assign(count: 0)
-    end
     |> then(&{:ok, &1})
   end
 
