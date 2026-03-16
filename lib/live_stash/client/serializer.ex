@@ -14,12 +14,12 @@ defmodule LiveStash.Serializer do
     }
   end
 
-  @spec term_to_external(Phoenix.LiveView.Socket.t(), map(), map()) :: binary()
+  @spec term_to_external(Phoenix.LiveView.Socket.t(), term(), map()) :: binary()
   def term_to_external(socket, value, opts) do
     encode_token(socket, value, opts)
   end
 
-  @spec external_to_term(Phoenix.LiveView.Socket.t(), map(), map(), map()) ::
+  @spec external_to_term(Phoenix.LiveView.Socket.t(), map(), binary(), map()) ::
           {map(), list()} | {:error, String.t()}
   def external_to_term(socket, stashed_state, stashed_keys, opts) do
     with {:ok, key_set} <- get_key_set(socket, stashed_keys, opts),
