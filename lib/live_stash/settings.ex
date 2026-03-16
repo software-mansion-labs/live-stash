@@ -34,10 +34,10 @@ defmodule LiveStash.Settings do
   @doc """
   Builds settings from socket and opts (e.g. in `on_mount` / `init_stash`).
   """
-  @spec from_socket(LiveView.Socket.t(), keyword()) :: t()
-  def from_socket(socket, opts) do
-    secret_fun = Keyword.get(opts, :secret_fun, &__MODULE__.default_secret_fun/1)
-    evaluated_secret = evaluate_secret_fun(secret_fun, socket)
+  @spec from_socket(LiveView.Socket.t(), keyword(), keyword()) :: t()
+  def from_socket(socket, session, opts) do
+    {secret_fun, opts} = Keyword.pop(opts, :secret_fun, &__MODULE__.default_secret_fun/1)
+    evaluated_secret = evaluate_secret_fun(secret_fun, session)
     connect_params = get_connect_params(socket)
     mounts = if connect_params, do: connect_params["_mounts"], else: nil
     node_hint = NodeHint.get_node_hint(socket, connect_params, evaluated_secret)
@@ -57,20 +57,30 @@ defmodule LiveStash.Settings do
     struct!(__MODULE__, attrs)
   end
 
-  defp evaluate_secret_fun(secret_fun, socket) do
-    try do
-      secret_fun.(socket)
-    rescue
-      e ->
-        msg =
-          Utils.error_message(
-            "The provided secret_fun failed to return a valid secret.",
-            e,
-            __STACKTRACE__
-          )
+  defp evaluate_secret_fun(secret_fun, session) do
+    secret =
+      try do
+        secret_fun.(session)
+      rescue
+        e ->
+          msg =
+            Utils.error_message(
+              "The provided secret_fun failed to return a valid secret.",
+              e,
+              __STACKTRACE__
+            )
 
-        reraise ArgumentError.exception(msg), __STACKTRACE__
+          reraise ArgumentError.exception(msg), __STACKTRACE__
+      end
+
+    if not is_binary(secret) do
+      raise ArgumentError,
+            "The provided secret_fun returned an invalid type. Expected a binary string."
     end
+
+    :sha256
+    |> :crypto.hash(secret)
+    |> Base.encode64(padding: false)
   end
 
   defp get_connect_params(socket) do

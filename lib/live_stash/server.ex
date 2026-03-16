@@ -13,7 +13,7 @@ defmodule LiveStash.Server do
   require Logger
 
   @impl true
-  def init_stash(socket, _opts) do
+  def init_stash(socket, _session, _opts) do
     reconnected? = socket.private.live_stash.reconnected?
 
     # If mounts is set to 0 we are on a new connection and stashed state is no longer valid

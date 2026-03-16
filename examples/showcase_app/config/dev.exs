@@ -1,5 +1,10 @@
 import Config
 
+config :showcase_app, ShowcaseApp.Repo,
+  database: Path.expand("../showcase_app_dev.db", Path.dirname(__ENV__.file)),
+  pool_size: 5,
+  stacktrace: true,
+  show_sensitive_data_on_connection_error: true
 # For development, we disable any cache and enable
 # debugging and code reloading.
 #

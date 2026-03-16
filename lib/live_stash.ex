@@ -19,19 +19,19 @@ defmodule LiveStash do
     end
   end
 
-  def on_mount(opts, _params, _session, socket) do
-    socket = init_stash(socket, opts)
+  def on_mount(opts, _params, session, socket) do
+    socket = init_stash(socket, session, opts)
 
     {:cont, socket}
   end
 
-  def init_stash(socket, opts \\ []) do
-    settings = Settings.from_socket(socket, opts)
+  def init_stash(socket, session, opts \\ []) do
+    settings = Settings.from_socket(socket, session, opts)
 
     socket
     |> LiveView.put_private(:live_stash_keys, MapSet.new())
     |> LiveView.put_private(:live_stash, settings)
-    |> module(settings.mode).init_stash(opts)
+    |> module(settings.mode).init_stash(session, opts)
   end
 
   def stash_assigns(socket, keys) when is_list(keys) do

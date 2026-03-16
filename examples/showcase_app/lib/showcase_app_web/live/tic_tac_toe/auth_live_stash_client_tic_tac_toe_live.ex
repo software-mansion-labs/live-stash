@@ -1,6 +1,6 @@
-defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
+defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :server, ttl: 5 * 60 * 1000
+  use LiveStash, mode: :client, security_mode: :encrypt, secret_fun: &__MODULE__.secret_fun/1
 
   import LiveStash
 
@@ -14,6 +14,8 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
     [0, 4, 8],
     [2, 4, 6]
   ]
+
+  def secret_fun(session), do: session["user_token"]
 
   def mount(_params, _session, socket) do
     socket
@@ -60,8 +62,10 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
                 disabled={@board[i] != nil || @winner != nil}
                 class={[
                   "h-24 sm:h-28 text-5xl font-extrabold rounded-xl flex items-center justify-center transition-all duration-200",
-                  @board[i] == nil && @winner == nil && "bg-base-200 hover:bg-gray-700 cursor-pointer",
-                  @board[i] == nil && @winner != nil && "bg-base-200 cursor-not-allowed opacity-50",
+                  @board[i] == nil && @winner == nil &&
+                    "bg-base-200 hover:bg-gray-700 cursor-pointer",
+                  @board[i] == nil && @winner != nil &&
+                    "bg-base-200 cursor-not-allowed opacity-50",
                   @board[i] != nil && "bg-base-300 cursor-default",
                   @board[i] == "X" && "text-purple-400",
                   @board[i] == "O" && "text-blue-400",
@@ -96,7 +100,7 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> stash_assigned()
     |> then(&{:noreply, &1})
   end
 
@@ -107,13 +111,13 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
   defp restore_game_state(socket, recovered_state) do
     socket
     |> assign(board: recovered_state[:board], current_player: recovered_state[:current_player], winner: recovered_state[:winner], winning_line: recovered_state[:winning_line])
-    |> stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> stash_assigned()
   end
 
   defp start_new_game(socket) do
     socket
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
-    |> stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> stash_assigned()
   end
 
   defp check_game_state(board) do

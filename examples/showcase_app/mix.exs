@@ -40,6 +40,7 @@ defmodule ShowcaseApp.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:bcrypt_elixir, "~> 3.0"},
       {:phoenix, "~> 1.8.3"},
       {:phoenix_html, "~> 4.1"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
@@ -64,6 +65,9 @@ defmodule ShowcaseApp.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:live_stash, path: "../../"},
+      {:ecto_sql, "~> 3.10"},
+      {:ecto_sqlite3, ">= 0.0.0"},
+      {:phoenix_ecto, "~> 4.4"},
       {:libcluster, "~> 3.5"}
     ]
   end

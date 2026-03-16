@@ -17,6 +17,7 @@ defmodule ShowcaseApp.Application do
     children = [
       {Cluster.Supervisor, [topologies, [name: ShowcaseApp.ClusterSupervisor]]},
       ShowcaseAppWeb.Telemetry,
+      ShowcaseApp.Repo,
       {DNSCluster, query: Application.get_env(:showcase_app, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: ShowcaseApp.PubSub},
       # Start a worker by calling: ShowcaseApp.Worker.start_link(arg)
