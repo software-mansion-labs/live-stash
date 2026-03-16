@@ -15,75 +15,57 @@ defmodule LiveStash.Serializer do
     }
   end
 
-  @spec external_to_term(Phoenix.LiveView.Socket.t(), map(), map()) :: map()
+  @spec external_to_term(Phoenix.LiveView.Socket.t(), map(), map()) :: map() | {:error, term()}
   def external_to_term(socket, stashed_state, opts) do
-    {key_list, stashed_state} = get_key_list(socket, stashed_state, opts)
+    with {:ok, {key_list, stashed_state}} <- get_key_list(socket, stashed_state, opts) do
+      Enum.reduce_while(key_list, %{}, fn key, acc ->
+        key_hash = get_hash(key)
 
-    Enum.reduce(key_list, %{}, fn key, acc ->
-      key_hash = get_hash(key)
+        with {:ok, %{"key" => encoded_key, "value" => encoded_value}} <-
+               Map.fetch(stashed_state, key_hash),
+             {:ok, decoded_key} <- decode_token(socket, encoded_key, opts),
+             {:ok, decoded_value} <- decode_token(socket, encoded_value, opts) do
+          {:cont, Map.put(acc, decoded_key, decoded_value)}
+        else
+          _ ->
+            msg =
+              Utils.reason_message(
+                "Failed to decode stashed assign with key #{inspect(key)}. It may be missing or malformed.",
+                :error
+              )
 
-      with {:ok, %{"key" => encoded_key, "value" => encoded_value}} <-
-             Map.fetch(stashed_state, key_hash),
-           {:ok, decoded_key} <- decode_token(socket, encoded_key, opts),
-           {:ok, decoded_value} <- decode_token(socket, encoded_value, opts) do
-        Map.put(acc, decoded_key, decoded_value)
-      else
-        :error ->
-          msg =
-            Utils.reason_message(
-              "Key #{inspect(key)} is present in key_list, but missing from stashed state.",
-              :missing
-            )
-
-          raise RuntimeError, msg
-
-        {:ok, _malformed_payload} ->
-          msg =
-            Utils.reason_message(
-              "Malformed payload in stashed state for key #{inspect(key)}",
-              :invalid
-            )
-
-          raise RuntimeError, msg
-
-        {:error, reason} ->
-          msg =
-            Utils.reason_message(
-              "Failed to decode stashed value for key #{inspect(key)}",
-              reason
-            )
-
-          raise RuntimeError, msg
-      end
-    end)
+            {:halt, {:error, msg}}
+        end
+      end)
+    end
   end
 
   defp get_key_list(socket, stashed_state, opts) do
-    {%{"key" => encoded_key, "value" => encoded_key_list}, stashed_state} =
-      Map.pop!(stashed_state, get_hash(:key_list))
+    case Map.pop(stashed_state, get_hash(:key_list)) do
+      {%{"key" => encoded_key, "value" => encoded_key_list}, stashed_state} ->
+        with {:ok, _decoded_key} <- decode_token(socket, encoded_key, opts),
+             {:ok, decoded_key_list} <- decode_token(socket, encoded_key_list, opts) do
+          {:ok, {decoded_key_list, stashed_state}}
+        else
+          {:error, reason} ->
+            msg =
+              Utils.reason_message(
+                "Key list of stashed assigns was malformed",
+                reason
+              )
 
-    with {:ok, _decoded_key} <- decode_token(socket, encoded_key, opts),
-         {:ok, decoded_key_list} <- decode_token(socket, encoded_key_list, opts) do
-      {decoded_key_list, stashed_state}
-    else
-      {:error, reason} ->
+            {:error, msg}
+        end
+
+      _ ->
         msg =
           Utils.reason_message(
-            "Key list of stashed assigns was malformed",
-            reason
+            "Key list of stashed assigns is missing or malformed",
+            :error
           )
 
-        raise RuntimeError, msg
+        {:error, msg}
     end
-  rescue
-    KeyError ->
-      msg =
-        Utils.reason_message(
-          "Key list of stashed assigns is missing from stashed state",
-          :missing
-        )
-
-      raise RuntimeError, msg
   end
 
   defp encode_token(socket, value, %{security_mode: :sign} = opts) do

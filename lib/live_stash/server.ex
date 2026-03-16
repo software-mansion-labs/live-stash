@@ -47,8 +47,8 @@ defmodule LiveStash.Server do
     node_hint = socket.private.live_stash.node_hint
 
     case StateFinder.get_from_cluster(id, node_hint) do
-      {:ok, state} ->
-        {:recovered, state}
+      {:ok, recovered_state} ->
+        {:recovered, recovered_state}
 
       :not_found ->
         {:not_found, %{}}

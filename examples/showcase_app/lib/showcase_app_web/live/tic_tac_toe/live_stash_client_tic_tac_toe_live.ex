@@ -19,9 +19,8 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
     socket
     |> recover_state()
     |> case do
-      {:recovered, %{board: board, current_player: current_player, winner: winner, winning_line: winning_line}} ->
-        restore_game_state(socket, %{board: board, current_player: current_player, winner: winner, winning_line: winning_line})
-
+      {:recovered, recovered_socket} ->
+        recovered_socket
       _ -> start_new_game(socket)
     end
     |> then(&{:ok, &1})
@@ -104,12 +103,6 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
 
   def handle_event("reset", _params, socket) do
     {:noreply, start_new_game(socket)}
-  end
-
-  defp restore_game_state(socket, recovered_state) do
-    socket
-    |> assign(board: recovered_state[:board], current_player: recovered_state[:current_player], winner: recovered_state[:winner], winning_line: recovered_state[:winning_line])
-    |> stash_assigns([:board, :current_player, :winner, :winning_line])
   end
 
   defp start_new_game(socket) do

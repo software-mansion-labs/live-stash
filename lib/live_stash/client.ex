@@ -41,9 +41,14 @@ defmodule LiveStash.Client do
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
       %{"stashedState" => stashed_state} when is_map(stashed_state) ->
-        recovered_state = Serializer.external_to_term(socket, stashed_state, get_settings(socket))
+        case Serializer.external_to_term(socket, stashed_state, get_settings(socket)) do
+          recovered_state when is_map(recovered_state) ->
+            {:recovered, recovered_state}
 
-        {:recovered, recovered_state}
+          {:error, msg} ->
+            Logger.error(msg)
+            {:error, msg}
+        end
 
       _ ->
         {:not_found, %{}}

@@ -8,6 +8,7 @@ defmodule LiveStash do
   @behaviour LiveStash.Stash
 
   alias Phoenix.LiveView
+  alias Phoenix.Component
   alias LiveStash.Settings
   alias LiveStash.Utils
 
@@ -74,23 +75,32 @@ defmodule LiveStash do
     socket
     |> get_mode()
     |> module()
-    |> (& &1.stash(socket, key, value)).()
+    |> apply(:stash, [socket, key, value])
   end
 
   def recover_state(%{private: %{live_stash: %LiveStash.Settings{reconnected?: true}}} = socket) do
-    socket
-    |> get_mode()
-    |> module()
-    |> (& &1.recover_state(socket)).()
+    recovered_state =
+      socket
+      |> get_mode()
+      |> module()
+      |> apply(:recover_state, [socket])
+
+    case recovered_state do
+      {:recovered, state} ->
+        {:recovered, Component.assign(socket, state)}
+
+      {status, _state} ->
+        {status, socket}
+    end
   end
 
-  def recover_state(_socket), do: {:new, %{}}
+  def recover_state(socket), do: {:new, socket}
 
   def reset_stash(socket) do
     socket
     |> get_mode()
     |> module()
-    |> (& &1.reset_stash(socket)).()
+    |> apply(:reset_stash, [socket])
   end
 
   defp module(:server), do: LiveStash.Server
