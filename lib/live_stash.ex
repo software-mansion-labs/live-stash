@@ -26,12 +26,12 @@ defmodule LiveStash do
     {:cont, socket}
   end
 
-  def init_stash(socket, opts \\ []) do
-    settings = Settings.from_socket(socket, opts)
+  def init_stash(socket, session, opts \\ []) do
+    settings = Settings.from_socket(socket, session, opts)
 
     socket
     |> LiveView.put_private(:live_stash, settings)
-    |> module(settings.mode).init_stash(opts)
+    |> module(settings.mode).init_stash(session, opts)
   end
 
   def stash_assigned(socket) do
