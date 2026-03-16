@@ -124,12 +124,13 @@ defmodule LiveStash do
           reraise ArgumentError.exception(msg), __STACKTRACE__
       end
 
-    unless is_binary(secret) do
+    if not is_binary(secret) do
       raise ArgumentError,
-            "The provided secret_fun returned an invalid type. Expected a binary string, got: #{inspect(secret)}"
+            "The provided secret_fun returned an invalid type. Expected a binary string."
     end
 
-    :crypto.hash(:sha256, secret)
+    :sha256
+    |> :crypto.hash(secret)
     |> Base.encode64(padding: false)
   end
 
