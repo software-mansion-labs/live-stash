@@ -11,6 +11,7 @@ defmodule LiveStash.Client do
   alias LiveStash.Serializer
 
   alias Phoenix.LiveView
+  alias Phoenix.Component
 
   @impl true
   def init_stash(socket, _session, _opts) do
@@ -29,10 +30,6 @@ defmodule LiveStash.Client do
   @impl true
   def stash_assigns(socket, keys) do
     existing_keys = socket.private[:live_stash_keys]
-
-    if existing_keys == nil do
-      Utils.raise_not_initialized_error()
-    end
 
     has_new_keys? = not MapSet.subset?(MapSet.new(keys), existing_keys)
 
@@ -87,16 +84,19 @@ defmodule LiveStash.Client do
                stashed_keys,
                get_settings(socket)
              ) do
-          recovered_state when is_map(recovered_state) ->
-            {:recovered, recovered_state}
+          {:ok, recovered_state, key_set} ->
+            socket
+            |> Component.assign(recovered_state)
+            |> LiveView.put_private(:live_stash_keys, key_set)
+            |> then(&{:recovered, &1})
 
           {:error, msg} ->
             Logger.error(msg)
-            {:error, msg}
+            {:error, socket}
         end
 
       _ ->
-        {:not_found, %{}}
+        {:not_found, socket}
     end
   rescue
     error ->
@@ -109,7 +109,7 @@ defmodule LiveStash.Client do
 
       Logger.error(msg)
 
-      {:error, msg}
+      {:error, socket}
   end
 
   @impl true

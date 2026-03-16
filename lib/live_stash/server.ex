@@ -5,6 +5,8 @@ defmodule LiveStash.Server do
 
   @behaviour LiveStash.Stash
 
+  alias Phoenix.Component
+
   alias LiveStash.Server.NodeHint
   alias LiveStash.Server.State
   alias LiveStash.Server.StateFinder
@@ -65,17 +67,17 @@ defmodule LiveStash.Server do
 
     case StateFinder.get_from_cluster(id, node_hint) do
       {:ok, recovered_state} ->
-        {:recovered, recovered_state}
+        {:recovered, Component.assign(socket, recovered_state)}
 
       :not_found ->
-        {:not_found, %{}}
+        {:not_found, socket}
     end
   rescue
     error ->
       err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
       Logger.error(err)
 
-      {:error, err}
+      {:error, socket}
   end
 
   @impl true

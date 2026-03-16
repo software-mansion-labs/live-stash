@@ -20,12 +20,14 @@ defmodule LiveStash.Serializer do
   end
 
   @spec external_to_term(Phoenix.LiveView.Socket.t(), map(), map(), map()) ::
-          map() | {:error, String.t()}
+          {map(), list()} | {:error, String.t()}
   def external_to_term(socket, stashed_state, stashed_keys, opts) do
-    with {:ok, key_list} <- get_key_list(socket, stashed_keys, opts) do
-      Enum.reduce_while(key_list, %{}, fn key, acc ->
-        process_stashed_key(key, acc, socket, stashed_state, opts)
-      end)
+    with {:ok, key_set} <- get_key_set(socket, stashed_keys, opts),
+         recovered_state when is_map(recovered_state) <-
+           Enum.reduce_while(key_set, %{}, fn key, acc ->
+             process_stashed_key(key, acc, socket, stashed_state, opts)
+           end) do
+      {:ok, recovered_state, key_set}
     end
   end
 
@@ -47,15 +49,15 @@ defmodule LiveStash.Serializer do
     end
   end
 
-  defp get_key_list(socket, stashed_keys, opts) do
+  defp get_key_set(socket, stashed_keys, opts) do
     case decode_token(socket, stashed_keys, opts) do
       {:ok, decoded_key_list} ->
-        {:ok, decoded_key_list}
+        {:ok, MapSet.new(decoded_key_list)}
 
       {:error, reason} ->
         msg =
           Utils.reason_message(
-            "Failed to retrieve key list from stashed keys",
+            "Failed to retrieve key set from stashed keys",
             reason
           )
 

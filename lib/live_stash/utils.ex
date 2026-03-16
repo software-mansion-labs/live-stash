@@ -24,15 +24,4 @@ defmodule LiveStash.Utils do
   def reason_message(message, reason) do
     "[LiveStash] #{message}, reason: #{inspect(reason)}"
   end
-
-  @spec raise_uninitialized_error() :: no_return()
-  def raise_uninitialized_error() do
-    msg =
-      reason_message(
-        "LiveStash has not been initialized, please use on_mount/1 to initialize it",
-        :error
-      )
-
-    raise ArgumentError, msg
-  end
 end

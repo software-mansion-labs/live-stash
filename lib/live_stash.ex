@@ -8,7 +8,6 @@ defmodule LiveStash do
   @behaviour LiveStash.Stash
 
   alias Phoenix.LiveView
-  alias Phoenix.Component
   alias LiveStash.Settings
   alias LiveStash.Utils
 
@@ -59,19 +58,10 @@ defmodule LiveStash do
   end
 
   def recover_state(%{private: %{live_stash: %LiveStash.Settings{reconnected?: true}}} = socket) do
-    recovered_state =
-      socket
-      |> get_mode()
-      |> module()
-      |> apply(:recover_state, [socket])
-
-    case recovered_state do
-      {:recovered, state} ->
-        {:recovered, Component.assign(socket, state)}
-
-      {status, _state} ->
-        {status, socket}
-    end
+    socket
+    |> get_mode()
+    |> module()
+    |> apply(:recover_state, [socket])
   end
 
   def recover_state(socket), do: {:new, socket}
@@ -99,6 +89,12 @@ defmodule LiveStash do
   defp get_mode(%{private: %{live_stash: %LiveStash.Settings{mode: mode}}}), do: mode
 
   defp get_mode(_) do
-    Utils.raise_uninitialized_error()
+    msg =
+      Utils.reason_message(
+        "LiveStash has not been initialized, please use on_mount/1 to initialize it",
+        :error
+      )
+
+    raise ArgumentError, msg
   end
 end
