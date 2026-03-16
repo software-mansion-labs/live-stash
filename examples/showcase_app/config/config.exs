@@ -7,8 +7,27 @@
 # General application configuration
 import Config
 
+config :showcase_app, :scopes,
+  user: [
+    default: true,
+    module: ShowcaseApp.Accounts.Scope,
+    assign_key: :current_scope,
+    access_path: [:user, :id],
+    schema_key: :user_id,
+    schema_type: :id,
+    schema_table: :users,
+    test_data_fixture: ShowcaseApp.AccountsFixtures,
+    test_setup_helper: :register_and_log_in_user
+  ]
+
 config :showcase_app,
+  ecto_repos: [ShowcaseApp.Repo],
   generators: [timestamp_type: :utc_datetime]
+
+config :showcase_app, ShowcaseApp.Repo,
+  adapter: Ecto.Adapters.SQLite3,
+  database: Path.expand("../showcase_app_dev.db", Path.dirname(__ENV__.file))
+
 
 # Configure the endpoint
 config :showcase_app, ShowcaseAppWeb.Endpoint,

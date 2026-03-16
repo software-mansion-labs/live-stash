@@ -1,6 +1,6 @@
-defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
+defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :server, ttl: 5 * 60 * 1000
+  use LiveStash, mode: :client, security_mode: :encrypt, secret_fun: &__MODULE__.secret_fun/1
 
   import LiveStash
 
@@ -14,6 +14,8 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
     [0, 4, 8],
     [2, 4, 6]
   ]
+
+  def secret_fun(session), do: session["user_token"]
 
   def mount(_params, _session, socket) do
     socket
@@ -60,8 +62,10 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
                 disabled={@board[i] != nil || @winner != nil}
                 class={[
                   "h-24 sm:h-28 text-5xl font-extrabold rounded-xl flex items-center justify-center transition-all duration-200",
-                  @board[i] == nil && @winner == nil && "bg-base-200 hover:bg-gray-700 cursor-pointer",
-                  @board[i] == nil && @winner != nil && "bg-base-200 cursor-not-allowed opacity-50",
+                  @board[i] == nil && @winner == nil &&
+                    "bg-base-200 hover:bg-gray-700 cursor-pointer",
+                  @board[i] == nil && @winner != nil &&
+                    "bg-base-200 cursor-not-allowed opacity-50",
                   @board[i] != nil && "bg-base-300 cursor-default",
                   @board[i] == "X" && "text-purple-400",
                   @board[i] == "O" && "text-blue-400",

@@ -35,3 +35,6 @@ showcase_app-*.tar
 npm-debug.log
 /assets/node_modules/
 
+/*.db
+/*.db-shm
+/*.db-wal
