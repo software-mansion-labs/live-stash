@@ -27,6 +27,23 @@ defmodule LiveStash.Server do
   end
 
   @impl true
+  def stash_assigns(socket, keys) do
+    Enum.reduce(keys, socket, fn key, acc_socket ->
+      value = Map.fetch!(socket.assigns, key)
+      stash(acc_socket, key, value)
+    end)
+  rescue
+    e in KeyError ->
+      msg =
+        Utils.reason_message(
+          "Failed to stash assigns. Key #{inspect(e.key)} is missing from socket.assigns.",
+          :missing
+        )
+
+      reraise RuntimeError, msg, __STACKTRACE__
+  end
+
+  @impl true
   def stash(socket, key, value) do
     socket
     |> get_id()
@@ -35,7 +52,7 @@ defmodule LiveStash.Server do
     socket
   rescue
     error ->
-      err = Utils.error_message("Could not stash assign", error, __STACKTRACE__)
+      err = Utils.exception_message("Could not stash assign", error, __STACKTRACE__)
       Logger.error(err)
 
       socket
@@ -55,7 +72,7 @@ defmodule LiveStash.Server do
     end
   rescue
     error ->
-      err = Utils.error_message("Could not recover state", error, __STACKTRACE__)
+      err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
       Logger.error(err)
 
       {:error, err}
@@ -70,7 +87,7 @@ defmodule LiveStash.Server do
     socket
   rescue
     error ->
-      err = Utils.error_message("Could not reset stash", error, __STACKTRACE__)
+      err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
       Logger.error(err)
 
       socket

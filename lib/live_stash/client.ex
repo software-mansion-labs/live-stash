@@ -20,8 +20,47 @@ defmodule LiveStash.Client do
     if reconnected? do
       socket
     else
-      LiveView.push_event(socket, "live-stash:reset-state", %{})
+      socket
+      |> LiveView.put_private(:live_stash_keys, MapSet.new())
+      |> LiveView.push_event("live-stash:reset-state", %{})
     end
+  end
+
+  @impl true
+  def stash_assigns(socket, keys) do
+    existing_keys = socket.private[:live_stash_keys]
+
+    if existing_keys == nil do
+      Utils.raise_not_initialized_error()
+    end
+
+    has_new_keys? = not MapSet.subset?(MapSet.new(keys), existing_keys)
+
+    updated_socket =
+      Enum.reduce(keys, socket, fn key, acc_socket ->
+        value = Map.fetch!(socket.assigns, key)
+
+        current_keys = acc_socket.private[:live_stash_keys]
+
+        acc_socket
+        |> Phoenix.LiveView.put_private(:live_stash_keys, MapSet.put(current_keys, key))
+        |> stash(key, value)
+      end)
+
+    if has_new_keys? do
+      stash_keys(updated_socket, keys)
+    else
+      updated_socket
+    end
+  rescue
+    e in KeyError ->
+      msg =
+        Utils.reason_message(
+          "Failed to stash assigns. Key #{inspect(e.key)} is missing from socket.assigns.",
+          :missing
+        )
+
+      reraise RuntimeError, msg, __STACKTRACE__
   end
 
   @impl true
@@ -40,8 +79,14 @@ defmodule LiveStash.Client do
   @impl true
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
-      %{"stashedState" => stashed_state} when is_map(stashed_state) ->
-        case Serializer.external_to_term(socket, stashed_state, get_settings(socket)) do
+      %{"stashedState" => stashed_state, "stashedKeys" => stashed_keys}
+      when is_map(stashed_state) ->
+        case Serializer.external_to_term(
+               socket,
+               stashed_state,
+               stashed_keys,
+               get_settings(socket)
+             ) do
           recovered_state when is_map(recovered_state) ->
             {:recovered, recovered_state}
 
@@ -55,11 +100,16 @@ defmodule LiveStash.Client do
     end
   rescue
     error ->
-      handle_recovery_error(
-        error,
-        __STACKTRACE__,
-        "Could not recover stashed state due to an unexpected error."
-      )
+      msg =
+        Utils.exception_message(
+          "Could not recover stashed state due to an unexpected error.",
+          error,
+          __STACKTRACE__
+        )
+
+      Logger.error(msg)
+
+      {:error, msg}
   end
 
   @impl true
@@ -67,11 +117,10 @@ defmodule LiveStash.Client do
     LiveView.push_event(socket, "live-stash:reset-state", %{})
   end
 
-  defp handle_recovery_error(error, stacktrace, message) do
-    msg = Utils.error_message(message, error, stacktrace)
-    Logger.error(msg)
-
-    {:error, msg}
+  defp stash_keys(socket, keys) do
+    LiveView.push_event(socket, "live-stash:stash-keys", %{
+      keys: Serializer.term_to_external(socket, keys, get_settings(socket))
+    })
   end
 
   defp get_settings(socket) do

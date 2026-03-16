@@ -30,45 +30,25 @@ defmodule LiveStash do
     settings = Settings.from_socket(socket, session, opts)
 
     socket
-    |> LiveView.put_private(:live_stash_keys, MapSet.new())
     |> LiveView.put_private(:live_stash, settings)
     |> module(settings.mode).init_stash(session, opts)
   end
 
   def stash_assigns(socket, keys) when is_list(keys) do
-    existing_keys = socket.private[:live_stash_keys]
+    socket
+    |> get_mode()
+    |> module()
+    |> apply(:stash_assigns, [socket, keys])
+  end
 
-    if existing_keys == nil do
-      raise_not_initialized_error()
-    end
+  def stash_assigns(_socket, _keys) do
+    msg =
+      Utils.reason_message(
+        "Keys must be a list of atoms",
+        :invalid
+      )
 
-    has_new_keys? = not MapSet.subset?(MapSet.new(keys), existing_keys)
-
-    updated_socket =
-      Enum.reduce(keys, socket, fn key, acc_socket ->
-        value = Map.fetch!(socket.assigns, key)
-
-        current_keys = acc_socket.private[:live_stash_keys]
-
-        acc_socket
-        |> Phoenix.LiveView.put_private(:live_stash_keys, MapSet.put(current_keys, key))
-        |> stash(key, value)
-      end)
-
-    if has_new_keys? do
-      stash(updated_socket, :key_list, keys)
-    else
-      updated_socket
-    end
-  rescue
-    e in KeyError ->
-      msg =
-        Utils.reason_message(
-          "Failed to stash assigns. Key #{inspect(e.key)} is missing from socket.assigns.",
-          :missing
-        )
-
-      reraise RuntimeError, msg, __STACKTRACE__
+    raise ArgumentError, msg
   end
 
   def stash(socket, key, value) do
@@ -119,16 +99,6 @@ defmodule LiveStash do
   defp get_mode(%{private: %{live_stash: %LiveStash.Settings{mode: mode}}}), do: mode
 
   defp get_mode(_) do
-    raise_not_initialized_error()
-  end
-
-  defp raise_not_initialized_error() do
-    msg =
-      Utils.reason_message(
-        "LiveStash has not been initialized, please use on_mount/1 to initialize it",
-        :error
-      )
-
-    raise ArgumentError, msg
+    Utils.raise_uninitialized_error()
   end
 end

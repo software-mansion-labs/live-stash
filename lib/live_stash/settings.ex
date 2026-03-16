@@ -64,7 +64,7 @@ defmodule LiveStash.Settings do
       rescue
         e ->
           msg =
-            Utils.error_message(
+            Utils.exception_message(
               "The provided secret_fun failed to return a valid secret.",
               e,
               __STACKTRACE__
@@ -89,7 +89,7 @@ defmodule LiveStash.Settings do
     rescue
       e in RuntimeError ->
         msg =
-          Utils.error_message(
+          Utils.exception_message(
             "Failed to get connect params. This likely means that LiveStash.init_stash/2 is being called outside of the mount lifecycle or before the socket is fully initialized.",
             e,
             __STACKTRACE__

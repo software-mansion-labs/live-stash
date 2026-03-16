@@ -31,7 +31,7 @@ defmodule LiveStash.Server.NodeHint do
     String.to_existing_atom(node)
   rescue
     error ->
-      err = Utils.error_message("Failed to decode node hint", error)
+      err = Utils.exception_message("Failed to decode node hint", error)
       Logger.warning(err)
       nil
   end
