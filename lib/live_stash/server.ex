@@ -83,6 +83,10 @@ defmodule LiveStash.Server do
 
     case StateFinder.get_from_cluster(id, node_hint) do
       {:ok, state} ->
+        id
+        |> State.new(state, get_opts(socket))
+        |> State.insert!()
+
         {:recovered, state}
 
       :not_found ->
