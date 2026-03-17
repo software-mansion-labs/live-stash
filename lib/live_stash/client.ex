@@ -33,21 +33,24 @@ defmodule LiveStash.Client do
 
     has_new_keys? = not MapSet.subset?(MapSet.new(keys), existing_keys)
 
-    updated_socket =
+    socket =
+      LiveView.put_private(
+        socket,
+        :live_stash_keys,
+        MapSet.union(existing_keys, MapSet.new(keys))
+      )
+
+    socket =
       Enum.reduce(keys, socket, fn key, acc_socket ->
-        value = Map.fetch!(socket.assigns, key)
+        value = Map.fetch!(acc_socket.assigns, key)
 
-        current_keys = acc_socket.private[:live_stash_keys]
-
-        acc_socket
-        |> Phoenix.LiveView.put_private(:live_stash_keys, MapSet.put(current_keys, key))
-        |> stash(key, value)
+        stash(acc_socket, key, value)
       end)
 
     if has_new_keys? do
-      stash_keys(updated_socket, keys)
+      stash_keys(socket, keys)
     else
-      updated_socket
+      socket
     end
   rescue
     e in KeyError ->

@@ -38,7 +38,7 @@ defmodule LiveStash.Settings do
     {session_key, opts} = Keyword.pop(opts, :session_key)
 
     evaluated_secret =
-      if session_key, do: evaluate_secret(session_key, session), else: @default_secret
+      if session_key, do: fetch_secret(session_key, session), else: @default_secret
 
     connect_params = get_connect_params(socket)
     mounts = if connect_params, do: connect_params["_mounts"], else: nil
@@ -59,7 +59,7 @@ defmodule LiveStash.Settings do
     struct!(__MODULE__, attrs)
   end
 
-  defp evaluate_secret(session_key, session) do
+  defp fetch_secret(session_key, session) do
     secret =
       try do
         Map.fetch!(session, session_key)
