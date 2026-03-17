@@ -10,26 +10,15 @@ defmodule LiveStash.Server do
   alias LiveStash.Server.StateFinder
   alias LiveStash.Utils
 
+  alias Phoenix.LiveView
+
   require Logger
 
   @impl true
   def init_stash(socket, _session, _opts) do
     reconnected? = socket.private.live_stash.reconnected?
 
-    stash_id = fetch_stash_id(socket)
-
-    {socket, id} =
-      if is_nil(stash_id) do
-        new_id = UUID.uuid4()
-
-        updated_socket =
-          Phoenix.LiveView.push_event(socket, "live-stash:stash-id", %{"stashId" => new_id})
-
-        {updated_socket, new_id}
-      else
-        {socket, stash_id}
-      end
-
+    id = fetch_stash_id(socket) || UUID.uuid4()
     socket = Phoenix.LiveView.put_private(socket, :live_stash_id, id)
 
     if not reconnected? do
@@ -38,7 +27,8 @@ defmodule LiveStash.Server do
       |> State.delete_by_id!()
     end
 
-    NodeHint.save_node_hint(socket)
+    node_hint = NodeHint.create_node_hint(socket)
+    LiveView.push_event(socket, "live-stash:init-server", %{node: node_hint, stashId: id})
   end
 
   defp fetch_stash_id(socket) do

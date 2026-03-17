@@ -13,12 +13,9 @@ window.addEventListener('phx:live-stash:stash-state', (event) => {
   };
 });
 
-window.addEventListener('phx:live-stash:stash-id', (event) => {
-  stashId = event.detail.stashId;
-});
-
-window.addEventListener('phx:live-stash:save-node', (event) => {
+window.addEventListener('phx:live-stash:init-server', (event) => {
   node = event.detail.node;
+  stashId = event.detail.stashId;
 });
 
 export default function initLiveStash(params) {
