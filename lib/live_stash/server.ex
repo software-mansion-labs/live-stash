@@ -5,6 +5,8 @@ defmodule LiveStash.Server do
 
   @behaviour LiveStash.Stash
 
+  alias Phoenix.Component
+
   alias LiveStash.Server.NodeHint
   alias LiveStash.Server.State
   alias LiveStash.Server.StateFinder
@@ -27,18 +29,25 @@ defmodule LiveStash.Server do
   end
 
   @impl true
-  def stash(socket, key, value) do
-    socket
-    |> get_id()
-    |> State.put!(key, value, get_opts(socket))
+  def stash_assigns(socket, keys) do
+    state =
+      Enum.reduce(keys, %{}, fn key, acc ->
+        value = Map.fetch!(socket.assigns, key)
+        Map.put(acc, key, value)
+      end)
+
+    State.put!(get_id(socket), state, get_opts(socket))
 
     socket
   rescue
-    error ->
-      err = Utils.error_message("Could not stash assign", error, __STACKTRACE__)
-      Logger.error(err)
+    e in KeyError ->
+      msg =
+        Utils.reason_message(
+          "Failed to stash assigns. Key #{inspect(e.key)} is missing from socket.assigns.",
+          :missing
+        )
 
-      socket
+      reraise RuntimeError, msg, __STACKTRACE__
   end
 
   @impl true
@@ -47,18 +56,18 @@ defmodule LiveStash.Server do
     node_hint = socket.private.live_stash.node_hint
 
     case StateFinder.get_from_cluster(id, node_hint) do
-      {:ok, state} ->
-        {:recovered, state}
+      {:ok, recovered_state} ->
+        {:recovered, Component.assign(socket, recovered_state)}
 
       :not_found ->
-        {:not_found, %{}}
+        {:not_found, socket}
     end
   rescue
     error ->
-      err = Utils.error_message("Could not recover state", error, __STACKTRACE__)
+      err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
       Logger.error(err)
 
-      {:error, err}
+      {:error, socket}
   end
 
   @impl true
@@ -70,7 +79,7 @@ defmodule LiveStash.Server do
     socket
   rescue
     error ->
-      err = Utils.error_message("Could not reset stash", error, __STACKTRACE__)
+      err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
       Logger.error(err)
 
       socket

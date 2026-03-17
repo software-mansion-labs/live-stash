@@ -9,10 +9,9 @@ defmodule LiveStash do
 
   alias Phoenix.LiveView
   alias LiveStash.Settings
+  alias LiveStash.Utils
 
   require Logger
-
-  @internal_assigns [:__changed__, :flash, :live_action, :myself]
 
   defmacro __using__(opts) do
     quote do
@@ -34,67 +33,61 @@ defmodule LiveStash do
     |> module(settings.mode).init_stash(session, opts)
   end
 
-  def stash_assigned(socket) do
-    socket.assigns
-    |> Map.drop(@internal_assigns)
-    |> Enum.reduce(socket, fn {key, value}, acc_socket ->
-      stash(acc_socket, key, value)
-    end)
-  end
-
-  def stash_assigned(socket, keys) when is_list(keys) do
-    Enum.reduce(keys, socket, fn key, acc_socket ->
-      case Map.fetch(socket.assigns, key) do
-        {:ok, value} -> stash(acc_socket, key, value)
-        :error -> acc_socket
-      end
-    end)
-  end
-
-  def stash(socket, state) do
-    Enum.reduce(state, socket, fn {key, value}, acc_socket ->
-      stash(acc_socket, key, value)
-    end)
-  end
-
-  def stash(socket, key, value) when is_atom(key) or is_number(key) or is_binary(key) do
+  def stash_assigns(socket, keys) when is_list(keys) do
     socket
     |> get_mode()
     |> module()
-    |> (& &1.stash(socket, key, value)).()
+    |> apply(:stash_assigns, [socket, keys])
   end
 
-  def stash(_socket, key, _value) do
-    raise ArgumentError,
-          "Invalid stash key: #{inspect(key)}. The key can only be an atom, number, or string (binary)."
+  def stash_assigns(_socket, _keys) do
+    msg =
+      Utils.reason_message(
+        "Keys must be a list of atoms",
+        :invalid
+      )
+
+    raise ArgumentError, msg
   end
 
   def recover_state(%{private: %{live_stash: %LiveStash.Settings{reconnected?: true}}} = socket) do
     socket
     |> get_mode()
     |> module()
-    |> (& &1.recover_state(socket)).()
+    |> apply(:recover_state, [socket])
   end
 
-  def recover_state(_socket), do: {:new, %{}}
+  def recover_state(socket), do: {:new, socket}
 
   def reset_stash(socket) do
     socket
     |> get_mode()
     |> module()
-    |> (& &1.reset_stash(socket)).()
+    |> apply(:reset_stash, [socket])
   end
 
   defp module(:server), do: LiveStash.Server
   defp module(:client), do: LiveStash.Client
-  defp module(mode), do: raise(ArgumentError, "[LiveStash] Invalid mode: #{inspect(mode)}")
+
+  defp module(mode) do
+    msg =
+      Utils.reason_message(
+        "Invalid mode: #{inspect(mode)}",
+        :invalid
+      )
+
+    raise ArgumentError, msg
+  end
 
   defp get_mode(%{private: %{live_stash: %LiveStash.Settings{mode: mode}}}), do: mode
 
   defp get_mode(_) do
-    raise(
-      ArgumentError,
-      "[LiveStash] LiveStash has not been initialized, please use on_mount/1 to initialize it"
-    )
+    msg =
+      Utils.reason_message(
+        "LiveStash has not been initialized, please use on_mount/1 to initialize it",
+        :error
+      )
+
+    raise ArgumentError, msg
   end
 end

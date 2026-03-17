@@ -86,7 +86,7 @@ defmodule LiveStash.Server.StateFinder do
 
   defp log_rpc_error(node, id, context_msg, {:error, {:exception, error, stacktrace}}) do
     msg =
-      Utils.error_message(
+      Utils.exception_message(
         "#{context_msg} on node #{inspect(node)} for id #{inspect(id)}",
         error,
         stacktrace
@@ -96,7 +96,9 @@ defmodule LiveStash.Server.StateFinder do
   end
 
   defp log_rpc_error(node, _id, context_msg, rpc_error) do
-    err = Utils.error_message("RPC error (#{context_msg}) with node #{inspect(node)}", rpc_error)
+    err =
+      Utils.exception_message("RPC error (#{context_msg}) with node #{inspect(node)}", rpc_error)
+
     Logger.error(err)
   end
 end

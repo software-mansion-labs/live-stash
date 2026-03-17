@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :server, ttl: 60 * 1000, secret_fun: &__MODULE__.secret_fun/1
+  use LiveStash, mode: :server, ttl: 60 * 1000, session_key: "user_token"
 
   import LiveStash
 
@@ -15,15 +15,12 @@ defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
     [2, 4, 6]
   ]
 
-  def secret_fun(session), do: session["user_token"]
-
   def mount(_params, _session, socket) do
     socket
     |> recover_state()
     |> case do
-      {:recovered, %{board: board, current_player: current_player, winner: winner, winning_line: winning_line}} ->
-        restore_game_state(socket, %{board: board, current_player: current_player, winner: winner, winning_line: winning_line})
-
+      {:recovered, recovered_socket} ->
+        recovered_socket
       _ -> start_new_game(socket)
     end
     |> then(&{:ok, &1})
@@ -98,7 +95,7 @@ defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> stash_assigned()
+    |> stash_assigns([:board, :current_player, :winner, :winning_line])
     |> then(&{:noreply, &1})
   end
 
@@ -106,16 +103,10 @@ defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
     {:noreply, start_new_game(socket)}
   end
 
-  defp restore_game_state(socket, recovered_state) do
-    socket
-    |> assign(board: recovered_state[:board], current_player: recovered_state[:current_player], winner: recovered_state[:winner], winning_line: recovered_state[:winning_line])
-    |> stash_assigned()
-  end
-
   defp start_new_game(socket) do
     socket
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
-    |> stash_assigned()
+    |> stash_assigns([:board, :current_player, :winner, :winning_line])
   end
 
   defp check_game_state(board) do

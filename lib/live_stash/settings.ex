@@ -28,16 +28,18 @@ defmodule LiveStash.Settings do
           node_hint: atom() | nil
         }
 
-  @spec default_secret_fun(term()) :: binary()
-  def default_secret_fun(_), do: "live_stash"
+  @default_secret "live_stash"
 
   @doc """
   Builds settings from socket and opts (e.g. in `on_mount` / `init_stash`).
   """
   @spec from_socket(LiveView.Socket.t(), keyword(), keyword()) :: t()
   def from_socket(socket, session, opts) do
-    {secret_fun, opts} = Keyword.pop(opts, :secret_fun, &__MODULE__.default_secret_fun/1)
-    evaluated_secret = evaluate_secret_fun(secret_fun, session)
+    {session_key, opts} = Keyword.pop(opts, :session_key)
+
+    evaluated_secret =
+      if session_key, do: fetch_secret(session_key, session), else: @default_secret
+
     connect_params = get_connect_params(socket)
     mounts = if connect_params, do: connect_params["_mounts"], else: nil
     node_hint = NodeHint.get_node_hint(socket, connect_params, evaluated_secret)
@@ -57,15 +59,15 @@ defmodule LiveStash.Settings do
     struct!(__MODULE__, attrs)
   end
 
-  defp evaluate_secret_fun(secret_fun, session) do
+  defp fetch_secret(session_key, session) do
     secret =
       try do
-        secret_fun.(session)
+        Map.fetch!(session, session_key)
       rescue
         e ->
           msg =
-            Utils.error_message(
-              "The provided secret_fun failed to return a valid secret.",
+            Utils.exception_message(
+              "The provided session_key failed to return a valid secret.",
               e,
               __STACKTRACE__
             )
@@ -75,7 +77,7 @@ defmodule LiveStash.Settings do
 
     if not is_binary(secret) do
       raise ArgumentError,
-            "The provided secret_fun returned an invalid type. Expected a binary string."
+            "The provided session_key returned an invalid type. Expected a binary string."
     end
 
     :sha256
@@ -89,7 +91,7 @@ defmodule LiveStash.Settings do
     rescue
       e in RuntimeError ->
         msg =
-          Utils.error_message(
+          Utils.exception_message(
             "Failed to get connect params. This likely means that LiveStash.init_stash/2 is being called outside of the mount lifecycle or before the socket is fully initialized.",
             e,
             __STACKTRACE__

@@ -7,10 +7,9 @@ defmodule LiveStash.Stash do
 
   @type recovery_status :: :recovered | :not_found | :new | :error
 
-  @callback init_stash(socket :: Socket.t(), session :: map(), opts :: Keyword.t()) :: Socket.t()
-  @callback stash(socket :: Socket.t(), key :: atom() | number() | binary(), value :: term()) ::
+  @callback init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
               Socket.t()
-  @callback recover_state(socket :: Socket.t()) ::
-              {recovery_status(), Socket.t()} | {:error, String.t()}
+  @callback stash_assigns(socket :: Socket.t(), keys :: [atom()]) :: Socket.t()
+  @callback recover_state(socket :: Socket.t()) :: {recovery_status(), Socket.t()}
   @callback reset_stash(socket :: Socket.t()) :: Socket.t()
 end
