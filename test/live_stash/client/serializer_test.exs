@@ -48,7 +48,7 @@ defmodule LiveStash.SerializerTest do
       stashed_keys = Serializer.term_to_external(socket, [key], opts)
       stashed_state = %{ext_key => ext_val}
 
-      assert {:ok, recovered, key_set} =
+      assert {:ok, {recovered, key_set}} =
                Serializer.external_to_term(socket, stashed_state, stashed_keys, opts)
 
       assert recovered == %{my_key: %{points: 42, active: true}}
@@ -74,7 +74,7 @@ defmodule LiveStash.SerializerTest do
       stashed_keys = Serializer.term_to_external(socket, [key], opts)
       stashed_state = %{ext_key => ext_val}
 
-      assert {:ok, recovered, key_set} =
+      assert {:ok, {recovered, key_set}} =
                Serializer.external_to_term(socket, stashed_state, stashed_keys, opts)
 
       assert recovered == %{{:player, 1} => [inventory: "sword"]}

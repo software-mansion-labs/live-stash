@@ -22,8 +22,8 @@ defmodule LiveStash.Client do
       socket
     else
       socket
-      |> LiveView.put_private(:live_stash_keys, MapSet.new())
       |> LiveView.push_event("live-stash:reset-state", %{})
+      |> LiveView.put_private(:live_stash_keys, MapSet.new())
     end
   end
 
@@ -84,7 +84,7 @@ defmodule LiveStash.Client do
                stashed_keys,
                get_settings(socket)
              ) do
-          {:ok, recovered_state, key_set} ->
+          {:ok, {recovered_state, key_set}} ->
             socket
             |> Component.assign(recovered_state)
             |> LiveView.put_private(:live_stash_keys, key_set)

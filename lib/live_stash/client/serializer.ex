@@ -20,14 +20,14 @@ defmodule LiveStash.Serializer do
   end
 
   @spec external_to_term(Phoenix.LiveView.Socket.t(), map(), binary(), map()) ::
-          {map(), list()} | {:error, String.t()}
+          {:ok, {map(), list()}} | {:error, String.t()}
   def external_to_term(socket, stashed_state, stashed_keys, opts) do
     with {:ok, key_set} <- get_key_set(socket, stashed_keys, opts),
          recovered_state when is_map(recovered_state) <-
            Enum.reduce_while(key_set, %{}, fn key, acc ->
              process_stashed_key(key, acc, socket, stashed_state, opts)
            end) do
-      {:ok, recovered_state, key_set}
+      {:ok, {recovered_state, key_set}}
     end
   end
 

@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :server, ttl: 60 * 1000, secret_fun: &__MODULE__.secret_fun/1
+  use LiveStash, mode: :server, ttl: 60 * 1000, session_key: "user_token"
 
   import LiveStash
 
@@ -14,8 +14,6 @@ defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
     [0, 4, 8],
     [2, 4, 6]
   ]
-
-  def secret_fun(session), do: session["user_token"]
 
   def mount(_params, _session, socket) do
     socket
