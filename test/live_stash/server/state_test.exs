@@ -50,7 +50,7 @@ defmodule LiveStash.Server.StateTest do
   describe "put!/4" do
     test "creates a new state record when id doesn't exist" do
       id = "new_id"
-      assert State.put!(id, :key, "value", ttl: 1000) == :ok
+      assert State.put!(id, %{key: "value"}, ttl: 1000) == :ok
 
       assert {:ok, %{key: "value"}} = State.get_by_id!(id)
     end
@@ -58,8 +58,8 @@ defmodule LiveStash.Server.StateTest do
     test "updates existing state record when id exists" do
       id = "existing_id"
       opts = [ttl: 1000]
-      State.put!(id, :key1, "value1", opts)
-      State.put!(id, :key2, "value2", opts)
+      State.put!(id, %{key1: "value1"}, opts)
+      State.put!(id, %{key2: "value2"}, opts)
 
       assert {:ok, state} = State.get_by_id!(id)
       assert state.key1 == "value1"
@@ -69,8 +69,8 @@ defmodule LiveStash.Server.StateTest do
     test "overwrites existing key when updating" do
       id = "update_id"
       opts = [ttl: 1000]
-      State.put!(id, :key, "value1", opts)
-      State.put!(id, :key, "value2", opts)
+      State.put!(id, %{key: "value1"}, opts)
+      State.put!(id, %{key: "value2"}, opts)
 
       assert {:ok, %{key: "value2"}} = State.get_by_id!(id)
     end

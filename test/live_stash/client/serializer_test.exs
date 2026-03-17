@@ -1,6 +1,5 @@
 defmodule LiveStash.SerializerTest do
   use ExUnit.Case, async: true
-  import ExUnit.CaptureLog
 
   alias LiveStash.Serializer
   alias Phoenix.LiveView.Socket
@@ -16,6 +15,21 @@ defmodule LiveStash.SerializerTest do
     {:ok, socket: socket}
   end
 
+  describe "term_to_external/3" do
+    setup do
+      {:ok, opts: %{security_mode: :sign, secret: "my_signing_secret", ttl: 86_400}}
+    end
+
+    test "correctly encodes a raw value into a token", %{socket: socket, opts: opts} do
+      value = [:key_1, :key_2]
+      encoded = Serializer.term_to_external(socket, value, opts)
+
+      assert is_binary(encoded)
+
+      assert {:ok, ^value} = Phoenix.Token.verify(socket, opts.secret, encoded, max_age: opts.ttl)
+    end
+  end
+
   describe ":sign mode" do
     setup do
       {:ok, opts: %{security_mode: :sign, secret: "my_signing_secret", ttl: 86_400}}
@@ -25,17 +39,20 @@ defmodule LiveStash.SerializerTest do
       key = :my_key
       value = %{points: 42, active: true}
 
-      %{key_hash: key_hash, key: ext_key, value: ext_val} =
+      {ext_key, ext_val} =
         Serializer.term_to_external(socket, key, value, opts)
 
-      assert is_binary(key_hash)
       assert is_binary(ext_key)
       assert is_binary(ext_val)
 
-      stashed_state = %{key_hash => %{"key" => ext_key, "value" => ext_val}}
-      recovered = Serializer.external_to_term(socket, stashed_state, opts)
+      stashed_keys = Serializer.term_to_external(socket, [key], opts)
+      stashed_state = %{ext_key => ext_val}
+
+      assert {:ok, {recovered, key_set}} =
+               Serializer.external_to_term(socket, stashed_state, stashed_keys, opts)
 
       assert recovered == %{my_key: %{points: 42, active: true}}
+      assert key_set == MapSet.new([:my_key])
     end
   end
 
@@ -48,94 +65,73 @@ defmodule LiveStash.SerializerTest do
       key = {:player, 1}
       value = [inventory: "sword"]
 
-      %{key_hash: key_hash, key: ext_key, value: ext_val} =
+      {ext_key, ext_val} =
         Serializer.term_to_external(socket, key, value, opts)
 
-      assert is_binary(key_hash)
       assert is_binary(ext_key)
       assert is_binary(ext_val)
 
-      stashed_state = %{key_hash => %{"key" => ext_key, "value" => ext_val}}
-      recovered = Serializer.external_to_term(socket, stashed_state, opts)
+      stashed_keys = Serializer.term_to_external(socket, [key], opts)
+      stashed_state = %{ext_key => ext_val}
+
+      assert {:ok, {recovered, key_set}} =
+               Serializer.external_to_term(socket, stashed_state, stashed_keys, opts)
 
       assert recovered == %{{:player, 1} => [inventory: "sword"]}
+      assert key_set == MapSet.new([{:player, 1}])
     end
   end
 
-  describe "external_to_term/3 error cases" do
+  describe "external_to_term/4 error cases" do
     setup do
       {:ok, opts: %{security_mode: :sign, secret: "my_secret", ttl: 86_400}}
     end
 
-    test "ignores failed decoding and logs a warning", %{socket: socket, opts: opts} do
-      stashed_state = %{
-        "broken!key!hash" => %{"key" => "some_bad_key", "value" => "some_bad_value"}
-      }
+    test "returns an error if stashed_keys cannot be decoded", %{socket: socket, opts: opts} do
+      assert {:error, msg} = Serializer.external_to_term(socket, %{}, "invalid_keys_token", opts)
 
-      log =
-        capture_log(fn ->
-          assert Serializer.external_to_term(socket, stashed_state, opts) == %{}
-        end)
-
-      assert log =~ "Could not recover a stashed item"
-      assert log =~ ":invalid"
+      assert msg =~ "Failed to retrieve key set from stashed keys"
+      assert msg =~ "invalid"
     end
 
-    test "ignores malformed stashed state and logs a warning", %{socket: socket, opts: opts} do
-      %{key_hash: _key_hash, key: ext_key, value: _ext_val} =
-        Serializer.term_to_external(socket, :test_key, "data", opts)
+    test "returns an error if an item is missing from stashed_state", %{
+      socket: socket,
+      opts: opts
+    } do
+      stashed_keys = Serializer.term_to_external(socket, [:test_key], opts)
 
-      stashed_state = %{ext_key => "this_is_not_a_valid_token"}
-
-      log =
-        capture_log(fn ->
-          assert Serializer.external_to_term(socket, stashed_state, opts) == %{}
-        end)
-
-      assert log =~ "Malformed stashed state item received from client"
-      assert log =~ ":invalid"
+      assert {:error, msg} = Serializer.external_to_term(socket, %{}, stashed_keys, opts)
+      assert msg =~ "Failed to decode stashed assign with key :test_key"
     end
 
-    test "ignores expired tokens", %{socket: socket} do
+    test "returns an error if a stashed_state token is invalid", %{socket: socket, opts: opts} do
+      stashed_keys = Serializer.term_to_external(socket, [:test_key], opts)
+      {ext_key, _ext_val} = Serializer.term_to_external(socket, :test_key, "data", opts)
+
+      stashed_state = %{ext_key => "invalid_token_for_value"}
+
+      assert {:error, msg} =
+               Serializer.external_to_term(socket, stashed_state, stashed_keys, opts)
+
+      assert msg =~ "Failed to decode stashed assign with key :test_key"
+    end
+
+    test "returns an error for expired tokens", %{socket: socket} do
       opts = %{security_mode: :sign, secret: "my_secret", ttl: 0}
 
-      %{key_hash: key_hash, key: ext_key, value: ext_val} =
+      stashed_keys = Serializer.term_to_external(socket, [:time_test], opts)
+
+      {ext_key, ext_val} =
         Serializer.term_to_external(socket, :time_test, "data", opts)
 
       Process.sleep(1)
 
-      stashed_state =
-        %{key_hash => %{"key" => ext_key, "value" => ext_val}}
+      stashed_state = %{ext_key => ext_val}
 
-      log =
-        capture_log(fn ->
-          assert Serializer.external_to_term(socket, stashed_state, opts) == %{}
-        end)
+      assert {:error, msg} =
+               Serializer.external_to_term(socket, stashed_state, stashed_keys, opts)
 
-      assert log =~ "Could not recover a stashed item"
-      assert log =~ ":expired"
-    end
-
-    test "recovers the rest of the state after error", %{socket: socket, opts: opts} do
-      %{key_hash: key_hash_1, key: valid_key_1, value: valid_val_1} =
-        Serializer.term_to_external(socket, :first_item, "success_1", opts)
-
-      %{key_hash: key_hash_2, key: valid_key_2, value: valid_val_2} =
-        Serializer.term_to_external(socket, :second_item, "success_2", opts)
-
-      stashed_state = %{
-        key_hash_1 => %{"key" => valid_key_1, "value" => valid_val_1},
-        "broken!base64!key" => %{"key" => "some_bad_key", "value" => "some_bad_value"},
-        key_hash_2 => %{"key" => valid_key_2, "value" => valid_val_2}
-      }
-
-      recovered =
-        Serializer.external_to_term(socket, stashed_state, opts)
-
-      assert recovered == %{
-               first_item: "success_1",
-               second_item: "success_2"
-             }
+      assert msg =~ "expired"
     end
   end
 end

@@ -7,10 +7,14 @@ window.addEventListener('phx:live-stash:reset-state', (_event) => {
 });
 
 window.addEventListener('phx:live-stash:stash-state', (event) => {
-  stashedState[event.detail.key_hash] = {
-    key: event.detail.key,
-    value: event.detail.value,
+  stashedState['assigns'] = stashedState['assigns'] || {};
+
+  stashedState['assigns'] = {
+    ...stashedState['assigns'],
+    ...event.detail.assigns,
   };
+
+  stashedState['keys'] = event.detail.keys;
 });
 
 window.addEventListener('phx:live-stash:init-server', (event) => {

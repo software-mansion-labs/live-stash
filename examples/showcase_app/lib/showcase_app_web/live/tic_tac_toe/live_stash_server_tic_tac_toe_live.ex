@@ -19,9 +19,8 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
     socket
     |> recover_state()
     |> case do
-      {:recovered, %{board: board, current_player: current_player, winner: winner, winning_line: winning_line}} ->
-        restore_game_state(socket, %{board: board, current_player: current_player, winner: winner, winning_line: winning_line})
-
+      {:recovered, recovered_socket} ->
+        recovered_socket
       _ -> start_new_game(socket)
     end
     |> then(&{:ok, &1})
@@ -96,7 +95,7 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> stash_assigned()
+    |> stash_assigns([:board, :current_player, :winner, :winning_line])
     |> then(&{:noreply, &1})
   end
 
@@ -104,16 +103,9 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
     {:noreply, start_new_game(socket)}
   end
 
-  defp restore_game_state(socket, recovered_state) do
-    socket
-    |> assign(board: recovered_state[:board], current_player: recovered_state[:current_player], winner: recovered_state[:winner], winning_line: recovered_state[:winning_line])
-    |> stash_assigned()
-  end
-
   defp start_new_game(socket) do
     socket
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
-    |> stash_assigned()
   end
 
   defp check_game_state(board) do

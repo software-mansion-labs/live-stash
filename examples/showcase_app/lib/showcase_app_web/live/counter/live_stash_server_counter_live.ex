@@ -8,15 +8,11 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
     socket
     |> recover_state()
     |> case do
-        {:recovered, %{count: count}} ->
-          socket
-          |> stash(:count, count)
-          |> assign(count: count)
+        {:recovered, recovered_socket} ->
+          recovered_socket
 
         _ ->
-          socket
-          |> stash(:count, 0)
-          |> assign(count: 0)
+          assign(socket, count: 0)
     end
     |> then(&{:ok, &1})
   end
@@ -79,14 +75,14 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
 
   def handle_event("increment", _, socket) do
     socket
-    |> stash(:count, socket.assigns.count + 1)
     |> assign(:count, socket.assigns.count + 1)
+    |> stash_assigns([:count])
     |> then(&{:noreply, &1})  end
 
   def handle_event("decrement", _, socket) do
     socket
-    |> stash(:count, socket.assigns.count - 1)
     |> assign(:count, socket.assigns.count - 1)
+    |> stash_assigns([:count])
     |> then(&{:noreply, &1})
   end
 end
