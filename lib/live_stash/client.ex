@@ -31,8 +31,6 @@ defmodule LiveStash.Client do
   def stash_assigns(socket, keys) do
     existing_keys = socket.private[:live_stash_keys]
 
-    has_new_keys? = not MapSet.subset?(MapSet.new(keys), existing_keys)
-
     socket =
       LiveView.put_private(
         socket,
@@ -40,18 +38,23 @@ defmodule LiveStash.Client do
         MapSet.union(existing_keys, MapSet.new(keys))
       )
 
-    socket =
-      Enum.reduce(keys, socket, fn key, acc_socket ->
-        value = Map.fetch!(acc_socket.assigns, key)
+    serialized_assigns =
+      Enum.reduce(keys, %{}, fn key, acc ->
+        value = Map.fetch!(socket.assigns, key)
 
-        stash(acc_socket, key, value)
+        {serialized_key, serialized_value} =
+          Serializer.term_to_external(socket, key, value, get_settings(socket))
+
+        Map.put(acc, serialized_key, serialized_value)
       end)
 
-    if has_new_keys? do
-      stash_keys(socket, keys)
-    else
-      socket
-    end
+    payload =
+      %{
+        assigns: serialized_assigns,
+        keys: Serializer.term_to_external(socket, keys, get_settings(socket))
+      }
+
+    Phoenix.LiveView.push_event(socket, "live-stash:stash-state", payload)
   rescue
     e in KeyError ->
       msg =
@@ -64,22 +67,9 @@ defmodule LiveStash.Client do
   end
 
   @impl true
-  def stash(socket, key, value) do
-    payload =
-      Serializer.term_to_external(
-        socket,
-        key,
-        value,
-        get_settings(socket)
-      )
-
-    LiveView.push_event(socket, "live-stash:stash-state", payload)
-  end
-
-  @impl true
   def recover_state(socket) do
     case LiveView.get_connect_params(socket) do
-      %{"stashedState" => stashed_state, "stashedKeys" => stashed_keys}
+      %{"stashedState" => %{"assigns" => stashed_state, "keys" => stashed_keys}}
       when is_map(stashed_state) ->
         case Serializer.external_to_term(
                socket,
@@ -118,12 +108,6 @@ defmodule LiveStash.Client do
   @impl true
   def reset_stash(socket) do
     LiveView.push_event(socket, "live-stash:reset-state", %{})
-  end
-
-  defp stash_keys(socket, keys) do
-    LiveView.push_event(socket, "live-stash:stash-keys", %{
-      keys: Serializer.term_to_external(socket, keys, get_settings(socket))
-    })
   end
 
   defp get_settings(socket) do

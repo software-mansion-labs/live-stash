@@ -30,10 +30,15 @@ defmodule LiveStash.Server do
 
   @impl true
   def stash_assigns(socket, keys) do
-    Enum.reduce(keys, socket, fn key, acc_socket ->
-      value = Map.fetch!(socket.assigns, key)
-      stash(acc_socket, key, value)
-    end)
+    state =
+      Enum.reduce(keys, %{}, fn key, acc ->
+        value = Map.fetch!(socket.assigns, key)
+        Map.put(acc, key, value)
+      end)
+
+    State.put!(get_id(socket), state, get_opts(socket))
+
+    socket
   rescue
     e in KeyError ->
       msg =
@@ -43,21 +48,6 @@ defmodule LiveStash.Server do
         )
 
       reraise RuntimeError, msg, __STACKTRACE__
-  end
-
-  @impl true
-  def stash(socket, key, value) do
-    socket
-    |> get_id()
-    |> State.put!(key, value, get_opts(socket))
-
-    socket
-  rescue
-    error ->
-      err = Utils.exception_message("Could not stash assign", error, __STACKTRACE__)
-      Logger.error(err)
-
-      socket
   end
 
   @impl true

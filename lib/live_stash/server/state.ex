@@ -70,21 +70,21 @@ defmodule LiveStash.Server.State do
   end
 
   @doc """
-  Puts a new key-value pair into the state of a LiveView or creates a new state record if it doesn't exist.
+  Puts a new state map into the state of a LiveView or creates a new state record if it doesn't exist.
   """
-  @spec put!(id :: term(), key :: term(), value :: term(), opts :: Keyword.t()) :: :ok
-  def put!(id, key, value, opts) do
+  @spec put!(id :: term(), state :: map(), opts :: Keyword.t()) :: :ok
+  def put!(id, state, opts) do
     @table_name
     |> :ets.lookup(id)
     |> case do
       [{:state, ^id, _pid, _delete_at, _ttl, map_state}] ->
         id
-        |> new(Map.put(map_state, key, value), opts)
+        |> new(Map.merge(map_state, state), opts)
         |> insert!()
 
       [] ->
         id
-        |> new(%{key => value}, opts)
+        |> new(state, opts)
         |> insert!()
     end
 

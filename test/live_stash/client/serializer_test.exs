@@ -39,7 +39,7 @@ defmodule LiveStash.SerializerTest do
       key = :my_key
       value = %{points: 42, active: true}
 
-      %{key: ext_key, value: ext_val} =
+      {ext_key, ext_val} =
         Serializer.term_to_external(socket, key, value, opts)
 
       assert is_binary(ext_key)
@@ -65,7 +65,7 @@ defmodule LiveStash.SerializerTest do
       key = {:player, 1}
       value = [inventory: "sword"]
 
-      %{key: ext_key, value: ext_val} =
+      {ext_key, ext_val} =
         Serializer.term_to_external(socket, key, value, opts)
 
       assert is_binary(ext_key)
@@ -106,7 +106,7 @@ defmodule LiveStash.SerializerTest do
 
     test "returns an error if a stashed_state token is invalid", %{socket: socket, opts: opts} do
       stashed_keys = Serializer.term_to_external(socket, [:test_key], opts)
-      %{key: ext_key} = Serializer.term_to_external(socket, :test_key, "data", opts)
+      {ext_key, _ext_val} = Serializer.term_to_external(socket, :test_key, "data", opts)
 
       stashed_state = %{ext_key => "invalid_token_for_value"}
 
@@ -121,7 +121,7 @@ defmodule LiveStash.SerializerTest do
 
       stashed_keys = Serializer.term_to_external(socket, [:time_test], opts)
 
-      %{key: ext_key, value: ext_val} =
+      {ext_key, ext_val} =
         Serializer.term_to_external(socket, :time_test, "data", opts)
 
       Process.sleep(1)

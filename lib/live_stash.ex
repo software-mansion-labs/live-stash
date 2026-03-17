@@ -50,13 +50,6 @@ defmodule LiveStash do
     raise ArgumentError, msg
   end
 
-  def stash(socket, key, value) do
-    socket
-    |> get_mode()
-    |> module()
-    |> apply(:stash, [socket, key, value])
-  end
-
   def recover_state(%{private: %{live_stash: %LiveStash.Settings{reconnected?: true}}} = socket) do
     socket
     |> get_mode()

@@ -6,12 +6,9 @@ defmodule LiveStash.Serializer do
   alias LiveStash.Utils
 
   @spec term_to_external(Phoenix.LiveView.Socket.t(), term(), term(), map()) ::
-          map()
+          {binary(), binary()}
   def term_to_external(socket, key, value, opts) do
-    %{
-      key: encode_key(key),
-      value: encode_token(socket, value, opts)
-    }
+    {encode_key(key), encode_token(socket, value, opts)}
   end
 
   @spec term_to_external(Phoenix.LiveView.Socket.t(), term(), map()) :: binary()
