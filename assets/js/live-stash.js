@@ -1,5 +1,6 @@
 let stashedState = {};
 let node = null;
+let stashId = null;
 
 window.addEventListener('phx:live-stash:reset-state', (_event) => {
   stashedState = {};
@@ -16,8 +17,9 @@ window.addEventListener('phx:live-stash:stash-state', (event) => {
   stashedState['keys'] = event.detail.keys;
 });
 
-window.addEventListener('phx:live-stash:save-node', (event) => {
+window.addEventListener('phx:live-stash:init-server', (event) => {
   node = event.detail.node;
+  stashId = event.detail.stashId;
 });
 
 export default function initLiveStash(params) {
@@ -25,6 +27,7 @@ export default function initLiveStash(params) {
     return {
       stashedState: stashedState,
       node: node,
+      stashId: stashId,
       ...params,
     };
   };

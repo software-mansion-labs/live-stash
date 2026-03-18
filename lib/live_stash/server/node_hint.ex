@@ -10,15 +10,14 @@ defmodule LiveStash.Server.NodeHint do
   alias LiveStash.Utils
 
   @doc """
-  Pushes the current node (encrypted) to the client via a LiveView event so the client
-  can store it as a node hint for later reconnection and state recovery.
+  Creates a node hint by encrypting the current node with the provided secret.
   """
-  @spec save_node_hint(socket :: LiveView.Socket.t()) :: LiveView.Socket.t()
-  def save_node_hint(socket) do
+  @spec create_node_hint(socket :: LiveView.Socket.t()) :: binary()
+  def create_node_hint(socket) do
     node = Node.self() |> :erlang.atom_to_binary()
     secret = socket.private.live_stash.secret
-    encrypted_node = Phoenix.Token.encrypt(socket, secret, node)
-    LiveView.push_event(socket, "live-stash:save-node", %{node: encrypted_node})
+
+    Phoenix.Token.encrypt(socket, secret, node)
   end
 
   @doc """

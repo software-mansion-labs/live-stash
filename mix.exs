@@ -30,7 +30,8 @@ defmodule LiveStash.MixProject do
     [
       {:phoenix_live_view, "~> 1.0"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:uuid, "~> 1.1"}
     ]
   end
 

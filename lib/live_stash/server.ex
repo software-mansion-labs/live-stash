@@ -12,20 +12,45 @@ defmodule LiveStash.Server do
   alias LiveStash.Server.StateFinder
   alias LiveStash.Utils
 
+  alias Phoenix.LiveView
+
   require Logger
 
   @impl true
   def init_stash(socket, _session, _opts) do
     reconnected? = socket.private.live_stash.reconnected?
 
-    # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
+    id = fetch_stash_id(socket) || UUID.uuid4()
+    socket = Phoenix.LiveView.put_private(socket, :live_stash_id, id)
+
     if not reconnected? do
       socket
-      |> get_id()
+      |> get_ets_id()
       |> State.delete_by_id!()
     end
 
-    NodeHint.save_node_hint(socket)
+    node_hint = NodeHint.create_node_hint(socket)
+    LiveView.push_event(socket, "live-stash:init-server", %{node: node_hint, stashId: id})
+  end
+
+  defp fetch_stash_id(socket) do
+    case Phoenix.LiveView.get_connect_params(socket) do
+      %{"stashId" => id} when is_binary(id) ->
+        id
+
+      _ ->
+        nil
+    end
+  end
+
+  defp get_ets_id(socket) do
+    id = socket.private.live_stash_id
+    secret = socket.private.live_stash.secret
+
+    raw_key = id <> secret
+    hashed_binary = :crypto.hash(:sha256, raw_key)
+
+    Base.encode64(hashed_binary, padding: false)
   end
 
   @impl true
@@ -36,7 +61,7 @@ defmodule LiveStash.Server do
         Map.put(acc, key, value)
       end)
 
-    State.put!(get_id(socket), state, get_opts(socket))
+    State.put!(get_ets_id(socket), state, get_opts(socket))
 
     socket
   rescue
@@ -52,11 +77,15 @@ defmodule LiveStash.Server do
 
   @impl true
   def recover_state(socket) do
-    id = get_id(socket)
+    id = get_ets_id(socket)
     node_hint = socket.private.live_stash.node_hint
 
     case StateFinder.get_from_cluster(id, node_hint) do
       {:ok, recovered_state} ->
+        id
+        |> State.new(recovered_state, get_opts(socket))
+        |> State.insert!()
+
         {:recovered, Component.assign(socket, recovered_state)}
 
       :not_found ->
@@ -73,7 +102,7 @@ defmodule LiveStash.Server do
   @impl true
   def reset_stash(socket) do
     socket
-    |> get_id()
+    |> get_ets_id()
     |> State.delete_by_id!()
 
     socket
@@ -83,14 +112,6 @@ defmodule LiveStash.Server do
       Logger.error(err)
 
       socket
-  end
-
-  defp get_id(%{id: id, private: %{live_stash: %LiveStash.Settings{secret: secret}}} = _socket)
-       when is_binary(id) and is_binary(secret) do
-    raw_key = id <> secret
-    hashed_binary = :crypto.hash(:sha256, raw_key)
-
-    Base.encode64(hashed_binary, padding: false)
   end
 
   defp get_opts(socket) do
