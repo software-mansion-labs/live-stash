@@ -36,8 +36,13 @@ defmodule LiveStash.MixProject do
 
   defp docs() do
     [
-      main: "readme",
-      extras: ["README.md", "LICENSE"],
+      main: "welcome",
+      extras: [
+        "docs/welcome.md",
+        "docs/modes.md",
+        "docs/configuration.md",
+        "docs/example.md"
+      ],
       source_url: "https://github.com/software-mansion-labs/live-stash",
       source_ref: @version,
       filter_modules: &filter_modules/2
