@@ -30,7 +30,8 @@ defmodule LiveStash.MixProject do
     [
       {:phoenix_live_view, "~> 1.0"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:makeup_js, "~> 0.1.0", only: :dev, runtime: false}
     ]
   end
 
@@ -39,7 +40,8 @@ defmodule LiveStash.MixProject do
       main: "welcome",
       extras: [
         "docs/welcome.md",
-        "docs/modes.md",
+        "docs/client.md",
+        "docs/server.md",
         "docs/configuration.md",
         "docs/example.md"
       ],

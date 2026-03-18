@@ -2,8 +2,6 @@
 
 LiveStash keeps LiveView state across reconnects. You can persist assigns in the **browser** (client mode) or on the **server** (server mode).
 
-The elevators are not so scary anymore with LiveStash onboard!
-
 ## Installation
 
 Add `live_stash` to your dependencies in `mix.exs`:

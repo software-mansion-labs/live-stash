@@ -36,7 +36,14 @@ const liveSocket = new LiveSocket("/live", Socket, {
 
 Adding LiveStash to your existing LiveView is very simple.
 
-1. Decide which part of your LiveView state you want to stash.
+1. Add `use LiveStash` to your module
+
+```elixir
+defmodule ShowcaseAppWeb.LiveStashCounterLive do
+  use LiveStash # this will initialize LiveStash in on_mount/3
+```
+
+2. Decide which part of your LiveView state you want to stash.
 
 ```elixir
   def handle_event("increment", _, socket) do
@@ -46,12 +53,9 @@ Adding LiveStash to your existing LiveView is very simple.
     |> then(&{:noreply, &1})  end
 ```
 
-2. Add `use LiveStash` to your module and in your mount/3 function call recover_state(socket). There! Your LiveView state just got recovered.
+2. Call `recover_state(socket)` in your `mount/3` function call. There! Your LiveView state just got recovered.
 
 ```elixir
-defmodule ShowcaseAppWeb.LiveStashCounterLive do
-  use LiveStash # this will initialize LiveStash in on_mount/3
-
   def mount(_params, _session, socket) do
     socket
     |> LiveStash.recover_state() # socket with previously stashed assigns is recovered

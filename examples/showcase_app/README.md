@@ -27,7 +27,7 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
-Select an example and play around with it to save some state. Now press the Disconnect Socket button in the bottom-right corner, then press Connect Socket and watch the state being recovered(or not if you selected Default example)
+Select an example and play around with it to save some state. Now press the Disconnect Socket button in the bottom-right corner, then press Connect Socket and watch the state being recovered (or not if you selected Default example)
 
 ### Cluster example - Docker
 
