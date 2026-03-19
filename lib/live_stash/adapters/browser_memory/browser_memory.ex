@@ -1,35 +1,37 @@
-defmodule LiveStash.Client do
+defmodule LiveStash.Adapters.BrowserMemory do
   @moduledoc """
   A client-side stash that persists data in the browser's memory.
   """
 
-  @behaviour LiveStash.Stash
+  @behaviour LiveStash.Adapter
 
   require Logger
 
   alias LiveStash.Utils
-  alias LiveStash.Serializer
+  alias LiveStash.Adapters.BrowserMemory.Serializer
+  alias LiveStash.Adapters.BrowserMemory.Context
 
   alias Phoenix.LiveView
   alias Phoenix.Component
 
   @impl true
-  def init_stash(socket, _session, _opts) do
-    reconnected? = socket.private.live_stash.reconnected?
+  def init_stash(socket, session, opts) do
+    context = Context.from_socket(socket, session, opts)
+
+    socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
 
     # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
-    if reconnected? do
+    if context.reconnected? do
       socket
     else
       socket
       |> LiveView.push_event("live-stash:reset-state", %{})
-      |> LiveView.put_private(:live_stash_keys, MapSet.new())
     end
   end
 
   @impl true
   def stash_assigns(socket, keys) do
-    existing_keys = socket.private[:live_stash_keys]
+    existing_keys = socket.private[:live_stash_context].key_set
 
     socket =
       LiveView.put_private(
@@ -112,9 +114,9 @@ defmodule LiveStash.Client do
 
   defp get_settings(socket) do
     %{
-      ttl: socket.private.live_stash.ttl,
-      secret: socket.private.live_stash.secret,
-      security_mode: socket.private.live_stash.security_mode
+      ttl: socket.private.live_stash_context.ttl,
+      secret: socket.private.live_stash_context.secret,
+      security_mode: socket.private.live_stash_context.security_mode
     }
   end
 end

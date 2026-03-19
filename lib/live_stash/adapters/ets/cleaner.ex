@@ -1,11 +1,11 @@
-defmodule LiveStash.Server.Cleaner do
+defmodule LiveStash.Adapters.ETS.Cleaner do
   @moduledoc false
 
   use GenServer
 
   require Logger
 
-  alias LiveStash.Server.State
+  alias LiveStash.Adapters.ETS.State
   alias LiveStash.Utils
 
   @cleanup_interval Application.compile_env(:live_stash, :ets_cleanup_interval, 1 * 60 * 1_000)

@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :client, security_mode: :encrypt
+  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt
 
   import LiveStash
 

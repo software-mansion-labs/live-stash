@@ -1,9 +1,8 @@
-defmodule LiveStash.Settings do
+defmodule LiveStash.Adapters.BrowserMemory.Context do
   @moduledoc false
 
-  alias LiveStash.Server.NodeHint
-  alias LiveStash.Utils
   alias Phoenix.LiveView
+  alias LiveStash.Utils
 
   @enforce_keys [
     :reconnected?,
@@ -13,25 +12,23 @@ defmodule LiveStash.Settings do
   defstruct [
     :reconnected?,
     :secret,
-    mode: :server,
-    security_mode: :sign,
     ttl: 5 * 60 * 1000,
-    node_hint: nil
+    security_mode: :sign,
+    key_set: MapSet.new()
   ]
 
   @type t :: %__MODULE__{
-          mode: :client | :server,
           reconnected?: boolean(),
           secret: binary(),
           security_mode: :sign | :encrypt,
           ttl: integer(),
-          node_hint: atom() | nil
+          key_set: MapSet.t()
         }
 
   @default_secret "live_stash"
 
   @doc """
-  Builds settings from socket and opts (e.g. in `on_mount` / `init_stash`).
+  Builds context from socket and opts (e.g. in `on_mount` / `init_stash`).
   """
   @spec from_socket(LiveView.Socket.t(), keyword(), keyword()) :: t()
   def from_socket(socket, session, opts) do
@@ -42,19 +39,17 @@ defmodule LiveStash.Settings do
 
     connect_params = get_connect_params(socket)
     mounts = if connect_params, do: connect_params["_mounts"], else: nil
-    node_hint = NodeHint.get_node_hint(socket, connect_params, evaluated_secret)
     reconnected? = not is_nil(mounts) and mounts > 0
 
-    new(opts, reconnected?, evaluated_secret, node_hint)
+    new(opts, reconnected?, evaluated_secret)
   end
 
-  @spec new(keyword(), boolean(), binary(), node() | nil) :: t()
-  def new(user_opts, reconnected?, evaluated_secret, node_hint) do
+  @spec new(keyword(), boolean(), binary()) :: t()
+  def new(user_opts, reconnected?, evaluated_secret) do
     attrs =
       user_opts
       |> Keyword.put(:reconnected?, reconnected?)
       |> Keyword.put(:secret, evaluated_secret)
-      |> Keyword.put(:node_hint, node_hint)
 
     struct!(__MODULE__, attrs)
   end

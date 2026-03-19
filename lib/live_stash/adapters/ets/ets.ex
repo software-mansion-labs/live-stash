@@ -1,51 +1,65 @@
-defmodule LiveStash.Server do
+defmodule LiveStash.Adapters.ETS do
   @moduledoc """
   A server-side stash that persists data in the server's memory.
   """
 
-  @behaviour LiveStash.Stash
+  @behaviour LiveStash.Adapter
 
   alias Phoenix.Component
 
-  alias LiveStash.Server.NodeHint
-  alias LiveStash.Server.State
-  alias LiveStash.Server.StateFinder
+  alias LiveStash.Adapters.ETS.NodeHint
+  alias LiveStash.Adapters.ETS.State
+  alias LiveStash.Adapters.ETS.StateFinder
+  alias LiveStash.Adapters.ETS.Context
   alias LiveStash.Utils
 
   alias Phoenix.LiveView
 
   require Logger
 
+  @doc false
   @impl true
-  def init_stash(socket, _session, _opts) do
-    reconnected? = socket.private.live_stash.reconnected?
+  def child_spec(opts \\ []) do
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :supervisor
+    }
+  end
 
-    id = fetch_stash_id(socket) || UUID.uuid4()
-    socket = Phoenix.LiveView.put_private(socket, :live_stash_id, id)
+  @doc false
+  def start_link(opts \\ []) do
+    children = [
+      {LiveStash.Adapters.ETS.Storage, opts},
+      {LiveStash.Adapters.ETS.Cleaner, opts}
+    ]
 
-    if not reconnected? do
+    Supervisor.start_link(children, strategy: :one_for_one, name: __MODULE__.Supervisor)
+  end
+
+  @impl true
+  def init_stash(socket, session, opts) do
+    context = Context.from_socket(socket, session, opts)
+
+    socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
+
+    if not context.reconnected? do
       socket
       |> get_ets_id()
       |> State.delete_by_id!()
     end
 
     node_hint = NodeHint.create_node_hint(socket)
-    LiveView.push_event(socket, "live-stash:init-server", %{node: node_hint, stashId: id})
-  end
 
-  defp fetch_stash_id(socket) do
-    case Phoenix.LiveView.get_connect_params(socket) do
-      %{"stashId" => id} when is_binary(id) ->
-        id
-
-      _ ->
-        nil
-    end
+    LiveView.push_event(socket, "live-stash:init-server", %{
+      node: node_hint,
+      stashId: context.id
+    })
   end
 
   defp get_ets_id(socket) do
-    id = socket.private.live_stash_id
-    secret = socket.private.live_stash.secret
+    id = socket.private.live_stash_context.id
+    secret = socket.private.live_stash_context.secret
 
     raw_key = id <> secret
     hashed_binary = :crypto.hash(:sha256, raw_key)
@@ -78,7 +92,7 @@ defmodule LiveStash.Server do
   @impl true
   def recover_state(socket) do
     id = get_ets_id(socket)
-    node_hint = socket.private.live_stash.node_hint
+    node_hint = socket.private.live_stash_context.node_hint
 
     case StateFinder.get_from_cluster(id, node_hint) do
       {:ok, recovered_state} ->
@@ -115,6 +129,6 @@ defmodule LiveStash.Server do
   end
 
   defp get_opts(socket) do
-    [ttl: socket.private.live_stash.ttl]
+    [ttl: socket.private.live_stash_context.ttl]
   end
 end

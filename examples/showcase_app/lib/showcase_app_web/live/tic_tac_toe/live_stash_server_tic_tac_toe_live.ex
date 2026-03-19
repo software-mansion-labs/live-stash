@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :server, ttl: 5 * 60 * 1000
+  use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 5 * 60 * 1000
 
   import LiveStash
 
