@@ -82,18 +82,14 @@ defmodule LiveStash.ClientTest do
          %{socket: socket} do
       settings = %{ttl: 86_400, secret: socket.private.live_stash.secret, security_mode: :sign}
 
-      stashed_keys = Serializer.term_to_external(socket, [:player_id, :username], settings)
+      stashed_keys = Serializer.term_to_external(socket, [:player_id], settings)
       {ext_key_1, ext_val_1} = Serializer.term_to_external(socket, :player_id, 999, settings)
-
-      {ext_key_2, ext_val_2} =
-        Serializer.term_to_external(socket, :username, "recovered_user", settings)
 
       params = %{
         "stashedState" => %{
           "keys" => stashed_keys,
           "assigns" => %{
-            ext_key_1 => ext_val_1,
-            ext_key_2 => ext_val_2
+            ext_key_1 => ext_val_1
           }
         }
       }
@@ -103,9 +99,9 @@ defmodule LiveStash.ClientTest do
       assert {:recovered, recovered_socket} = Client.recover_state(socket_with_params)
 
       assert recovered_socket.assigns.player_id == 999
-      assert recovered_socket.assigns.username == "recovered_user"
+      assert recovered_socket.assigns.username == "tester"
 
-      assert recovered_socket.private.live_stash_keys == MapSet.new([:player_id, :username])
+      assert recovered_socket.private.live_stash_keys == MapSet.new([:player_id])
     end
 
     test "returns :not_found when connect_params do not contain stashedState", %{socket: socket} do
