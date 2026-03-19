@@ -3,14 +3,12 @@ defmodule LiveStash.SettingsTest do
 
   alias LiveStash.Settings
   alias Phoenix.LiveView.Socket
+  alias LiveStash.Fakes
 
   @default_secret "live_stash"
 
   setup do
-    socket = %Socket{
-      transport_pid: self(),
-      private: %{connect_params: %{}}
-    }
+    socket = Fakes.socket(private: %{connect_params: %{}})
 
     {:ok, socket: socket}
   end

@@ -5,36 +5,30 @@ defmodule LiveStash.ClientTest do
   alias LiveStash.Client
   alias LiveStash.Serializer
   alias Phoenix.LiveView.Socket
-
-  defmodule MockEndpoint do
-    def config(:secret_key_base) do
-      String.duplicate("abcdefghijklmnopqrstuvwxyz012345", 2)
-    end
-  end
+  alias LiveStash.Fakes
 
   setup do
     secret = "my_client_test_secret"
 
-    socket = %Socket{
-      endpoint: MockEndpoint,
-      transport_pid: self(),
-      assigns: %{
-        __changed__: %{},
-        player_id: 123,
-        username: "tester"
-      },
-      private: %{
-        live_temp: %{},
-        connect_params: %{},
-        live_stash_keys: MapSet.new([:player_id]),
-        live_stash: %{
-          reconnected?: false,
-          ttl: 86_400,
-          secret: secret,
-          security_mode: :sign
+    socket =
+      Fakes.socket(
+        assigns: %{
+          __changed__: %{},
+          player_id: 123,
+          username: "tester"
+        },
+        private: %{
+          live_temp: %{},
+          connect_params: %{},
+          live_stash_keys: MapSet.new([:player_id]),
+          live_stash: %{
+            reconnected?: false,
+            ttl: 86_400,
+            secret: secret,
+            security_mode: :sign
+          }
         }
-      }
-    }
+      )
 
     {:ok, socket: socket, secret: secret}
   end

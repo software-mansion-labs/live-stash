@@ -3,21 +3,20 @@ defmodule LiveStash.Server.NodeHintTest do
   import ExUnit.CaptureLog
 
   alias LiveStash.Server.NodeHint
-  alias Phoenix.LiveView.Socket
-
-  defmodule MockEndpoint do
-    def config(:secret_key_base) do
-      String.duplicate("abcdefghijklmnopqrstuvwxyz012345", 2)
-    end
-  end
+  alias LiveStash.Fakes
 
   setup do
     secret = "my_test_secret"
 
-    socket = %Socket{
-      endpoint: MockEndpoint,
-      private: %{live_stash: %{secret: secret}}
-    }
+    socket =
+      Fakes.socket(
+        private: %{
+          connect_params: %{},
+          live_stash: %{
+            secret: secret
+          }
+        }
+      )
 
     {:ok, socket: socket, secret: secret}
   end

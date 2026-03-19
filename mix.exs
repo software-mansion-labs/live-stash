@@ -9,6 +9,7 @@ defmodule LiveStash.MixProject do
       version: @version,
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       package: package(),
       docs: docs(),
@@ -58,4 +59,7 @@ defmodule LiveStash.MixProject do
   defp filter_modules(LiveStash.Client, _meta), do: true
   defp filter_modules(LiveStash.Server, _meta), do: true
   defp filter_modules(_, _meta), do: false
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 end

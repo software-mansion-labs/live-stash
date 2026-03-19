@@ -8,14 +8,9 @@ defmodule LiveStash.ServerTest do
   alias LiveStash.Server.State
   alias LiveStash.Server.StateFinder
   alias Phoenix.LiveView.Socket
+  alias LiveStash.Fakes
 
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
-
-  defmodule MockEndpoint do
-    def config(:secret_key_base) do
-      String.duplicate("abcdefghijklmnopqrstuvwxyz012345", 2)
-    end
-  end
 
   setup do
     if :ets.whereis(@table_name) != :undefined do
@@ -27,27 +22,26 @@ defmodule LiveStash.ServerTest do
     secret = "my_server_test_secret"
     stash_id = "test_uuid_1234"
 
-    socket = %Socket{
-      endpoint: MockEndpoint,
-      transport_pid: self(),
-      assigns: %{
-        __changed__: %{},
-        player_id: 123,
-        username: "tester"
-      },
-      private: %{
-        live_temp: %{},
-        connect_params: %{"stashId" => stash_id},
-        live_stash_id: stash_id,
-        live_stash: %{
-          reconnected?: false,
-          ttl: 86_400,
-          secret: secret,
-          security_mode: :sign,
-          node_hint: Node.self()
+    socket =
+      Fakes.socket(
+        assigns: %{
+          __changed__: %{},
+          player_id: 123,
+          username: "tester"
+        },
+        private: %{
+          live_temp: %{},
+          connect_params: %{"stashId" => stash_id},
+          live_stash_id: stash_id,
+          live_stash: %{
+            reconnected?: false,
+            ttl: 86_400,
+            secret: secret,
+            security_mode: :sign,
+            node_hint: Node.self()
+          }
         }
-      }
-    }
+      )
 
     ets_id =
       :crypto.hash(:sha256, stash_id <> secret)
