@@ -72,9 +72,21 @@ defmodule LiveStash.ServerTest do
 
       initialized_socket = Server.init_stash(socket, %{}, [])
 
-      assert is_binary(initialized_socket.private.live_stash_id)
+      generated_id = initialized_socket.private.live_stash_id
+
+      assert is_binary(generated_id)
 
       assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
+
+      queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
+
+      assert Enum.any?(queued_events, fn
+               ["live-stash:init-server", payload] ->
+                 payload.stashId == generated_id and is_binary(payload.node)
+
+               _other ->
+                 false
+             end)
     end
 
     test "uses existing stashId from connect_params and does not clear ETS when reconnected? is true",
@@ -96,7 +108,18 @@ defmodule LiveStash.ServerTest do
 
       initialized_socket = Server.init_stash(socket, %{}, [])
 
-      assert initialized_socket.private.live_stash_id == "test_uuid_1234"
+      id_after_init = initialized_socket.private.live_stash_id
+      assert id_after_init == "test_uuid_1234"
+
+      queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
+
+      assert Enum.any?(queued_events, fn
+               ["live-stash:init-server", payload] ->
+                 payload.stashId == id_after_init and is_binary(payload.node)
+
+               _other ->
+                 false
+             end)
 
       assert {:ok, %{recovered: true}} = StateFinder.get_from_cluster(ets_id, Node.self())
     end

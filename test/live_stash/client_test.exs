@@ -68,6 +68,17 @@ defmodule LiveStash.ClientTest do
       assert MapSet.member?(stashed_socket.private.live_stash_keys, :player_id)
       assert MapSet.member?(stashed_socket.private.live_stash_keys, :username)
       assert %Socket{} = stashed_socket
+
+      queued_events = get_in(stashed_socket.private, [:live_temp, :push_events]) || []
+
+      assert Enum.any?(queued_events, fn
+               ["live-stash:stash-state", payload] ->
+                 is_map(payload) and Map.has_key?(payload, :assigns) and
+                   Map.has_key?(payload, :keys)
+
+               _other ->
+                 false
+             end)
     end
 
     test "raises a custom RuntimeError when attempting to stash a missing key", %{socket: socket} do
@@ -145,6 +156,16 @@ defmodule LiveStash.ClientTest do
 
       assert %Socket{} = reset_socket
       assert reset_socket.private.live_stash_keys == MapSet.new()
+
+      queued_events = get_in(reset_socket.private, [:live_temp, :push_events]) || []
+
+      assert Enum.any?(queued_events, fn
+               ["live-stash:reset-state", payload] ->
+                 payload == %{}
+
+               _other ->
+                 false
+             end)
     end
   end
 end

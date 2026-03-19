@@ -55,7 +55,7 @@ defmodule LiveStash.SettingsTest do
     end
 
     test "raises ArgumentError when session_key returns a non-binary value", %{socket: socket} do
-      session = %{"int_key" => 12345}
+      session = %{"int_key" => 123}
       opts = [session_key: "int_key"]
 
       assert_raise ArgumentError, ~r/invalid type. Expected a binary string/, fn ->
