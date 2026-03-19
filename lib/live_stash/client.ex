@@ -108,6 +108,7 @@ defmodule LiveStash.Client do
   @impl true
   def reset_stash(socket) do
     LiveView.push_event(socket, "live-stash:reset-state", %{})
+    |> LiveView.put_private(:live_stash_keys, MapSet.new())
   end
 
   defp get_settings(socket) do
