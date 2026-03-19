@@ -31,7 +31,9 @@ defmodule LiveStash.MixProject do
       {:phoenix_live_view, "~> 1.0"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:makeup_js, "~> 0.1.0", only: :dev, runtime: false}
+      {:makeup_js, "~> 0.1.0", only: :dev, runtime: false},
+      {:makeup_eex, "~> 2.0", only: :dev, runtime: false},
+      {:makeup_html, "~> 0.2", only: :dev, runtime: false}
     ]
   end
 
@@ -42,7 +44,6 @@ defmodule LiveStash.MixProject do
         "docs/welcome.md",
         "docs/client.md",
         "docs/server.md",
-        "docs/configuration.md",
         "docs/example.md"
       ],
       source_url: "https://github.com/software-mansion-labs/live-stash",

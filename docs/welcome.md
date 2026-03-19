@@ -27,7 +27,18 @@ const liveSocket = new LiveSocket("/live", Socket, {
 
 ## Optional configuration
 
-See [Configuration Guide](./configuration.md) for details on how to customize LiveStash to your needs.
+### Storage mode
+
+You can control where the stashed data is kept using the `:mode` option. LiveStash supports two modes:
+
+- **Server** (default) - The data is kept on the server side.
+- **Client** - The data is saved in the client browser.
+
+```elixir
+use LiveStash, mode: :client
+```
+
+See [Server Mode Guide](./server.md) and [Client Mode Guide](./client.md) for details on how to customize LiveStash to your needs.
 
 ## Contributing
 
