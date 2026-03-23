@@ -9,6 +9,7 @@ defmodule LiveStash.MixProject do
       version: @version,
       elixir: "~> 1.19",
       start_permanent: Mix.env() == :prod,
+      elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
       package: package(),
       docs: docs(),
@@ -31,14 +32,22 @@ defmodule LiveStash.MixProject do
       {:phoenix_live_view, "~> 1.0"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:makeup_js, "~> 0.1.0", only: :dev, runtime: false},
+      {:makeup_eex, "~> 2.0", only: :dev, runtime: false},
+      {:makeup_html, "~> 0.2", only: :dev, runtime: false},
       {:uuid, "~> 1.1"}
     ]
   end
 
   defp docs() do
     [
-      main: "readme",
-      extras: ["README.md", "LICENSE"],
+      main: "welcome",
+      extras: [
+        "docs/welcome.md",
+        "docs/client.md",
+        "docs/server.md",
+        "docs/example.md"
+      ],
       source_url: "https://github.com/software-mansion-labs/live-stash",
       source_ref: @version,
       filter_modules: &filter_modules/2
@@ -58,4 +67,7 @@ defmodule LiveStash.MixProject do
   defp filter_modules(LiveStash.Client, _meta), do: true
   defp filter_modules(LiveStash.Server, _meta), do: true
   defp filter_modules(_, _meta), do: false
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 end

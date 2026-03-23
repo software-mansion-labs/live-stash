@@ -5,18 +5,29 @@ defmodule LiveStash.Adapters.BrowserMemory.Serializer do
 
   alias LiveStash.Utils
 
-  @spec term_to_external(Phoenix.LiveView.Socket.t(), term(), term(), map()) ::
+  @spec term_to_external(
+          socket :: Phoenix.LiveView.Socket.t(),
+          key :: term(),
+          value :: term(),
+          opts :: map()
+        ) ::
           {binary(), binary()}
   def term_to_external(socket, key, value, opts) do
     {encode_key(key), encode_token(socket, value, opts)}
   end
 
-  @spec term_to_external(Phoenix.LiveView.Socket.t(), term(), map()) :: binary()
+  @spec term_to_external(socket :: Phoenix.LiveView.Socket.t(), value :: term(), opts :: map()) ::
+          binary()
   def term_to_external(socket, value, opts) do
     encode_token(socket, value, opts)
   end
 
-  @spec external_to_term(Phoenix.LiveView.Socket.t(), map(), binary(), map()) ::
+  @spec external_to_term(
+          socket :: Phoenix.LiveView.Socket.t(),
+          stashed_state :: map(),
+          stashed_keys :: binary(),
+          opts :: map()
+        ) ::
           {:ok, {map(), list()}} | {:error, String.t()}
   def external_to_term(socket, stashed_state, stashed_keys, opts) do
     with {:ok, key_set} <- get_key_set(socket, stashed_keys, opts),
