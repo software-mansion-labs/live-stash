@@ -1,6 +1,13 @@
 # LiveStash
 
-LiveStash keeps LiveView state across reconnects. You can persist assigns in the **browser** (client mode) or on the **server** (server mode).
+LiveStash keeps LiveView state across reconnects. You can persist assigns:
+
+- in the **browser** (client mode)
+- on the **server** (server mode)
+
+Check out our [documentation]() or play around with [examples](./examples/showcase_app/README.md) to explore all capabilities in detail.
+
+Reconnects are not so scary anymore with LiveStash onboard!
 
 ## Installation
 
@@ -23,6 +30,58 @@ const liveSocket = new LiveSocket("/live", Socket, {
   params: initLiveStash({ _csrf_token: csrfToken }),
   // ...
 });
+```
+
+## Usage
+
+Adding LiveStash to your existing LiveView is very simple.
+
+1. Add `use LiveStash` to your module
+
+```elixir
+defmodule ShowcaseAppWeb.LiveStashCounterLive do
+  use LiveStash # this will initialize LiveStash in on_mount/3
+```
+
+2. Decide which part of your LiveView state you want to stash.
+
+```elixir
+  def handle_event("increment", _, socket) do
+    socket
+    |> assign(:count, socket.assigns.count + 1)
+    |> LiveStash.stash_assigns([:count]) # pass the socket and list of assign keys, stash_assigns/2 returns a socket so you can add it to your pipe sequence!
+    |> then(&{:noreply, &1})  end
+```
+
+2. Call `recover_state(socket)` in your `mount/3` function call. There! Your LiveView state just got recovered.
+
+```elixir
+  def mount(_params, _session, socket) do
+    socket
+    |> LiveStash.recover_state() # socket with previously stashed assigns is recovered
+    |> case do
+        {:recovered, recovered_socket} ->
+          recovered_socket
+
+        _ ->
+          assign(socket, count: 0)
+    end
+    |> then(&{:ok, &1})
+  end
+```
+
+## Optional configuration
+
+See [Configuration Guide]() for details on how to customize LiveStash to your needs.
+
+## Contributing
+
+For those planning to contribute to this project, you can run an example projects with LiveStash with following commands:
+
+```bash
+cd examples/showcase_app
+mix setup
+iex -S mix
 ```
 
 ## Authors
