@@ -31,14 +31,11 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def stash_assigns(socket, keys) do
-    existing_keys = socket.private[:live_stash_context].key_set
+    context = socket.private.live_stash_context
 
-    socket =
-      LiveView.put_private(
-        socket,
-        :live_stash_keys,
-        MapSet.union(existing_keys, MapSet.new(keys))
-      )
+    updated_context = %{context | key_set: MapSet.union(context.key_set, MapSet.new(keys))}
+
+    socket = LiveView.put_private(socket, :live_stash_context, updated_context)
 
     serialized_assigns =
       Enum.reduce(keys, %{}, fn key, acc ->
@@ -50,13 +47,12 @@ defmodule LiveStash.Adapters.BrowserMemory do
         Map.put(acc, serialized_key, serialized_value)
       end)
 
-    payload =
-      %{
-        assigns: serialized_assigns,
-        keys: Serializer.term_to_external(socket, keys, get_settings(socket))
-      }
+    payload = %{
+      assigns: serialized_assigns,
+      keys: Serializer.term_to_external(socket, keys, get_settings(socket))
+    }
 
-    Phoenix.LiveView.push_event(socket, "live-stash:stash-state", payload)
+    LiveView.push_event(socket, "live-stash:stash-state", payload)
   rescue
     e in KeyError ->
       msg =
@@ -80,9 +76,12 @@ defmodule LiveStash.Adapters.BrowserMemory do
                get_settings(socket)
              ) do
           {:ok, {recovered_state, key_set}} ->
+            context = socket.private.live_stash_context
+            updated_context = %{context | key_set: key_set}
+
             socket
             |> Component.assign(recovered_state)
-            |> LiveView.put_private(:live_stash_keys, key_set)
+            |> LiveView.put_private(:live_stash_context, updated_context)
             |> then(&{:recovered, &1})
 
           {:error, msg} ->
@@ -109,9 +108,12 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def reset_stash(socket) do
+    context = socket.private.live_stash_context
+    updated_context = %{context | key_set: MapSet.new()}
+
     socket
     |> LiveView.push_event("live-stash:reset-state", %{})
-    |> LiveView.put_private(:live_stash_keys, MapSet.new())
+    |> LiveView.put_private(:live_stash_context, updated_context)
   end
 
   defp get_settings(socket) do

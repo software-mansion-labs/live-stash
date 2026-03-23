@@ -2,6 +2,7 @@ defmodule LiveStash.Adapters.ETS.Context do
   @moduledoc false
 
   alias LiveStash.Utils
+  alias LiveStash.Adapters.ETS.NodeHint
   alias Phoenix.LiveView
 
   @enforce_keys [
@@ -42,17 +43,19 @@ defmodule LiveStash.Adapters.ETS.Context do
     mounts = if connect_params, do: connect_params["_mounts"], else: nil
     id = connect_params["stashId"] || UUID.uuid4()
     reconnected? = not is_nil(mounts) and mounts > 0
+    node_hint = NodeHint.get_node_hint(socket, connect_params, evaluated_secret)
 
-    new(opts, reconnected?, evaluated_secret, id)
+    new(opts, reconnected?, evaluated_secret, id, node_hint)
   end
 
-  @spec new(keyword(), boolean(), binary(), binary()) :: t()
-  def new(user_opts, reconnected?, evaluated_secret, id) do
+  @spec new(keyword(), boolean(), binary(), binary(), atom() | nil) :: t()
+  def new(user_opts, reconnected?, evaluated_secret, id, node_hint) do
     attrs =
       user_opts
       |> Keyword.put(:reconnected?, reconnected?)
       |> Keyword.put(:secret, evaluated_secret)
       |> Keyword.put(:id, id)
+      |> Keyword.put(:node_hint, node_hint)
 
     struct!(__MODULE__, attrs)
   end
