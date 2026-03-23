@@ -100,16 +100,11 @@ defmodule LiveStash do
   Resets the stashed state for a LiveView.
 
   ## Examples
-      def mount(_params, _session, socket) do
+      def handle_event("restart_game", _params, socket) do
         socket
-        |> recover_state()
-        |> case do
-          {:recovered, recovered_socket} ->
-            recovered_socket
-          _ -> init_assigns(socket)
-        end
-        |> reset_stash()  # in case you want to clear the stashed state after recovery
-        |> then(&{:ok, &1})
+        |> reset_stash()
+        |> start_new_game()
+        |> then(&{:noreply, &1})
       end
   """
   @spec reset_stash(socket :: Socket.t()) :: Socket.t()
