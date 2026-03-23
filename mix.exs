@@ -34,7 +34,7 @@ defmodule LiveStash.MixProject do
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:makeup_js, "~> 0.1.0", only: :dev, runtime: false},
       {:makeup_eex, "~> 2.0", only: :dev, runtime: false},
-      {:makeup_html, "~> 0.2", only: :dev, runtime: false}
+      {:makeup_html, "~> 0.2", only: :dev, runtime: false},
       {:uuid, "~> 1.1"}
     ]
   end
