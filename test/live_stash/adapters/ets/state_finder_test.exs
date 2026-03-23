@@ -1,10 +1,10 @@
-defmodule LiveStash.Server.StateFinderTest do
+defmodule LiveStash.Adapters.ETS.StateFinderTest do
   use ExUnit.Case, async: false
 
-  require LiveStash.Server.State
+  require LiveStash.Adapters.ETS.State
 
-  alias LiveStash.Server.State
-  alias LiveStash.Server.StateFinder
+  alias LiveStash.Adapters.ETS.State
+  alias LiveStash.Adapters.ETS.StateFinder
 
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
 

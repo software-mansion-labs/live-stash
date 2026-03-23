@@ -4,7 +4,6 @@ defmodule LiveStash.Application do
 
   def start(_type, _args) do
     adapters = Application.get_env(:live_stash, :adapters, [])
-    dbg(adapters)
 
     children =
       adapters

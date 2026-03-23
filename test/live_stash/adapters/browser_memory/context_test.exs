@@ -1,7 +1,7 @@
-defmodule LiveStash.SettingsTest do
+defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
   use ExUnit.Case, async: true
 
-  alias LiveStash.Settings
+  alias LiveStash.Adapters.BrowserMemory.Context
   alias Phoenix.LiveView.Socket
   alias LiveStash.Fakes
 
@@ -16,16 +16,14 @@ defmodule LiveStash.SettingsTest do
   describe "from_socket/3" do
     test "returns default settings when no session_key is provided", %{socket: socket} do
       session = %{}
-      opts = [mode: :client, ttl: 1000]
+      opts = [ttl: 1000]
 
-      settings = Settings.from_socket(socket, session, opts)
+      context = Context.from_socket(socket, session, opts)
 
-      assert %Settings{} = settings
-      assert settings.secret == @default_secret
-      assert settings.mode == :client
-      assert settings.ttl == 1000
-      assert settings.reconnected? == false
-      assert settings.node_hint == nil
+      assert %Context{} = context
+      assert context.secret == @default_secret
+      assert context.ttl == 1000
+      assert context.reconnected? == false
     end
 
     test "fetches, hashes, and base64 encodes secret from session when session_key is provided",
@@ -33,14 +31,14 @@ defmodule LiveStash.SettingsTest do
       session = %{"my_stash_key" => "super_secret_token"}
       opts = [session_key: "my_stash_key"]
 
-      settings = Settings.from_socket(socket, session, opts)
+      context = Context.from_socket(socket, session, opts)
 
       expected_secret =
         :sha256
         |> :crypto.hash("super_secret_token")
         |> Base.encode64(padding: false)
 
-      assert settings.secret == expected_secret
+      assert context.secret == expected_secret
     end
 
     test "raises ArgumentError when session_key is not found in session", %{socket: socket} do
@@ -48,7 +46,7 @@ defmodule LiveStash.SettingsTest do
       opts = [session_key: "missing_key"]
 
       assert_raise ArgumentError, ~r/failed to return a valid secret/, fn ->
-        Settings.from_socket(socket, session, opts)
+        Context.from_socket(socket, session, opts)
       end
     end
 
@@ -57,7 +55,7 @@ defmodule LiveStash.SettingsTest do
       opts = [session_key: "int_key"]
 
       assert_raise ArgumentError, ~r/invalid type. Expected a binary string/, fn ->
-        Settings.from_socket(socket, session, opts)
+        Context.from_socket(socket, session, opts)
       end
     end
 
@@ -67,7 +65,7 @@ defmodule LiveStash.SettingsTest do
       opts = []
 
       assert_raise RuntimeError, ~r/Failed to get connect params/, fn ->
-        Settings.from_socket(broken_socket, session, opts)
+        Context.from_socket(broken_socket, session, opts)
       end
     end
 
@@ -76,9 +74,9 @@ defmodule LiveStash.SettingsTest do
       session = %{}
       opts = []
 
-      settings = Settings.from_socket(socket, session, opts)
+      context = Context.from_socket(socket, session, opts)
 
-      assert settings.reconnected? == true
+      assert context.reconnected? == true
     end
   end
 end

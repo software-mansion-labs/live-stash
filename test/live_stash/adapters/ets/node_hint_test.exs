@@ -1,8 +1,9 @@
-defmodule LiveStash.Server.NodeHintTest do
+defmodule LiveStash.Adapters.ETS.NodeHintTest do
   use ExUnit.Case, async: true
   import ExUnit.CaptureLog
 
-  alias LiveStash.Server.NodeHint
+  alias LiveStash.Adapters.ETS
+  alias LiveStash.Adapters.ETS.NodeHint
   alias LiveStash.Fakes
 
   setup do
@@ -12,8 +13,10 @@ defmodule LiveStash.Server.NodeHintTest do
       Fakes.socket(
         private: %{
           connect_params: %{},
-          live_stash: %{
-            secret: secret
+          live_stash_context: %ETS.Context{
+            secret: secret,
+            id: "test_stash_id",
+            reconnected?: false
           }
         }
       )
