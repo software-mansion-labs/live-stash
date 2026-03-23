@@ -90,6 +90,8 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
   describe "recover_state/1" do
     test "recovers assigns and updates live_stash_keys when connect_params contain valid stashedState",
          %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
       settings = %{
         ttl: 86_400,
         secret: socket.private.live_stash_context.secret,
@@ -119,11 +121,15 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     end
 
     test "returns :not_found when connect_params do not contain stashedState", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
       assert {:not_found, returned_socket} = BrowserMemory.recover_state(socket)
       assert returned_socket == socket
     end
 
     test "returns :error and logs warning when token decryption fails", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
       params = %{
         "stashedState" => %{
           "keys" => "invalid_keys_token",
@@ -142,7 +148,8 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     end
 
     test "rescues generic exceptions, logs them and returns :error", %{socket: socket} do
-      broken_socket = Map.delete(socket, :private)
+      socket_ready_to_recover = put_in(socket.private.live_stash_context.reconnected?, true)
+      broken_socket = update_in(socket_ready_to_recover.private, &Map.delete(&1, :connect_params))
 
       log =
         capture_log(fn ->
@@ -150,6 +157,11 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
         end)
 
       assert log =~ "Could not recover stashed state due to an unexpected error"
+    end
+
+    test "returns :new and socket when reconnected? is false", %{socket: socket} do
+      assert {:new, returned_socket} = BrowserMemory.recover_state(socket)
+      assert returned_socket == socket
     end
   end
 

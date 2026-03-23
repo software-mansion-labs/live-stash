@@ -65,7 +65,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
   end
 
   @impl true
-  def recover_state(socket) do
+  def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
     case LiveView.get_connect_params(socket) do
       %{"stashedState" => %{"assigns" => stashed_state, "keys" => stashed_keys}}
       when is_map(stashed_state) ->
@@ -105,6 +105,8 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
       {:error, socket}
   end
+
+  def recover_state(socket), do: {:new, socket}
 
   @impl true
   def reset_stash(socket) do
