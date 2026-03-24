@@ -51,7 +51,7 @@ defmodule LiveStash.Adapters.ETS do
 
     node_hint = NodeHint.create_node_hint(socket)
 
-    LiveView.push_event(socket, "live-stash:init-server", %{
+    LiveView.push_event(socket, "live-stash:init-ets", %{
       node: node_hint,
       stashId: context.id
     })

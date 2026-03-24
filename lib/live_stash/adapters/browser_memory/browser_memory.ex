@@ -25,7 +25,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
       socket
     else
       socket
-      |> LiveView.push_event("live-stash:reset-state", %{})
+      |> LiveView.push_event("live-stash:init-browser-mem", %{})
     end
   end
 
@@ -114,7 +114,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
     updated_context = %{context | key_set: MapSet.new()}
 
     socket
-    |> LiveView.push_event("live-stash:reset-state", %{})
+    |> LiveView.push_event("live-stash:init-browser-mem", %{})
     |> LiveView.put_private(:live_stash_context, updated_context)
   end
 
