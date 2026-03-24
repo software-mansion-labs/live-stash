@@ -1,6 +1,9 @@
 # Welcome to LiveStash
 
-LiveStash keeps LiveView state across reconnects. You can persist assigns in the **browser** (client mode) or on the **server** (server mode).
+LiveStash keeps LiveView state across reconnects. You can persist assigns
+
+- in the **browser** (browser memory mode)
+- on the **server** (ETS mode)
 
 ## Installation
 
@@ -29,16 +32,24 @@ const liveSocket = new LiveSocket("/live", Socket, {
 
 ### Storage mode
 
-You can control where the stashed data is kept using the `:mode` option. LiveStash supports two modes:
+You can control where the stashed data is kept by passing appropiate adapter module. LiveStash currently supports two adapters:
 
-- **Server** (default) - The data is kept on the server side.
-- **Client** - The data is saved in the client browser.
+- **ETS** - The data is kept on the server side in the ETS table.
+- **Browser memory** (default) - The data is saved in the client browser.
 
 ```elixir
-use LiveStash, mode: :client
+use LiveStash, adapters: LiveStash.Adapters.ETS
 ```
 
-See [Server Mode Guide](./server.md) and [Client Mode Guide](./client.md) for details on how to customize LiveStash to your needs.
+Remember to define adapters you would like to activate in your `config.exs` file.
+
+```elixir
+config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory]
+```
+
+The default adapter is `LiveStash.Adapters.BrowserMemory` and it is always activated.
+
+See [ETS Adapter Guide](./ets.md) and [Browser Memory Adapter Guide](./browser_memory.md) for details on how to customize LiveStash to your needs.
 
 ## Contributing
 

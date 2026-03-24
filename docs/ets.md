@@ -1,12 +1,12 @@
-# Server
+# ETS
 
 ## Description
 
-In `:server` mode, the stashed state is securely stored in an ETS table on the Elixir node. Instead of sending the entire payload to the browser, the client only receives and stores a lightweight, cryptographically signed reference (a stash ID and a node hint). Upon reconnection, LiveStash uses this reference to retrieve the state from the server's memory.
+In this mode, the stashed state is securely stored in an ETS table on the Elixir node. Instead of sending the entire payload to the browser, the client only receives and stores a lightweight, cryptographically signed reference (a stash ID and a node hint). Upon reconnection, LiveStash uses this reference to retrieve the state from the server's memory.
 
 ## When to use
 
-Choose the `:server` mode when:
+Choose the ETS mode when:
 
 - **Payloads are large:** You need to stash substantial amounts of data that would otherwise degrade WebSocket performance or exceed browser storage limits. **Note**: Storing large payloads server-side will increase your server's memory usage. Be sure to configure the TTL (Time-To-Live) responsibly based on the size and relevance of the data to prevent memory leaks or bloat.
 
@@ -33,7 +33,7 @@ State can also be cleared manually by calling `LiveStash.reset_stash/1`.
 Stashed data in server mode has a Time-To-Live (TTL) to prevent stale state from persisting indefinitely. The default TTL is 5 minutes. You can adjust this using the `:ttl` option.
 
 ```elixir
-use LiveStash, mode: :server, ttl: 60 * 1000,
+use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 60 * 1000,
 ```
 
 ### Cleanup interval
@@ -45,7 +45,7 @@ Determines how often the background task runs to remove expired state records fr
 To override this, add the following to your `config/config.exs`:
 
 ```elixir
-config :live_stash, :ets_cleanup_interval, 60_000
+config :live_stash, adapters: [LiveStash.Adapters.ETS], ets_cleanup_interval: 60_000
 ```
 
 ### ETS table name
@@ -57,7 +57,7 @@ Default: `:live_stash_server_storage`
 To override this, add the following to your `config/config.exs`:
 
 ```elixir
-config :live_stash, :ets_table_name, :my_custom_table_name
+config :live_stash, adapters: [LiveStash.Adapters.ETS], ets_table_name: :my_custom_table_name
 ```
 
 ### Cleanup batch size
@@ -69,7 +69,7 @@ Default: `100`
 To override this, add the following to your `config/config.exs`:
 
 ```elixir
-config :live_stash, :ets_cleanup_batch_size, 100
+config :live_stash, adapters: [LiveStash.Adapters.ETS], ets_cleanup_batch_size: 100
 ```
 
 ## Security
@@ -78,4 +78,8 @@ By default, LiveStash uses a hardcoded default secret (`"live_stash"`) to secure
 
 You can do this by providing a `:session_key`. LiveStash will extract the value from the connection session securely hash it (SHA-256) to use as the operational secret. If you provide the key and it is not present in the session, `Argument Error` will be raised.
 
-In server mode, this operational secret is used as part of the record ID for your stashed state.
+In ETS mode, this operational secret is used as part of the record ID for your stashed state.
+
+```elixir
+use LiveStash, adapter: LiveStash.Adapters.ETS, session_token: "user_token"
+```

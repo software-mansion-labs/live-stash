@@ -2,7 +2,7 @@ defmodule LiveStash do
   @moduledoc """
 
   LiveStash is a library that fixes problem of losing state on LiveView reconnects.
-  It allows you to store and retrieve data in a LiveView application.
+  It allows you to store and retrieve data in a LiveView application. This module provides the main API for LiveStash and plays the role of a dispatcher for the different adapters that can be used to store the state (e.g. in the browser memory or in the ETS on the server).
   """
 
   alias Phoenix.LiveView.Socket

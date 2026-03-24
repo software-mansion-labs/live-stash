@@ -1,11 +1,11 @@
 # LiveStash
 
-LiveStash keeps LiveView state across reconnects. You can persist assigns:
+LiveStash keeps LiveView state across reconnects. You can persist assigns
 
-- in the **browser** (client mode)
-- on the **server** (server mode)
+- in the **browser** (browser memory mode)
+- on the **server** (ETS mode)
 
-Check out our [documentation]() or play around with [examples](./examples/showcase_app/README.md) to explore all capabilities in detail.
+Check out our [documentation](https://docs.swmansion.com/live-stash/) or play around with [examples](./examples/showcase_app/README.md) to explore all capabilities in detail.
 
 Reconnects are not so scary anymore with LiveStash onboard!
 
@@ -69,10 +69,6 @@ defmodule ShowcaseAppWeb.LiveStashCounterLive do
     |> then(&{:ok, &1})
   end
 ```
-
-## Optional configuration
-
-See [Configuration Guide]() for details on how to customize LiveStash to your needs.
 
 ## Contributing
 
