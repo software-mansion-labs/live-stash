@@ -5,8 +5,6 @@ defmodule LiveStash do
   It allows you to store and retrieve data in a LiveView application.
   """
 
-  @behaviour LiveStash.Adapter
-
   alias Phoenix.LiveView.Socket
   alias Phoenix.LiveView
   alias LiveStash.Utils
@@ -14,6 +12,9 @@ defmodule LiveStash do
   require Logger
 
   @type recovery_status :: :recovered | :not_found | :new | :error
+
+  @doc false
+  def default_adapter, do: LiveStash.Adapters.BrowserMemory
 
   defmacro __using__(opts) do
     quote do
@@ -36,7 +37,19 @@ defmodule LiveStash do
   @spec init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
           Socket.t()
   def init_stash(socket, session, opts \\ []) do
-    {adapter, opts} = Keyword.pop!(opts, :adapter)
+    {adapter, opts} = Keyword.pop(opts, :adapter, default_adapter())
+
+    active_adapters = Application.get_env(:live_stash, :adapters, [default_adapter()])
+
+    if adapter not in active_adapters do
+      msg =
+        Utils.reason_message(
+          "The adapter #{inspect(adapter)} is not active. Please add it to the :adapters list in your :live_stash config.",
+          :invalid
+        )
+
+      raise ArgumentError, msg
+    end
 
     socket
     |> LiveView.put_private(:live_stash_adapter, adapter)

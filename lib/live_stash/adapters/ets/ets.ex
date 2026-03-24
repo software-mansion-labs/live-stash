@@ -39,7 +39,7 @@ defmodule LiveStash.Adapters.ETS do
 
   @impl true
   def init_stash(socket, session, opts) do
-    context = Context.from_socket(socket, session, opts)
+    context = Context.new(socket, session, opts)
 
     socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
 
@@ -90,7 +90,7 @@ defmodule LiveStash.Adapters.ETS do
   end
 
   @impl true
-  def recover_state(socket) do
+  def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
     id = get_ets_id(socket)
     node_hint = socket.private.live_stash_context.node_hint
 
@@ -112,6 +112,8 @@ defmodule LiveStash.Adapters.ETS do
 
       {:error, socket}
   end
+
+  def recover_state(socket), do: {:new, socket}
 
   @impl true
   def reset_stash(socket) do

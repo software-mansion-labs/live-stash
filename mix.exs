@@ -64,8 +64,8 @@ defmodule LiveStash.MixProject do
 
   defp filter_modules(LiveStash, _meta), do: true
   defp filter_modules(LiveStash.Stash, _meta), do: true
-  defp filter_modules(LiveStash.Client, _meta), do: true
-  defp filter_modules(LiveStash.Server, _meta), do: true
+  defp filter_modules(LiveStash.Adapters.BrowserMemory, _meta), do: true
+  defp filter_modules(LiveStash.Adapters.ETS, _meta), do: true
   defp filter_modules(_, _meta), do: false
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]

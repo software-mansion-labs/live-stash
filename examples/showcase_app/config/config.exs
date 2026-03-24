@@ -7,7 +7,7 @@
 # General application configuration
 import Config
 
-config :live_stash, adapters: [{LiveStash.Adapters.ETS, []}, {LiveStash.Adapters.BrowserMemory, []}]
+config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory]
 
 config :showcase_app, :scopes,
   user: [

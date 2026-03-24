@@ -3,11 +3,11 @@ defmodule LiveStash.Application do
   use Application
 
   def start(_type, _args) do
-    adapters = Application.get_env(:live_stash, :adapters, [])
+    adapters = Application.get_env(:live_stash, :adapters, [LiveStash.default_adapter()])
 
     children =
       adapters
-      |> Enum.filter(fn {adapter, _opts} ->
+      |> Enum.filter(fn adapter ->
         Code.ensure_loaded?(adapter)
 
         function_exported?(adapter, :child_spec, 1)

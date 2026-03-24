@@ -1,17 +1,26 @@
 defmodule LiveStash.Adapters.BrowserMemory.Context do
-  @moduledoc false
+  @moduledoc """
+  Holds the state and configuration for the BrowserMemory adapter.
+
+  ## Fields
+
+  * `:reconnected?` - A boolean indicating whether the LiveView socket has successfully reconnected vs. a fresh mount.
+  * `:secret` - A binary string used as the cryptographic secret for signing or encrypting the data sent to the browser. Defaults to `"live_stash"`.
+  * `:ttl` - Time-to-live for the stored browser data in milliseconds. Defaults to 5 minutes (`300_000` ms).
+  * `:security_mode` - Defines the security approach applied to the client-side data (`:sign` to prevent tampering, or `:encrypt` to hide contents). Defaults to `:sign`.
+  * `:key_set` - A `MapSet` used internally to track which keys are currently stored in the browser's memory, ensuring accurate synchronization and cleanup.
+  """
 
   alias Phoenix.LiveView
   alias LiveStash.Utils
 
   @enforce_keys [
-    :reconnected?,
-    :secret
+    :reconnected?
   ]
 
   defstruct [
     :reconnected?,
-    :secret,
+    secret: "live_stash",
     ttl: 5 * 60 * 1000,
     security_mode: :sign,
     key_set: MapSet.new()
@@ -25,34 +34,27 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
           key_set: MapSet.t()
         }
 
-  @default_secret "live_stash"
-
   @doc """
-  Builds context from socket and opts (e.g. in `on_mount` / `init_stash`).
+  Builds context from socket, session and opts (e.g. in `on_mount` / `init_stash`).
   """
-  @spec from_socket(LiveView.Socket.t(), keyword(), keyword()) :: t()
-  def from_socket(socket, session, opts) do
-    {session_key, opts} = Keyword.pop(opts, :session_key)
+  @spec new(LiveView.Socket.t(), keyword(), keyword()) :: t()
+  def new(socket, session, opts) do
+    {session_key, base_attrs} = Keyword.pop(opts, :session_key)
 
-    evaluated_secret =
-      if session_key, do: fetch_secret(session_key, session), else: @default_secret
-
-    connect_params = get_connect_params(socket)
-    mounts = if connect_params, do: connect_params["_mounts"], else: nil
-    reconnected? = not is_nil(mounts) and mounts > 0
-
-    new(opts, reconnected?, evaluated_secret)
+    base_attrs
+    |> maybe_put_secret(session_key, session)
+    |> Keyword.put(:reconnected?, reconnected?(get_connect_params(socket)))
+    |> then(&struct!(__MODULE__, &1))
   end
 
-  @spec new(keyword(), boolean(), binary()) :: t()
-  def new(user_opts, reconnected?, evaluated_secret) do
-    attrs =
-      user_opts
-      |> Keyword.put(:reconnected?, reconnected?)
-      |> Keyword.put(:secret, evaluated_secret)
+  defp maybe_put_secret(attrs, nil, _session), do: attrs
 
-    struct!(__MODULE__, attrs)
+  defp maybe_put_secret(attrs, session_key, session) do
+    Keyword.put(attrs, :secret, fetch_secret(session_key, session))
   end
+
+  defp reconnected?(%{"_mounts" => mounts}) when is_integer(mounts), do: mounts > 0
+  defp reconnected?(_params), do: false
 
   defp fetch_secret(session_key, session) do
     secret =

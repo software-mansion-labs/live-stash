@@ -1,4 +1,4 @@
-defmodule LiveStash.ServerTest do
+defmodule LiveStash.Adapters.ETSTest do
   use ExUnit.Case, async: false
   import ExUnit.CaptureLog
 
@@ -138,6 +138,8 @@ defmodule LiveStash.ServerTest do
       socket: socket,
       ets_id: ets_id
     } do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
       state_to_recover = %{player_level: 42, theme: "dark"}
       State.put!(ets_id, state_to_recover, ttl: 86_400)
 
@@ -151,12 +153,16 @@ defmodule LiveStash.ServerTest do
     end
 
     test "returns :not_found when there is no state in ETS for the given id", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
       assert {:not_found, returned_socket} = ETS.recover_state(socket)
       assert returned_socket == socket
     end
 
     test "rescues exceptions, logs error and returns {:error, socket}", %{socket: socket} do
-      broken_socket = put_in(socket.private.live_stash_context, nil)
+      socket_ready = put_in(socket.private.live_stash_context.reconnected?, true)
+
+      broken_socket = put_in(socket_ready.private.live_stash_context.secret, nil)
 
       log =
         capture_log(fn ->
@@ -164,6 +170,11 @@ defmodule LiveStash.ServerTest do
         end)
 
       assert log =~ "Could not recover state"
+    end
+
+    test "returns :new and socket when reconnected? is false", %{socket: socket} do
+      assert {:new, returned_socket} = ETS.recover_state(socket)
+      assert returned_socket == socket
     end
   end
 

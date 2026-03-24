@@ -13,12 +13,12 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
     {:ok, socket: socket}
   end
 
-  describe "from_socket/3" do
+  describe "new/3" do
     test "returns default settings when no session_key is provided", %{socket: socket} do
       session = %{}
       opts = [ttl: 1000]
 
-      context = Context.from_socket(socket, session, opts)
+      context = Context.new(socket, session, opts)
 
       assert %Context{} = context
       assert context.secret == @default_secret
@@ -31,7 +31,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
       session = %{"my_stash_key" => "super_secret_token"}
       opts = [session_key: "my_stash_key"]
 
-      context = Context.from_socket(socket, session, opts)
+      context = Context.new(socket, session, opts)
 
       expected_secret =
         :sha256
@@ -46,7 +46,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
       opts = [session_key: "missing_key"]
 
       assert_raise ArgumentError, ~r/failed to return a valid secret/, fn ->
-        Context.from_socket(socket, session, opts)
+        Context.new(socket, session, opts)
       end
     end
 
@@ -55,7 +55,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
       opts = [session_key: "int_key"]
 
       assert_raise ArgumentError, ~r/invalid type. Expected a binary string/, fn ->
-        Context.from_socket(socket, session, opts)
+        Context.new(socket, session, opts)
       end
     end
 
@@ -65,7 +65,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
       opts = []
 
       assert_raise RuntimeError, ~r/Failed to get connect params/, fn ->
-        Context.from_socket(broken_socket, session, opts)
+        Context.new(broken_socket, session, opts)
       end
     end
 
@@ -74,7 +74,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
       session = %{}
       opts = []
 
-      context = Context.from_socket(socket, session, opts)
+      context = Context.new(socket, session, opts)
 
       assert context.reconnected? == true
     end

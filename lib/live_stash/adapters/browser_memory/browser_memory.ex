@@ -16,7 +16,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def init_stash(socket, session, opts) do
-    context = Context.from_socket(socket, session, opts)
+    context = Context.new(socket, session, opts)
 
     socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
 
@@ -48,8 +48,8 @@ defmodule LiveStash.Adapters.BrowserMemory do
       end)
 
     payload = %{
-      assigns: serialized_assigns,
-      keys: Serializer.term_to_external(socket, keys, get_settings(socket))
+      "assigns" => serialized_assigns,
+      "keys" => Serializer.term_to_external(socket, keys, get_settings(socket))
     }
 
     LiveView.push_event(socket, "live-stash:stash-state", payload)

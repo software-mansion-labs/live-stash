@@ -72,8 +72,8 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
 
       assert Enum.any?(queued_events, fn
                ["live-stash:stash-state", payload] ->
-                 is_map(payload) and Map.has_key?(payload, :assigns) and
-                   Map.has_key?(payload, :keys)
+                 is_map(payload) and Map.has_key?(payload, "assigns") and
+                   Map.has_key?(payload, "keys")
 
                _other ->
                  false
