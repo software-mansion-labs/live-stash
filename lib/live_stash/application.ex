@@ -3,7 +3,7 @@ defmodule LiveStash.Application do
   use Application
 
   def start(_type, _args) do
-    adapters = Application.get_env(:live_stash, :adapters, [LiveStash.default_adapter()])
+    adapters = Application.get_env(:live_stash, :adapters, [LiveStash.Adapter.default()])
 
     children =
       adapters

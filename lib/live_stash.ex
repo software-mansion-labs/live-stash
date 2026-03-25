@@ -13,9 +13,6 @@ defmodule LiveStash do
 
   @type recovery_status :: :recovered | :not_found | :new | :error
 
-  @doc false
-  def default_adapter, do: LiveStash.Adapters.BrowserMemory
-
   defmacro __using__(opts) do
     quote do
       on_mount({LiveStash, unquote(opts)})
@@ -37,9 +34,9 @@ defmodule LiveStash do
   @spec init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
           Socket.t()
   def init_stash(socket, session, opts \\ []) do
-    {adapter, opts} = Keyword.pop(opts, :adapter, default_adapter())
+    {adapter, opts} = Keyword.pop(opts, :adapter, LiveStash.Adapter.default())
 
-    active_adapters = Application.get_env(:live_stash, :adapters, [default_adapter()])
+    active_adapters = Application.get_env(:live_stash, :adapters, [LiveStash.Adapter.default()])
 
     if adapter not in active_adapters do
       msg =
