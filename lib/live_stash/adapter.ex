@@ -5,6 +5,9 @@ defmodule LiveStash.Adapter do
 
   alias Phoenix.LiveView.Socket
 
+  @doc false
+  def default, do: LiveStash.Adapters.BrowserMemory
+
   @type recovery_status :: :recovered | :not_found | :new | :error
 
   @callback init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
