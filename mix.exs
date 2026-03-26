@@ -44,16 +44,16 @@ defmodule LiveStash.MixProject do
       main: "welcome",
       extras: [
         "docs/welcome.md",
-        "docs/adapters.md",
         "docs/browser_memory.md",
         "docs/ets.md",
+        "docs/adapters.md",
         "docs/example.md"
       ],
       groups_for_extras: [
         Adapters: [
-          "docs/adapters.md",
           "docs/browser_memory.md",
-          "docs/ets.md"
+          "docs/ets.md",
+          "docs/adapters.md"
         ]
       ],
       source_url: "https://github.com/software-mansion-labs/live-stash",

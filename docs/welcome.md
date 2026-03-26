@@ -1,9 +1,6 @@
 # Welcome to LiveStash
 
-LiveStash keeps LiveView state across reconnects. You can persist assigns
-
-- in the **browser** (browser memory mode)
-- on the **server** (ETS mode)
+LiveStash provides a reliable, explicit API to safely stash and recover [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view) assigns, keeping your application state completely intact whenever a socket connection is interrupted or re-established.
 
 ## Installation
 
@@ -51,16 +48,6 @@ The default adapter is `LiveStash.Adapters.BrowserMemory` and it is always activ
 
 See [ETS Adapter Guide](./ets.md) and [Browser Memory Adapter Guide](./browser_memory.md) for details on how to customize LiveStash to your needs.
 
-## Contributing
-
-For those planning to contribute to this project, you can run an example projects with LiveStash with following commands:
-
-```bash
-cd examples/showcase_app
-mix setup
-iex -S mix
-```
-
 ## Authors
 
 LiveStash is created by Software Mansion.
@@ -69,4 +56,4 @@ Since 2012 [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=r
 
 Copyright 2026, [Software Mansion](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=livestash)
 
-[![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=livestash-github)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=livestash)
+[![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=livestash-hexdocs)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=livestash)

@@ -1,9 +1,6 @@
 # LiveStash
 
-LiveStash keeps LiveView state across reconnects. You can persist assigns
-
-- in the **browser** (browser memory mode)
-- on the **server** (ETS mode)
+LiveStash provides a reliable, explicit API to safely stash and recover [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view) assigns, keeping your application state completely intact whenever a socket connection is interrupted or re-established.
 
 Check out our [documentation](https://docs.swmansion.com/live-stash/) or play around with [examples](./examples/showcase_app/README.md) to explore all capabilities in detail.
 

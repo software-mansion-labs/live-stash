@@ -8,17 +8,29 @@ In this mode, the stashed state is securely stored in an ETS table on the Elixir
 
 Choose the ETS mode when:
 
-- **Payloads are large:** You need to stash substantial amounts of data that would otherwise degrade WebSocket performance or exceed browser storage limits. **Note**: Storing large payloads server-side will increase your server's memory usage. Be sure to configure the TTL (Time-To-Live) responsibly based on the size and relevance of the data to prevent memory leaks or bloat.
+- **Payloads are large:** You need to stash substantial amounts of data that would otherwise degrade WebSocket performance or exceed browser storage limits.
 
-* **Highly sensitive data:** You want to ensure the actual state never leaves your infrastructure and is not exposed to the browser. **Warning:** While the data itself remains on the server, the client-side reference ID is vulnerable to Cross-Site Scripting (XSS). Without configuring a session-bound secret, an attacker can steal this reference and use your application as a black box to interact with the stashed data.
+  > #### Note {: .info}
+  >
+  > Storing large payloads server-side will increase your server's memory usage. Be sure to configure the TTL (Time-To-Live) responsibly based on the size and relevance of the data to prevent memory leaks or bloat.
 
-* **Running a clustered environment:** You are running multiple server nodes and have formed a connected BEAM cluster (e.g., via libcluster). This ensures LiveStash can successfully use RPC to recover state if a user reconnects to a different node.
+- **Highly sensitive data:** You want to ensure the actual state never leaves your infrastructure and is not exposed to the browser.
+
+  > #### Warning {: .warning}
+  >
+  > While the data itself remains on the server, the client-side reference ID is vulnerable to Cross-Site Scripting (XSS). Without configuring a session-bound secret, an attacker can steal this reference and use your application as a black box to interact with the stashed data.
+
+- **Running a clustered environment:** You are running multiple server nodes and have formed a connected BEAM cluster (e.g., via [libcluster](https://hexdocs.pm/libcluster)). This ensures LiveStash can successfully use RPC to recover state if a user reconnects to a different node.
 
 ### State recovery
 
 Stashed state is recovered from the ETS table.
 
-In a clustered environment, if the client reconnects to a different server node, LiveStash uses RPC to fetch the state from the previous node. **Note**: For cross-node recovery to work, your application must form a connected BEAM cluster (e.g., by using `libcluster`). In this scenario, the state is deleted from the old node and securely saved in the new one. To optimize finding the correct node, the **node hint** saved in the browser is utilized.
+In a clustered environment, if the client reconnects to a different server node, LiveStash uses RPC to fetch the state from the previous node.
+
+> #### Note {: .info}
+>
+> For cross-node recovery to work, your application must form a connected BEAM cluster (e.g., by using [libcluster](https://hexdocs.pm/libcluster)). In this scenario, the state is deleted from the old node and securely saved in the new one. To optimize finding the correct node, the **node hint** saved in the browser is utilized.
 
 ### Reseting the stash
 
