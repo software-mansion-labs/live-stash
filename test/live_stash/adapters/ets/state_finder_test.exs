@@ -137,5 +137,47 @@ defmodule LiveStash.Adapters.ETS.StateFinderTest do
         :peer.stop(peer2)
       end
     end
+
+    test "scenario 4: node_hint misses, then falls back to all other nodes", %{id: id} do
+      {peer1, peer1_node} = ClusterHelpers.start_peer!(table_name: @table_name)
+      {peer_hint, peer_hint_node} = ClusterHelpers.start_peer!(table_name: @table_name)
+      {peer3, peer3_node} = ClusterHelpers.start_peer!(table_name: @table_name)
+
+      try do
+        true = Node.connect(peer1_node)
+        true = Node.connect(peer_hint_node)
+        true = Node.connect(peer3_node)
+
+        peer1_state = %{from: peer1_node}
+        peer3_state = %{from: peer3_node}
+
+        # Ensure the hint node does NOT have the state.
+        # Put the same id on the other nodes so we can verify they were contacted (pop'ed).
+        :ok =
+          ClusterHelpers.put_state_on_peer!(peer1_node,
+            table_name: @table_name,
+            id: id,
+            state: peer1_state
+          )
+
+        :ok =
+          ClusterHelpers.put_state_on_peer!(peer3_node,
+            table_name: @table_name,
+            id: id,
+            state: peer3_state
+          )
+
+        assert {:ok, recovered_state} = StateFinder.get_from_cluster(id, peer_hint_node)
+        assert recovered_state in [peer1_state, peer3_state]
+
+        # Since node_hint missed, we should have fallen back to asking every other node.
+        refute ClusterHelpers.peer_has_state?(peer1_node, id)
+        refute ClusterHelpers.peer_has_state?(peer3_node, id)
+      after
+        :peer.stop(peer1)
+        :peer.stop(peer_hint)
+        :peer.stop(peer3)
+      end
+    end
   end
 end
