@@ -1,10 +1,10 @@
 defmodule LiveStash.Server.CleanerTest do
   use ExUnit.Case, async: false
 
-  require LiveStash.Server.State
+  require LiveStash.Adapters.ETS.State
 
-  alias LiveStash.Server.Cleaner
-  alias LiveStash.Server.State
+  alias LiveStash.Adapters.ETS.Cleaner
+  alias LiveStash.Adapters.ETS.State
 
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
 

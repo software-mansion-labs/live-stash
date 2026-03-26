@@ -1,4 +1,4 @@
-defmodule LiveStash.Serializer do
+defmodule LiveStash.Adapters.BrowserMemory.Serializer do
   @moduledoc false
 
   require Logger

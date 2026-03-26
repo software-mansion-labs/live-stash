@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :client, security_mode: :encrypt, session_key: "user_token"
+  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, session_key: "user_token"
 
   import LiveStash
 

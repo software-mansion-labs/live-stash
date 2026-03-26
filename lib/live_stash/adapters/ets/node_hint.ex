@@ -1,4 +1,4 @@
-defmodule LiveStash.Server.NodeHint do
+defmodule LiveStash.Adapters.ETS.NodeHint do
   @moduledoc """
   Handles encoding and sending the current node to the client as a hint for state recovery,
   and decrypting the node from connect params on reconnect.
@@ -15,7 +15,7 @@ defmodule LiveStash.Server.NodeHint do
   @spec create_node_hint(socket :: LiveView.Socket.t()) :: binary()
   def create_node_hint(socket) do
     node = Node.self() |> :erlang.atom_to_binary()
-    secret = socket.private.live_stash.secret
+    secret = socket.private.live_stash_context.secret
 
     Phoenix.Token.encrypt(socket, secret, node)
   end

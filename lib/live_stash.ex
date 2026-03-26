@@ -5,11 +5,8 @@ defmodule LiveStash do
   It allows you to store and retrieve data in a LiveView application.
   """
 
-  @behaviour LiveStash.Stash
-
   alias Phoenix.LiveView.Socket
   alias Phoenix.LiveView
-  alias LiveStash.Settings
   alias LiveStash.Utils
 
   require Logger
@@ -37,11 +34,23 @@ defmodule LiveStash do
   @spec init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
           Socket.t()
   def init_stash(socket, session, opts \\ []) do
-    settings = Settings.from_socket(socket, session, opts)
+    {adapter, opts} = Keyword.pop(opts, :adapter, LiveStash.Adapter.default())
+
+    active_adapters = Application.get_env(:live_stash, :adapters, [LiveStash.Adapter.default()])
+
+    if adapter not in active_adapters do
+      msg =
+        Utils.reason_message(
+          "The adapter #{inspect(adapter)} is not active. Please add it to the :adapters list in your :live_stash config.",
+          :invalid
+        )
+
+      raise ArgumentError, msg
+    end
 
     socket
-    |> LiveView.put_private(:live_stash, settings)
-    |> module(settings.mode).init_stash(session, opts)
+    |> LiveView.put_private(:live_stash_adapter, adapter)
+    |> adapter.init_stash(session, opts)
   end
 
   @doc """
@@ -56,8 +65,7 @@ defmodule LiveStash do
   @spec stash_assigns(socket :: Socket.t(), keys :: [atom()]) :: Socket.t()
   def stash_assigns(socket, keys) when is_list(keys) do
     socket
-    |> get_mode()
-    |> module()
+    |> get_adapter()
     |> apply(:stash_assigns, [socket, keys])
   end
 
@@ -87,14 +95,11 @@ defmodule LiveStash do
       end
   """
   @spec recover_state(socket :: Socket.t()) :: {recovery_status(), Socket.t()}
-  def recover_state(%{private: %{live_stash: %LiveStash.Settings{reconnected?: true}}} = socket) do
+  def recover_state(socket) do
     socket
-    |> get_mode()
-    |> module()
+    |> get_adapter()
     |> apply(:recover_state, [socket])
   end
-
-  def recover_state(socket), do: {:new, socket}
 
   @doc """
   Resets the stashed state for a LiveView.
@@ -110,27 +115,13 @@ defmodule LiveStash do
   @spec reset_stash(socket :: Socket.t()) :: Socket.t()
   def reset_stash(socket) do
     socket
-    |> get_mode()
-    |> module()
+    |> get_adapter()
     |> apply(:reset_stash, [socket])
   end
 
-  defp module(:server), do: LiveStash.Server
-  defp module(:client), do: LiveStash.Client
+  defp get_adapter(%{private: %{live_stash_adapter: adapter}}), do: adapter
 
-  defp module(mode) do
-    msg =
-      Utils.reason_message(
-        "Invalid mode: #{inspect(mode)}",
-        :invalid
-      )
-
-    raise ArgumentError, msg
-  end
-
-  defp get_mode(%{private: %{live_stash: %LiveStash.Settings{mode: mode}}}), do: mode
-
-  defp get_mode(_) do
+  defp get_adapter(_) do
     msg =
       Utils.reason_message(
         "LiveStash has not been initialized, please use on_mount/1 to initialize it",

@@ -1,4 +1,4 @@
-defmodule LiveStash.Server.State do
+defmodule LiveStash.Adapters.ETS.State do
   @moduledoc """
   A module that manages the state of LiveViews stored on the server. It uses ETS to store the state.
 

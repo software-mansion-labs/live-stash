@@ -1,12 +1,12 @@
-defmodule LiveStash.ServerTest do
+defmodule LiveStash.Adapters.ETSTest do
   use ExUnit.Case, async: false
   import ExUnit.CaptureLog
 
-  require LiveStash.Server.State
+  require LiveStash.Adapters.ETS.State
 
-  alias LiveStash.Server
-  alias LiveStash.Server.State
-  alias LiveStash.Server.StateFinder
+  alias LiveStash.Adapters.ETS
+  alias LiveStash.Adapters.ETS.State
+  alias LiveStash.Adapters.ETS.StateFinder
   alias Phoenix.LiveView.Socket
   alias LiveStash.Fakes
 
@@ -19,7 +19,7 @@ defmodule LiveStash.ServerTest do
 
     State.create_table!()
 
-    secret = "my_server_test_secret"
+    secret = "live_stash"
     stash_id = "test_uuid_1234"
 
     socket =
@@ -32,12 +32,11 @@ defmodule LiveStash.ServerTest do
         private: %{
           live_temp: %{},
           connect_params: %{"stashId" => stash_id},
-          live_stash_id: stash_id,
-          live_stash: %{
+          live_stash_context: %ETS.Context{
             reconnected?: false,
             ttl: 86_400,
             secret: secret,
-            security_mode: :sign,
+            id: stash_id,
             node_hint: Node.self()
           }
         }
@@ -55,7 +54,7 @@ defmodule LiveStash.ServerTest do
   end
 
   describe "init_stash/3" do
-    test "assigns a new live_stash_id, pushes init event and clears ETS when not reconnected", %{
+    test "reuses existing stashId, pushes init event and clears ETS when not reconnected", %{
       socket: socket,
       ets_id: ets_id,
       delete_at: delete_at
@@ -64,11 +63,11 @@ defmodule LiveStash.ServerTest do
         State.state(id: ets_id, pid: self(), delete_at: delete_at, ttl: 1000, state: %{})
       )
 
-      initialized_socket = Server.init_stash(socket, %{}, [])
+      initialized_socket = ETS.init_stash(socket, %{}, [])
 
-      generated_id = initialized_socket.private.live_stash_id
+      generated_id = initialized_socket.private.live_stash_context.id
 
-      assert is_binary(generated_id)
+      assert generated_id == "test_uuid_1234"
 
       assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
 
@@ -95,15 +94,13 @@ defmodule LiveStash.ServerTest do
         )
       )
 
-      socket =
-        socket
-        |> put_in([Access.key(:private), :live_stash, :reconnected?], true)
-        |> put_in([Access.key(:private), :connect_params], %{"stashId" => "test_uuid_1234"})
+      socket = put_in(socket.private[:connect_params]["_mounts"], 1)
 
-      initialized_socket = Server.init_stash(socket, %{}, [])
+      initialized_socket = ETS.init_stash(socket, %{}, [])
 
-      id_after_init = initialized_socket.private.live_stash_id
+      id_after_init = initialized_socket.private.live_stash_context.id
       assert id_after_init == "test_uuid_1234"
+      assert initialized_socket.private.live_stash_context.reconnected? == true
 
       queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
 
@@ -121,7 +118,7 @@ defmodule LiveStash.ServerTest do
 
   describe "stash_assigns/2" do
     test "saves specified assigns to the ETS table", %{socket: socket, ets_id: ets_id} do
-      returned_socket = Server.stash_assigns(socket, [:username])
+      returned_socket = ETS.stash_assigns(socket, [:username])
 
       assert %Socket{} = returned_socket
 
@@ -131,7 +128,7 @@ defmodule LiveStash.ServerTest do
 
     test "raises a custom RuntimeError when attempting to stash a missing key", %{socket: socket} do
       assert_raise RuntimeError, ~r/Key :missing_key is missing from socket.assigns/, fn ->
-        Server.stash_assigns(socket, [:missing_key])
+        ETS.stash_assigns(socket, [:missing_key])
       end
     end
   end
@@ -141,10 +138,12 @@ defmodule LiveStash.ServerTest do
       socket: socket,
       ets_id: ets_id
     } do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
       state_to_recover = %{player_level: 42, theme: "dark"}
       State.put!(ets_id, state_to_recover, ttl: 86_400)
 
-      assert {:recovered, recovered_socket} = Server.recover_state(socket)
+      assert {:recovered, recovered_socket} = ETS.recover_state(socket)
 
       assert recovered_socket.assigns.player_level == 42
       assert recovered_socket.assigns.theme == "dark"
@@ -154,19 +153,28 @@ defmodule LiveStash.ServerTest do
     end
 
     test "returns :not_found when there is no state in ETS for the given id", %{socket: socket} do
-      assert {:not_found, returned_socket} = Server.recover_state(socket)
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
+      assert {:not_found, returned_socket} = ETS.recover_state(socket)
       assert returned_socket == socket
     end
 
     test "rescues exceptions, logs error and returns {:error, socket}", %{socket: socket} do
-      broken_socket = put_in(socket.private.live_stash, nil)
+      socket_ready = put_in(socket.private.live_stash_context.reconnected?, true)
+
+      broken_socket = put_in(socket_ready.private.live_stash_context.secret, nil)
 
       log =
         capture_log(fn ->
-          assert {:error, _socket} = Server.recover_state(broken_socket)
+          assert {:error, _socket} = ETS.recover_state(broken_socket)
         end)
 
       assert log =~ "Could not recover state"
+    end
+
+    test "returns :new and socket when reconnected? is false", %{socket: socket} do
+      assert {:new, returned_socket} = ETS.recover_state(socket)
+      assert returned_socket == socket
     end
   end
 
@@ -176,17 +184,17 @@ defmodule LiveStash.ServerTest do
 
       assert {:ok, _} = StateFinder.get_from_cluster(ets_id, Node.self())
 
-      assert %Socket{} = Server.reset_stash(socket)
+      assert %Socket{} = ETS.reset_stash(socket)
 
       assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
     end
 
     test "rescues exceptions, logs error and returns socket unchanged", %{socket: socket} do
-      broken_socket = put_in(socket.private.live_stash, nil)
+      broken_socket = put_in(socket.private.live_stash_context, nil)
 
       log =
         capture_log(fn ->
-          assert %Socket{} = Server.reset_stash(broken_socket)
+          assert %Socket{} = ETS.reset_stash(broken_socket)
         end)
 
       assert log =~ "Could not reset stash"

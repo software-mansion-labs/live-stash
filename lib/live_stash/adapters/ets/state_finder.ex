@@ -1,9 +1,9 @@
-defmodule LiveStash.Server.StateFinder do
+defmodule LiveStash.Adapters.ETS.StateFinder do
   @moduledoc """
   Finds LiveStash state in the cluster: local ETS, optional node hint, then remaining nodes via multicall.
   """
 
-  alias LiveStash.Server.State
+  alias LiveStash.Adapters.ETS.State
   alias LiveStash.Utils
 
   require Logger

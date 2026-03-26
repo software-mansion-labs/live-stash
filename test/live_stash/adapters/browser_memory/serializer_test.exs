@@ -1,7 +1,7 @@
-defmodule LiveStash.SerializerTest do
+defmodule LiveStash.Adapters.BrowserMemory.SerializerTest do
   use ExUnit.Case, async: true
 
-  alias LiveStash.Serializer
+  alias LiveStash.Adapters.BrowserMemory.Serializer
   alias Phoenix.LiveView.Socket
 
   defmodule MockEndpoint do

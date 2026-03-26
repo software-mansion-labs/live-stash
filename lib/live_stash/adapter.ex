@@ -1,9 +1,12 @@
-defmodule LiveStash.Stash do
+defmodule LiveStash.Adapter do
   @moduledoc """
-  A stash is a module that manages the storage and retrieval of data.
+  A LiveStash adapter is a module that manages the storage and retrieval of data.
   """
 
   alias Phoenix.LiveView.Socket
+
+  @doc false
+  def default, do: LiveStash.Adapters.BrowserMemory
 
   @type recovery_status :: :recovered | :not_found | :new | :error
 
@@ -12,4 +15,7 @@ defmodule LiveStash.Stash do
   @callback stash_assigns(socket :: Socket.t(), keys :: [atom()]) :: Socket.t()
   @callback recover_state(socket :: Socket.t()) :: {recovery_status(), Socket.t()}
   @callback reset_stash(socket :: Socket.t()) :: Socket.t()
+  @callback child_spec(args :: any()) :: Supervisor.child_spec()
+
+  @optional_callbacks child_spec: 1
 end
