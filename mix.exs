@@ -35,7 +35,7 @@ defmodule LiveStash.MixProject do
       {:makeup_js, "~> 0.1.0", only: :dev, runtime: false},
       {:makeup_eex, "~> 2.0", only: :dev, runtime: false},
       {:makeup_html, "~> 0.2", only: :dev, runtime: false},
-      {:uuid, "~> 1.1"}
+      {:elixir_uuid, "~> 1.2.1"}
     ]
   end
 

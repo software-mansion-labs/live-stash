@@ -37,9 +37,9 @@ defmodule LiveStash do
   @spec init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
           Socket.t()
   def init_stash(socket, session, opts \\ []) do
-    {adapter, opts} = Keyword.pop(opts, :adapter, default_adapter())
+    {adapter, opts} = Keyword.pop(opts, :adapter, LiveStash.Adapter.default())
 
-    active_adapters = Application.get_env(:live_stash, :adapters, [default_adapter()])
+    active_adapters = Application.get_env(:live_stash, :adapters, [LiveStash.Adapter.default()])
 
     if adapter not in active_adapters do
       msg =
