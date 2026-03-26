@@ -25,7 +25,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
       socket
     else
       socket
-      |> LiveView.push_event("live-stash:reset-state", %{})
+      |> LiveView.push_event("live-stash:init-browser-memory", %{})
     end
   end
 
@@ -67,7 +67,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
     case LiveView.get_connect_params(socket) do
-      %{"stashedState" => %{"assigns" => stashed_state, "keys" => stashed_keys}}
+      %{"liveStash" => %{"stashedState" => %{"assigns" => stashed_state, "keys" => stashed_keys}}}
       when is_map(stashed_state) ->
         case Serializer.external_to_term(
                socket,
@@ -114,7 +114,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
     updated_context = %{context | key_set: MapSet.new()}
 
     socket
-    |> LiveView.push_event("live-stash:reset-state", %{})
+    |> LiveView.push_event("live-stash:init-browser-memory", %{})
     |> LiveView.put_private(:live_stash_context, updated_context)
   end
 

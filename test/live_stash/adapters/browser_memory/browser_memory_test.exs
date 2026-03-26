@@ -42,7 +42,10 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       assert result_socket.private.live_stash_context.reconnected? == true
 
       events = result_socket.private |> Map.get(:live_temp, %{}) |> Map.get(:push_events, [])
-      refute Enum.any?(events, fn [event, _payload] -> event == "live-stash:reset-state" end)
+
+      refute Enum.any?(events, fn [event, _payload] ->
+               event == "live-stash:init-browser-memory"
+             end)
     end
 
     test "resets state and initializes empty live_stash_keys when reconnected? is false", %{
@@ -102,10 +105,12 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       {ext_key_1, ext_val_1} = Serializer.term_to_external(socket, :player_id, 999, settings)
 
       params = %{
-        "stashedState" => %{
-          "keys" => stashed_keys,
-          "assigns" => %{
-            ext_key_1 => ext_val_1
+        "liveStash" => %{
+          "stashedState" => %{
+            "keys" => stashed_keys,
+            "assigns" => %{
+              ext_key_1 => ext_val_1
+            }
           }
         }
       }
@@ -131,9 +136,11 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
       params = %{
-        "stashedState" => %{
-          "keys" => "invalid_keys_token",
-          "assigns" => %{}
+        "liveStash" => %{
+          "stashedState" => %{
+            "keys" => "invalid_keys_token",
+            "assigns" => %{}
+          }
         }
       }
 
@@ -175,7 +182,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       queued_events = get_in(reset_socket.private, [:live_temp, :push_events]) || []
 
       assert Enum.any?(queued_events, fn
-               ["live-stash:reset-state", payload] ->
+               ["live-stash:init-browser-memory", payload] ->
                  payload == %{}
 
                _other ->

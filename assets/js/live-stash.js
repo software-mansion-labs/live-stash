@@ -1,33 +1,35 @@
-let stashedState = {};
-let node = null;
-let stashId = null;
+let liveStash = {};
 
-window.addEventListener('phx:live-stash:reset-state', (_event) => {
-  stashedState = {};
+window.addEventListener('phx:live-stash:init-browser-memory', (_event) => {
+  liveStash = { stashedState: {} };
 });
 
 window.addEventListener('phx:live-stash:stash-state', (event) => {
-  stashedState['assigns'] = stashedState['assigns'] || {};
+  if (!liveStash.stashedState) {
+    liveStash.stashedState = {};
+  }
 
-  stashedState['assigns'] = {
-    ...stashedState['assigns'],
+  liveStash.stashedState['assigns'] = liveStash.stashedState['assigns'] || {};
+
+  liveStash.stashedState['assigns'] = {
+    ...liveStash.stashedState['assigns'],
     ...event.detail.assigns,
   };
 
-  stashedState['keys'] = event.detail.keys;
+  liveStash.stashedState['keys'] = event.detail.keys;
 });
 
-window.addEventListener('phx:live-stash:init-server', (event) => {
-  node = event.detail.node;
-  stashId = event.detail.stashId;
+window.addEventListener('phx:live-stash:init-ets', (event) => {
+  liveStash = {
+    node: event.detail.node,
+    stashId: event.detail.stashId,
+  };
 });
 
 export default function initLiveStash(params) {
   return () => {
     return {
-      stashedState: stashedState,
-      node: node,
-      stashId: stashId,
+      liveStash: liveStash,
       ...params,
     };
   };

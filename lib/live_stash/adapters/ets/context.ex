@@ -50,7 +50,7 @@ defmodule LiveStash.Adapters.ETS.Context do
     context =
       attrs
       |> Keyword.put(:reconnected?, Common.reconnected?(connect_params))
-      |> Keyword.put(:id, connect_params["stashId"] || UUID.uuid4())
+      |> Keyword.put(:id, get_in(connect_params, ["liveStash", "stashId"]) || UUID.uuid4())
       |> then(&struct!(__MODULE__, &1))
 
     node_hint = NodeHint.get_node_hint(socket, connect_params, context.secret)

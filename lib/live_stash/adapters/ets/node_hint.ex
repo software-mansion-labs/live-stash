@@ -25,7 +25,7 @@ defmodule LiveStash.Adapters.ETS.NodeHint do
   Returns the node as an atom or `nil` if missing or decryption fails.
   """
   @spec get_node_hint(LiveView.Socket.t(), map() | nil, String.t()) :: node() | nil
-  def get_node_hint(socket, %{"node" => node}, secret) when is_binary(node) do
+  def get_node_hint(socket, %{"liveStash" => %{"node" => node}}, secret) when is_binary(node) do
     {:ok, node} = Phoenix.Token.decrypt(socket, secret, node)
     String.to_existing_atom(node)
   rescue

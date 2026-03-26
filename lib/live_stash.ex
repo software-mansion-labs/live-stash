@@ -13,6 +13,9 @@ defmodule LiveStash do
 
   @type recovery_status :: :recovered | :not_found | :new | :error
 
+  @doc false
+  def default_adapter, do: LiveStash.Adapters.BrowserMemory
+
   defmacro __using__(opts) do
     quote do
       on_mount({LiveStash, unquote(opts)})

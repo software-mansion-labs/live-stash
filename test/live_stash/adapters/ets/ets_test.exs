@@ -31,7 +31,7 @@ defmodule LiveStash.Adapters.ETSTest do
         },
         private: %{
           live_temp: %{},
-          connect_params: %{"stashId" => stash_id},
+          connect_params: %{"liveStash" => %{"stashId" => stash_id}},
           live_stash_context: %ETS.Context{
             reconnected?: false,
             ttl: 86_400,
@@ -74,7 +74,7 @@ defmodule LiveStash.Adapters.ETSTest do
       queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
 
       assert Enum.any?(queued_events, fn
-               ["live-stash:init-server", payload] ->
+               ["live-stash:init-ets", payload] ->
                  payload.stashId == generated_id and is_binary(payload.node)
 
                _other ->
@@ -105,7 +105,7 @@ defmodule LiveStash.Adapters.ETSTest do
       queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
 
       assert Enum.any?(queued_events, fn
-               ["live-stash:init-server", payload] ->
+               ["live-stash:init-ets", payload] ->
                  payload.stashId == id_after_init and is_binary(payload.node)
 
                _other ->
