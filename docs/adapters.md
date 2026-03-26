@@ -8,12 +8,6 @@ By implementing the `LiveStash.Adapter` behaviour, the community can create and 
 
 For more check the `LiveStash.Adapter` behaviour.
 
-### Optional callbacks
-
-If your custom adapter relies on background processes (similar to how the ETS adapter runs a cleanup task), you can implement the standard child specification:
-
-- **`child_spec(args)`**: An optional callback. When implemented, LiveStash can automatically start and supervise your adapter's processes under its own supervision tree.
-
 ## Configuration
 
 Configuration options for specific adapters should be defined under the `:live_stash` application in your project's `config.exs` file.
