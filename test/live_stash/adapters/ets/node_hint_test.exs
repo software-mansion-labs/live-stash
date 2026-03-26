@@ -43,7 +43,7 @@ defmodule LiveStash.Adapters.ETS.NodeHintTest do
       node_binary = :erlang.atom_to_binary(Node.self())
       valid_hint = Phoenix.Token.encrypt(socket, secret, node_binary)
 
-      params = %{"node" => valid_hint}
+      params = %{"liveStash" => %{"node" => valid_hint}}
 
       assert NodeHint.get_node_hint(socket, params, secret) == Node.self()
     end
@@ -64,7 +64,7 @@ defmodule LiveStash.Adapters.ETS.NodeHintTest do
       socket: socket,
       secret: secret
     } do
-      params = %{"node" => "invalid_or_tampered_token"}
+      params = %{"liveStash" => %{"node" => "invalid_or_tampered_token"}}
 
       log =
         capture_log(fn ->
@@ -81,7 +81,7 @@ defmodule LiveStash.Adapters.ETS.NodeHintTest do
       non_existent_atom_string = "non_existent_node_xyz_123456789"
       hint = Phoenix.Token.encrypt(socket, secret, non_existent_atom_string)
 
-      params = %{"node" => hint}
+      params = %{"liveStash" => %{"node" => hint}}
 
       log =
         capture_log(fn ->

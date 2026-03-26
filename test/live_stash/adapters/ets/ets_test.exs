@@ -31,7 +31,7 @@ defmodule LiveStash.Adapters.ETSTest do
         },
         private: %{
           live_temp: %{},
-          connect_params: %{"stashId" => stash_id},
+          connect_params: %{"liveStash" => %{"stashId" => stash_id}},
           live_stash_context: %ETS.Context{
             reconnected?: false,
             ttl: 86_400,
