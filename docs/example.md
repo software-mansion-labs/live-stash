@@ -1,18 +1,18 @@
 # Example
 
-We are going to take a look at an example of a tic tac toe game that you can examine in full detail in LiveStash project subdirectory `/examples/showcase_app`. This particular example uses **client** mode with **encryption** and a **session key** set to guarantee extra safety.
+We are going to take a look at an example of a tic tac toe game that you can examine in full detail in LiveStash project subdirectory `/examples/showcase_app`. This particular example uses **browser memory** adapter with **encryption** and a **session key** set to guarantee extra safety.
 
 ## Initialization
 
 ```elixir
 defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, mode: :client, security_mode: :encrypt, session_key: "user_token"
+  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, session_key: "user_token"
 
   import LiveStash
 ```
 
-Here, we define the LiveView module and inject the necessary dependencies. By calling use LiveStash, we configure how the state should be persisted. In this specific example, it is configured to `:client` mode, meaning the game's state will be encrypted and stored securely on the user's browser (client-side) using the defined `session_key`.
+Here, we define the LiveView module and inject the necessary dependencies. By calling use LiveStash, we configure how the state should be persisted. In this specific example, it is configured to use the browser memory adapter, meaning the game's state will be encrypted and stored securely on the user's browser (client-side) using the defined `session_key`.
 
 ## Render
 

@@ -44,9 +44,17 @@ defmodule LiveStash.MixProject do
       main: "welcome",
       extras: [
         "docs/welcome.md",
-        "docs/client.md",
-        "docs/server.md",
+        "docs/browser_memory.md",
+        "docs/ets.md",
+        "docs/adapters.md",
         "docs/example.md"
+      ],
+      groups_for_extras: [
+        Adapters: [
+          "docs/browser_memory.md",
+          "docs/ets.md",
+          "docs/adapters.md"
+        ]
       ],
       source_url: "https://github.com/software-mansion-labs/live-stash",
       source_ref: @version,
@@ -63,7 +71,7 @@ defmodule LiveStash.MixProject do
   end
 
   defp filter_modules(LiveStash, _meta), do: true
-  defp filter_modules(LiveStash.Stash, _meta), do: true
+  defp filter_modules(LiveStash.Adapter, _meta), do: true
   defp filter_modules(LiveStash.Adapters.BrowserMemory, _meta), do: true
   defp filter_modules(LiveStash.Adapters.ETS, _meta), do: true
   defp filter_modules(_, _meta), do: false

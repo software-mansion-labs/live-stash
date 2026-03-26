@@ -7,16 +7,16 @@ This projects features a few examples where you can see LiveStash in action:
 ### Counter
 
 - Counter Default - no state recovery
-- Counter Client - client mode LiveStash state recovery
-- Counter Server - server mode LiveStash state recovery
+- Counter Client - Browser memory adapter for LiveStash state recovery
+- Counter Server - ETS adapter for LiveStash state recovery
 
 ### Tic Tac Toe
 
 - Tic Tac Toe Default - no state recovery
-- Tic Tac Toe Client - client mode LiveStash state recovery
-- Tic Tac Toe Server - server mode LiveStash state recovery
-- Auth Tic Tac Toe Client - client mode LiveStash state recovery with authentication
-- Auth Tic Tac Toe Server - server mode LiveStash state recovery with authentication
+- Tic Tac Toe Client - Browser memory adapter for LiveStash state recovery
+- Tic Tac Toe Server - ETS adapter for LiveStash state recovery
+- Auth Tic Tac Toe Client - Browser memory adapter for LiveStash state recovery with authentication
+- Auth Tic Tac Toe Server - ETS adapter for LiveStash state recovery with authentication
 
 ## Getting started
 
@@ -31,7 +31,7 @@ Select an example and play around with it to save some state. Now press the Disc
 
 ### Cluster example - Docker
 
-In a cluster environment the client may connect to a different server after the reconnect. Because of that, in server mode LiveStash sometimes retrieves the state from other nodes. To test this, run this code if you have Docker set up on your machine:
+In a cluster environment the client may connect to a different server after the reconnect. Because of that, in ETS mode LiveStash sometimes retrieves the state from other nodes. To test this, run this code if you have Docker set up on your machine:
 
 ```bash
 docker compose up --build
