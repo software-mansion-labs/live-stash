@@ -62,6 +62,10 @@ jobs:
         working-directory: ./examples/showcase_app
         run: npx playwright install --with-deps firefox
 
+      - name: Pre-compile Showcase App for Test
+        working-directory: ./examples/showcase_app
+        run: MIX_ENV=test mix compile
+
       - name: Run E2E Script
         run: mix e2e
 
