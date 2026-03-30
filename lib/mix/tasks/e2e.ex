@@ -6,6 +6,9 @@ defmodule Mix.Tasks.E2e do
   @shortdoc "Runs End-to-End tests using Playwright and Docker"
   @app_dir "examples/showcase_app"
 
+  @nginx_port 8080
+  @phoenix_port 4000
+
   @impl Mix.Task
   def run(_args) do
     IO.puts("\n[E2E] Starting test suite...")
@@ -41,7 +44,7 @@ defmodule Mix.Tasks.E2e do
   end
 
   defp cleanup_resources(docker_cmd, down_args) do
-    System.cmd("sh", ["-c", "lsof -t -i:4000 | xargs kill -9 > /dev/null 2>&1"])
+    System.cmd("sh", ["-c", "lsof -t -i:#{@phoenix_port} | xargs kill -9 > /dev/null 2>&1"])
     System.cmd(docker_cmd, down_args, cd: @app_dir, stderr_to_stdout: true)
   end
 
@@ -60,26 +63,33 @@ defmodule Mix.Tasks.E2e do
     end)
   end
 
-  defp wait_for_services(max_attempts \\ 60) do
-    IO.puts("[E2E] Waiting for services (Nginx: 8080, Phoenix: 4000) to become available...")
+  defp wait_for_services(max_attempts \\ 150, attempt_interval \\ 2) do
+    IO.puts(
+      "[E2E] Waiting for services (Nginx: #{@nginx_port}, Phoenix: #{@phoenix_port}) to become available..."
+    )
 
     Enum.reduce_while(1..max_attempts, :error, fn attempt, _acc ->
-      nginx_status = check_http_status(8080)
-      phoenix_status = check_http_status(4000)
+      nginx_status = check_http_status(@nginx_port)
+      phoenix_status = check_http_status(@phoenix_port)
 
       cond do
         nginx_status == "200" and phoenix_status == "200" ->
           IO.puts("[E2E] Services are ready (200 OK).")
-          Process.sleep(2000)
+          Process.sleep(attempt_interval * 1000)
           {:halt, :ok}
 
         attempt == max_attempts ->
           Mix.raise(
-            "[E2E ERROR] Timeout. Services failed to start within #{max_attempts * 2} seconds."
+            "[E2E ERROR] Timeout. Services failed to start within #{max_attempts * attempt_interval} seconds. Last status - Nginx: #{nginx_status}, Phoenix: #{phoenix_status}"
           )
 
         true ->
-          Process.sleep(2000)
+          # Wypisujemy status, żeby nie zgadywać w CI co się dzieje
+          IO.puts(
+            "  -> [Pending #{attempt}/#{max_attempts}] Nginx: #{nginx_status} | Phoenix: #{phoenix_status}"
+          )
+
+          Process.sleep(attempt_interval * 1000)
           {:cont, :error}
       end
     end)
