@@ -21,7 +21,7 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
   defstruct [
     :reconnected?,
     secret: "live_stash",
-    ttl: 5 * 60 * 1000,
+    ttl: 5 * 60,
     security_mode: :sign,
     key_set: MapSet.new()
   ]
@@ -42,8 +42,16 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
     {session_key, base_attrs} = Keyword.pop(opts, :session_key)
 
     base_attrs
+    |> maybe_put_ttl()
     |> Common.maybe_put_secret(session_key, session)
     |> Keyword.put(:reconnected?, Common.reconnected?(Common.get_connect_params(socket)))
     |> then(&struct!(__MODULE__, &1))
+  end
+
+  defp maybe_put_ttl(attrs) do
+    case Keyword.fetch(attrs, :ttl) do
+      {:ok, ttl} -> Keyword.put(attrs, :ttl, max(div(ttl, 1000), 1))
+      :error -> attrs
+    end
   end
 end

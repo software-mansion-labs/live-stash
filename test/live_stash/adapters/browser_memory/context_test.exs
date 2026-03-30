@@ -22,7 +22,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
 
       assert %Context{} = context
       assert context.secret == @default_secret
-      assert context.ttl == 1000
+      assert context.ttl == 1
       assert context.reconnected? == false
     end
 
