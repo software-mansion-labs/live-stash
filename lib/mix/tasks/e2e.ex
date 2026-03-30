@@ -1,4 +1,6 @@
 defmodule Mix.Tasks.E2e do
+  @moduledoc false
+
   use Mix.Task
 
   @shortdoc "Runs End-to-End tests using Playwright and Docker"
@@ -65,19 +67,20 @@ defmodule Mix.Tasks.E2e do
       nginx_status = check_http_status(8080)
       phoenix_status = check_http_status(4000)
 
-      if nginx_status == "200" and phoenix_status == "200" do
-        IO.puts("[E2E] Services are ready (200 OK).")
-        Process.sleep(2000)
-        {:halt, :ok}
-      else
-        if attempt == max_attempts do
+      cond do
+        nginx_status == "200" and phoenix_status == "200" ->
+          IO.puts("[E2E] Services are ready (200 OK).")
+          Process.sleep(2000)
+          {:halt, :ok}
+
+        attempt == max_attempts ->
           Mix.raise(
             "[E2E ERROR] Timeout. Services failed to start within #{max_attempts * 2} seconds."
           )
-        end
 
-        Process.sleep(2000)
-        {:cont, :error}
+        true ->
+          Process.sleep(2000)
+          {:cont, :error}
       end
     end)
   end
