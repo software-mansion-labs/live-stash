@@ -1,14 +1,19 @@
 import Config
 
+
+config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory], ets_cleanup_interval: 200
+
 # Only in tests, remove the complexity from the password hashing algorithm
 config :bcrypt_elixir, :log_rounds, 1
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :showcase_app, ShowcaseAppWeb.Endpoint,
-  http: [ip: {127, 0, 0, 1}, port: 4002],
+  http: [ip: {127, 0, 0, 1}, port: 4003],
   secret_key_base: "ezQVaTFs3WEoKK4HBiQd/HG9LnYWzAPJTFeQ3L6eFjkpZm/XYbvnkoOriw8U8lsK",
-  server: false
+  server: true
+
+config :logger, level: :error
 
 # In test we don't send emails
 config :showcase_app, ShowcaseApp.Mailer, adapter: Swoosh.Adapters.Test

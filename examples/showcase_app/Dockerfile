@@ -1,4 +1,4 @@
-FROM elixir:1.15-alpine
+FROM elixir:1.19-alpine
 
 RUN apk add --no-cache build-base inotify-tools git bash
 

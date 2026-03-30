@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt
+  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, ttl: 3
 
   import LiveStash
 
@@ -68,6 +68,13 @@ defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
           </div>
         </div>
       </div>
+      <button
+        phx-click="reset_stash"
+        class="btn btn-sm bg-base-300 border border-neutral-600 text-neutral-400 hover:bg-neutral-700/30 fixed bottom-6 right-48 z-50 shadow-2xl font-mono text-xs rounded-full px-4 transition-colors"
+        aria-label="Reset Stash"
+      >
+        Reset Stash
+      </button>
       <.socket_debugger />
     </div>
     """
@@ -83,6 +90,13 @@ defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
     socket
     |> assign(:count, socket.assigns.count - 1)
     |> stash_assigns([:count])
+    |> then(&{:noreply, &1})
+  end
+
+  def handle_event("reset_stash", _, socket) do
+    socket
+    |> reset_stash()
+    |> assign(:count, 0)
     |> then(&{:noreply, &1})
   end
 end

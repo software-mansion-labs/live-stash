@@ -1,15 +1,13 @@
-version: '3.8'
-
 services:
   node_a:
     build: .
     hostname: node_a
     working_dir: /workspace/examples/showcase_app
-    command: sh -c "mix deps.get && epmd -daemon && iex --sname a@node_a --cookie livestashexamplecluster -S mix phx.server"
+    command: sh -c "mix deps.get && epmd -daemon && elixir --sname a@node_a --cookie livestashexamplecluster -S mix phx.server"
     environment:
       - PORT=4000
     ports:
-      - "4000:4000"
+      - "4002:4000"
     volumes:
       - ../../:/workspace
       - /workspace/examples/showcase_app/_build
@@ -21,7 +19,7 @@ services:
     build: .
     hostname: node_b
     working_dir: /workspace/examples/showcase_app
-    command: sh -c "mix deps.get && epmd -daemon && iex --sname b@node_b --cookie livestashexamplecluster -S mix phx.server"
+    command: sh -c "mix deps.get && epmd -daemon && elixir --sname b@node_b --cookie livestashexamplecluster -S mix phx.server"
     environment:
       - PORT=4000
     ports:
