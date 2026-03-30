@@ -22,6 +22,8 @@ test.describe("LiveView State Recovery - Single Node", () => {
         () => window.liveSocket && window.liveSocket.isConnected(),
       );
 
+      await expect(page.locator(".phx-connected").first()).toBeVisible();
+
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");
 
@@ -42,6 +44,9 @@ test.describe("LiveView State Recovery - Single Node", () => {
       await page.waitForFunction(
         () => window.liveSocket && window.liveSocket.isConnected(),
       );
+
+      await expect(page.locator(".phx-connected").first()).toBeVisible();
+
       await expect(counterValue).toHaveText("0");
     });
   });
