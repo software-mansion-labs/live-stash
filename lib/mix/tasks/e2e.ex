@@ -63,7 +63,7 @@ defmodule Mix.Tasks.E2e do
     end)
   end
 
-  defp wait_for_services(max_attempts \\ 150, attempt_interval \\ 2) do
+  defp wait_for_services(max_attempts \\ 120, attempt_interval \\ 2) do
     IO.puts(
       "[E2E] Waiting for services (Nginx: #{@nginx_port}, Phoenix: #{@phoenix_port}) to become available..."
     )
@@ -84,11 +84,6 @@ defmodule Mix.Tasks.E2e do
           )
 
         true ->
-          # Wypisujemy status, żeby nie zgadywać w CI co się dzieje
-          IO.puts(
-            "  -> [Pending #{attempt}/#{max_attempts}] Nginx: #{nginx_status} | Phoenix: #{phoenix_status}"
-          )
-
           Process.sleep(attempt_interval * 1000)
           {:cont, :error}
       end

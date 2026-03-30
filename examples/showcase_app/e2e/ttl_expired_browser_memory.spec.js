@@ -6,7 +6,7 @@ test.describe("LiveView State Recovery - Single Node", () => {
   test(`should not recover counter state after ttl expires in browser memory adapter`, async ({
     page,
   }) => {
-    await page.goto("/counter/live_stash_client");
+    await page.goto("/test/counter/live_stash_client");
 
     const incrementBtn = page.getByLabel("Increment");
     const counterValue = page.locator(".stat-value");
@@ -23,7 +23,7 @@ test.describe("LiveView State Recovery - Single Node", () => {
     await incrementBtn.click();
     await expect(counterValue).toHaveText("2");
 
-    await page.waitForTimeout(4000);
+    await page.waitForTimeout(1000);
 
     await page.evaluate(() => window.liveSocket.disconnect());
 

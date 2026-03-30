@@ -1,6 +1,9 @@
 const { test, expect } = require("@playwright/test");
 
-const routes = ["/counter/live_stash_server", "/counter/live_stash_client"];
+const routes = [
+  "/test/counter/live_stash_server",
+  "/test/counter/live_stash_client",
+];
 
 test.describe("LiveView State Recovery - Single Node", () => {
   test.use({ baseURL: "http://localhost:4000" });
@@ -43,6 +46,8 @@ test.describe("LiveView State Recovery - Single Node", () => {
       await page.waitForFunction(
         () => window.liveSocket && window.liveSocket.isConnected(),
       );
+
+      await expect(page.locator(".phx-connected").first()).toBeVisible();
 
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");

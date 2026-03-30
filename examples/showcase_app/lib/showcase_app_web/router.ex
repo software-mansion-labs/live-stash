@@ -31,6 +31,9 @@ defmodule ShowcaseAppWeb.Router do
     live "/counter/default", DefaultCounterLive
     live "/counter/live_stash_server", LiveStashServerCounterLive
     live "/counter/live_stash_client", LiveStashClientCounterLive
+
+    live "/test/counter/live_stash_server", E2eTest.LiveStashServerCounterLive
+    live "/test/counter/live_stash_client", E2eTest.LiveStashClientCounterLive
   end
 
   # Other scopes may use custom stacks.

@@ -7,7 +7,7 @@ test.describe("LiveView State Recovery - Cluster", () => {
   test("should retain state when a node goes down and traffic is redirected", async ({
     page,
   }) => {
-    await page.goto("/counter/live_stash_client");
+    await page.goto("/test/counter/live_stash_client");
 
     const incrementBtn = page.getByLabel("Increment");
     const counterValue = page.locator(".stat-value");
