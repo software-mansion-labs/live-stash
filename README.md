@@ -68,7 +68,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
 });
 ```
 
-## When not to use
+## When NOT to use
 
 LiveStash is meant for **explicitly stashing server-side LiveView assigns** that you truly need to survive reconnects. For a lot of state, there are better (and simpler) tools:
 
