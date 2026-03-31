@@ -68,6 +68,14 @@ const liveSocket = new LiveSocket("/live", Socket, {
 });
 ```
 
+## When not to use
+
+LiveStash is meant for **explicitly stashing server-side LiveView assigns** that you truly need to survive reconnects. For a lot of state, there are better (and simpler) tools:
+
+- **Pure UI toggles and ephemeral client state**: For things like opening a modal, toggling a dropdown, or highlighting a row, prefer keeping the state on the client with [`Phoenix.LiveView.JS`](https://hexdocs.pm/phoenix_live_view/Phoenix.LiveView.JS.html). For more complex interactions, use [`phx-hook`](https://hexdocs.pm/phoenix_live_view/js-interop.html#client-hooks-via-phx-hook) to manage state locally in the browser.
+- **Form inputs**: LiveView includes built-in form auto-recovery that replays the form data after reconnect. If your main concern is users losing typed input, you likely don’t need LiveStash. See [How Phoenix LiveView Form Auto-Recovery works](https://fly.io/phoenix-files/how-phoenix-liveview-form-auto-recovery-works/).
+- **Navigation/context state**: For pagination, filters, sorting, and search terms, put the state in URL query params. This is the most resilient approach across reloads, reconnects, and shareable links.
+
 ## Contributing
 
 For those planning to contribute to this project, you can run an example projects with LiveStash with following commands:
