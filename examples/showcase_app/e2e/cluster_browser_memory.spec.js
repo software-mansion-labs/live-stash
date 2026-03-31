@@ -1,5 +1,4 @@
 const { test, expect } = require("@playwright/test");
-const { execSync } = require("child_process");
 
 test.describe("LiveView State Recovery - Cluster", () => {
   test.use({ baseURL: "http://localhost:8080" });
