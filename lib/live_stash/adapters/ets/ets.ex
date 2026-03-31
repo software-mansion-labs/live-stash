@@ -1,6 +1,9 @@
 defmodule LiveStash.Adapters.ETS do
   @moduledoc """
   A server-side stash that persists data in the server's memory.
+
+  See the [ETS Adapter Guide](ets.html) for usage and configuration details
+  (source: `docs/ets.md`).
   """
 
   @behaviour LiveStash.Adapter

@@ -1,6 +1,10 @@
 defmodule LiveStash.Adapter do
   @moduledoc """
-  A LiveStash adapter is a module that manages the storage and retrieval of data.
+  Behaviour for storage backends used by `LiveStash`.
+
+  An adapter is responsible for persisting and restoring selected LiveView
+  assigns for a specific socket identity. `LiveStash` delegates all storage
+  operations to the adapter chosen during initialization.
   """
 
   alias Phoenix.LiveView.Socket
@@ -11,24 +15,33 @@ defmodule LiveStash.Adapter do
   @type recovery_status :: :recovered | :not_found | :new | :error
 
   @doc """
-  Initializes the stash state for the given LiveView socket. It receives the connection session and any options passed during configuration. Returns the updated socket.
+  Initializes adapter state for the given socket.
+
+  Called during LiveView mount through `LiveStash.on_mount/4`.
+  Receives session data and adapter options and must return an updated socket.
   """
   @callback init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
               Socket.t()
   @doc """
-  Persists the specified assigns keys for the given LiveView socket. Returns the updated socket.
+  Persists selected assign keys for the given socket.
+
+  The keys are atoms that reference entries in `socket.assigns`.
+  Returns an updated socket.
   """
   @callback stash_assigns(socket :: Socket.t(), keys :: [atom()]) :: Socket.t()
   @doc """
-  Retrieves the stored state and attempts to restore it to the socket. It must return a tuple containing the recovery status and the updated socket.
+  Attempts to restore previously persisted state to the socket.
+
+  Must return `{status, socket}` where `status` is one of
+  `t:recovery_status/0`.
   """
   @callback recover_state(socket :: Socket.t()) :: {recovery_status(), Socket.t()}
   @doc """
-  Clears the currently stored state for the socket. Returns the updated socket.
+  Removes stored state associated with the socket and returns it.
   """
   @callback reset_stash(socket :: Socket.t()) :: Socket.t()
   @doc """
-  Creates a child specification for the adapter's supervisor.
+  Returns a child specification when the adapter needs supervision.
   """
   @callback child_spec(args :: any()) :: Supervisor.child_spec()
 

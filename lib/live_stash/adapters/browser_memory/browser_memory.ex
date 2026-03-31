@@ -1,6 +1,9 @@
 defmodule LiveStash.Adapters.BrowserMemory do
   @moduledoc """
   A client-side stash that persists data in the browser's memory.
+
+  See the [Browser Memory Adapter Guide](browser_memory.html) for usage and
+  configuration details (source: `docs/browser_memory.md`).
   """
 
   @behaviour LiveStash.Adapter

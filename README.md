@@ -39,6 +39,7 @@ defmodule ShowcaseAppWeb.CounterLive do
           recovered_socket
 
         _ ->
+          # could not recover assigns, proceed with standard setup
           # ...
     end
     |> then(&{:ok, &1})
