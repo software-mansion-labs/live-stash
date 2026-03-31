@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html data-theme="dark">
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -30,27 +30,29 @@
       })();
     </script>
   </head>
-  <body>
-    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if @current_scope do %>
-        <li>
-          {@current_scope.user.email}
-        </li>
-        <li>
-          <.link href={~p"/users/settings"}>Settings</.link>
-        </li>
-        <li>
-          <.link href={~p"/users/log-out"} method="delete">Log out</.link>
-        </li>
-      <% else %>
-        <li>
-          <.link href={~p"/users/register"}>Register</.link>
-        </li>
-        <li>
-          <.link href={~p"/users/log-in"}>Log in</.link>
-        </li>
-      <% end %>
+  <body class="bg-base-300 antialiased min-h-screen flex flex-col">
+    <%= if not Map.get(assigns, :is_embed, false) do %>
+    <ul class="bg-base-200 menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
+        <%= if @current_scope do %>
+          <li>
+            {@current_scope.user.email}
+          </li>
+          <li>
+            <.link href={~p"/users/settings"}>Settings</.link>
+          </li>
+          <li>
+            <.link href={~p"/users/log-out"} method="delete">Log out</.link>
+          </li>
+        <% else %>
+          <li>
+            <.link href={~p"/users/register"}>Register</.link>
+          </li>
+          <li>
+            <.link href={~p"/users/log-in"}>Log in</.link>
+          </li>
+        <% end %>
     </ul>
+   <% end %>
     {@inner_content}
   </body>
 </html>

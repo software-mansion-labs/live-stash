@@ -28,15 +28,16 @@ defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-300 flex flex-col items-center py-12 px-6" data-theme="dark">
+    <div class="flex flex-col items-center pt-8 pb-4 px-4 sm:pt-10 sm:pb-8 sm:px-6">
       <div class="w-full max-w-lg">
-        <div class="flex justify-between items-center mb-10">
-          <h1 class="text-4xl font-bold text-white">Tic Tac Toe</h1>
+        <div class="flex justify-between items-center mb-6">
+          <h1 class="text-3xl sm:text-4xl font-bold text-white">Tic Tac Toe</h1>
           <.return_link />
         </div>
 
-        <div class="bg-base-100 rounded-3xl p-8 shadow-2xl border border-gray-800 flex flex-col items-center">
-          <div class="text-2xl font-bold mb-8 h-8 flex items-center justify-center w-full rounded-xl bg-base-200 py-6">
+        <div class="bg-base-100 rounded-2xl sm:rounded-3xl p-5 sm:p-8 shadow-2xl border border-gray-800 flex flex-col items-center w-full">
+
+          <div class="text-xl sm:text-2xl font-bold mb-5 flex items-center justify-center w-full rounded-xl bg-base-200 py-3 sm:py-4">
             <%= cond do %>
               <% @winner == "Draw" -> %>
                 <span class="text-gray-400">It's a Draw!</span>
@@ -51,18 +52,16 @@ defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
             <% end %>
           </div>
 
-          <div class="grid grid-cols-3 gap-3 bg-gray-900 p-4 rounded-2xl w-full max-w-sm mb-8 shadow-inner">
+          <div class="grid grid-cols-3 gap-2 sm:gap-3 bg-gray-900 p-3 sm:p-4 rounded-2xl w-full max-w-sm mb-5 shadow-inner">
             <%= for i <- 0..8 do %>
               <button
                 phx-click="play"
                 phx-value-idx={i}
                 disabled={@board[i] != nil || @winner != nil}
                 class={[
-                  "h-24 sm:h-28 text-5xl font-extrabold rounded-xl flex items-center justify-center transition-all duration-200",
-                  @board[i] == nil && @winner == nil &&
-                    "bg-base-200 hover:bg-gray-700 cursor-pointer",
-                  @board[i] == nil && @winner != nil &&
-                    "bg-base-200 cursor-not-allowed opacity-50",
+                  "h-20 sm:h-24 text-4xl sm:text-5xl font-extrabold rounded-xl flex items-center justify-center transition-all duration-200",
+                  @board[i] == nil && @winner == nil && "bg-base-200 hover:bg-gray-700 cursor-pointer",
+                  @board[i] == nil && @winner != nil && "bg-base-200 cursor-not-allowed opacity-50",
                   @board[i] != nil && "bg-base-300 cursor-default",
                   @board[i] == "X" && "text-purple-400",
                   @board[i] == "O" && "text-blue-400",
@@ -76,7 +75,7 @@ defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
 
           <button
             phx-click="reset"
-            class="btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none w-full max-w-xs text-lg"
+            class="btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none w-full max-w-xs text-base sm:text-lg min-h-0 h-12"
           >
             Restart Game
           </button>

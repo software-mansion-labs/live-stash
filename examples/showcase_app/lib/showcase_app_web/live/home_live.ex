@@ -14,24 +14,36 @@ defmodule ShowcaseAppWeb.HomeLive do
           </p>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-6 justify-center w-full max-w-md">
+        <div class="flex flex-col gap-6 w-full max-w-md mx-auto">
+
           <.link
-            navigate={~p"/tic-tac-toe"}
-            class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all"
+            navigate={~p"/tic-tac-toe/comparison"}
+            class="w-full btn bg-black hover:bg-gray-900 text-white border-2 border-[#4e2a8e] shadow-[0_0_15px_rgba(78,42,142,0.4)] hover:shadow-[0_0_25px_rgba(78,42,142,0.6)] h-auto py-6 rounded-2xl text-xl hover:scale-105 transition-all"
           >
             <div class="flex flex-col items-center gap-3">
-              <span class="font-bold">Tic tac toe</span>
+              <span class="font-bold">LiveStash Effect</span>
             </div>
           </.link>
 
-          <.link
-            navigate={~p"/counter"}
-            class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all"
-          >
-            <div class="flex flex-col items-center gap-3">
-              <span class="font-bold">Counters</span>
-            </div>
-          </.link>
+          <div class="flex flex-col sm:flex-row gap-6 justify-center w-full">
+            <.link
+              navigate={~p"/tic-tac-toe"}
+              class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all"
+            >
+              <div class="flex flex-col items-center gap-3">
+                <span class="font-bold">Tic tac toe</span>
+              </div>
+            </.link>
+
+            <.link
+              navigate={~p"/counter"}
+              class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all"
+            >
+              <div class="flex flex-col items-center gap-3">
+                <span class="font-bold">Counters</span>
+              </div>
+            </.link>
+          </div>
         </div>
       </div>
     </div>

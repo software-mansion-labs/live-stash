@@ -26,6 +26,7 @@ defmodule ShowcaseAppWeb.Router do
     live "/tic-tac-toe/default", DefaultTicTacToeLive
     live "/tic-tac-toe/live_stash_server", LiveStashServerTicTacToeLive
     live "/tic-tac-toe/live_stash_client", LiveStashClientTicTacToeLive
+    live "/tic-tac-toe/comparison", ComparisonTicTacToeLive
 
     live "/counter", HomeCounterLive
     live "/counter/default", DefaultCounterLive

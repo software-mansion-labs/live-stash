@@ -19,7 +19,7 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-200 flex items-center justify-center p-4">
+    <div class="flex py-10 items-center justify-center p-4">
       <div class="card bg-base-100 shadow-xl w-full max-w-md">
         <.return_link />
 
