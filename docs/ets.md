@@ -36,10 +36,12 @@ State can also be cleared manually by calling `LiveStash.reset_stash/1`.
 
 ### Expiration (TTL)
 
-Stashed data in server mode has a Time-To-Live (TTL) to prevent stale state from persisting indefinitely. The default TTL is 5 minutes. You can adjust this using the `:ttl` option.
+Stashed data in server mode has a Time-To-Live (TTL) to prevent stale state from persisting indefinitely. You can adjust this using the `:ttl` option.
+
+**Default:** `300` seconds (5 minutes)
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 60 * 1000,
+use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 60,
 ```
 
 ### Cleanup interval

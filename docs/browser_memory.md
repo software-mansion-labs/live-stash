@@ -25,10 +25,12 @@ The stash is always cleared after a LiveView using this mode is rendered for the
 
 ### Expiration (TTL)
 
-Stashed data has a Time-To-Live (TTL) that is used in signature and encryption. The default TTL is 5 minutes. You can adjust this using the `:ttl` option.
+Stashed data has a Time-To-Live (TTL) that is used in signature and encryption. You can adjust this using the `:ttl` option.
+
+**Default:** `300` seconds (5 minutes)
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, ttl: 60 * 1000,
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, ttl: 60,
 ```
 
 ## Security
