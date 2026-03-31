@@ -4,6 +4,10 @@ LiveStash provides a reliable, explicit API to safely stash and recover [Phoenix
 
 Try the interactive [demo](https://live-stash-demo.fly.dev/), check out our [documentation](https://docs.swmansion.com/live-stash/) or play around with [examples](./examples/showcase_app/README.md) to explore all capabilities in detail.
 
+
+https://github.com/user-attachments/assets/c03836e1-362e-4e06-bfc7-3656c6672c8e
+
+
 ## Usage
 
 Adding LiveStash to your existing LiveView is very simple.
@@ -105,7 +109,7 @@ For those planning to contribute to this project, you can run an example project
 ```bash
 cd examples/showcase_app
 mix setup
-iex -S mix
+iex -S mix phx.server
 ```
 
 ## Authors
