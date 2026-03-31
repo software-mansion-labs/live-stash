@@ -3,7 +3,7 @@ defmodule ShowcaseAppWeb.HomeCounterLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-300 flex flex-col items-center py-12 px-6" data-theme="dark">
+    <div class="flex flex-col items-center py-12 px-6">
       <div class="w-full max-w-6xl">
         <div class="flex justify-between items-center mb-10">
           <h1 class="text-4xl font-bold text-white">Counter Examples</h1>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html data-theme="dark">
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -30,9 +30,9 @@
       })();
     </script>
   </head>
-  <body>
-    <ul class="menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
-      <%= if not Map.get(assigns, :is_embed, false) do %>
+  <body class="bg-base-300 antialiased min-h-screen flex flex-col">
+    <%= if not Map.get(assigns, :is_embed, false) do %>
+    <ul class="bg-base-200 menu menu-horizontal w-full relative z-10 flex items-center gap-4 px-4 sm:px-6 lg:px-8 justify-end">
         <%= if @current_scope do %>
           <li>
             {@current_scope.user.email}
@@ -51,8 +51,8 @@
             <.link href={~p"/users/log-in"}>Log in</.link>
           </li>
         <% end %>
-      <% end %>
     </ul>
+   <% end %>
     {@inner_content}
   </body>
 </html>

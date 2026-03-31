@@ -23,7 +23,7 @@ defmodule ShowcaseAppWeb.DefaultTicTacToeLive do
 
 def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-300 flex flex-col items-center justify-center py-4 px-4 sm:py-8 sm:px-6" data-theme="dark">
+    <div class="flex flex-col items-center pt-8 pb-4 px-4 sm:pt-10 sm:pb-8 sm:px-6">
       <div class="w-full max-w-lg">
         <%= if not @is_embed do %>
           <div class="flex justify-between items-center mb-6">
@@ -56,7 +56,6 @@ def render(assigns) do
                 phx-value-idx={i}
                 disabled={@board[i] != nil || @winner != nil}
                 class={[
-                  # ZMIANA: h-24 sm:h-28 zredukowane do h-20 sm:h-24 (zaoszczędzone ~48px w pionie)
                   "h-20 sm:h-24 text-4xl sm:text-5xl font-extrabold rounded-xl flex items-center justify-center transition-all duration-200",
                   @board[i] == nil && @winner == nil && "bg-base-200 hover:bg-gray-700 cursor-pointer",
                   @board[i] == nil && @winner != nil && "bg-base-200 cursor-not-allowed opacity-50",
