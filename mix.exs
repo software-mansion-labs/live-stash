@@ -11,6 +11,7 @@ defmodule LiveStash.MixProject do
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
+      aliases: aliases(),
       package: package(),
       docs: docs(),
       name: "LiveStash",
@@ -36,6 +37,12 @@ defmodule LiveStash.MixProject do
       {:makeup_eex, "~> 2.0", only: :dev, runtime: false},
       {:makeup_html, "~> 0.2", only: :dev, runtime: false},
       {:elixir_uuid, "~> 1.2.1"}
+    ]
+  end
+
+  defp aliases do
+    [
+      "test.all": ["test", "e2e"]
     ]
   end
 

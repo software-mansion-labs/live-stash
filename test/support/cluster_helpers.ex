@@ -11,7 +11,7 @@ defmodule LiveStash.TestSupport.ClusterHelpers do
 
       name = :"live_stash_test_#{System.unique_integer([:positive])}"
 
-      case Node.start(name, :shortnames) do
+      case Node.start(name, name_domain: :shortnames) do
         {:ok, _} -> :ok
         {:error, {:already_started, _}} -> :ok
       end

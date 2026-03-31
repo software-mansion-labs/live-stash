@@ -74,24 +74,28 @@ defmodule LiveStash.Adapters.BrowserMemory.Serializer do
   end
 
   defp encode_token(socket, value, %{security_mode: :sign} = opts) do
-    Phoenix.Token.sign(socket, opts.secret, value, max_age: opts.ttl)
+    Phoenix.Token.sign(socket, opts.secret, value, max_age: convert_ms_to_seconds(opts.ttl))
   end
 
   defp encode_token(socket, value, %{security_mode: :encrypt} = opts) do
-    Phoenix.Token.encrypt(socket, opts.secret, value, max_age: opts.ttl)
+    Phoenix.Token.encrypt(socket, opts.secret, value, max_age: convert_ms_to_seconds(opts.ttl))
   end
 
   defp decode_token(socket, value, %{security_mode: :sign} = opts) do
-    Phoenix.Token.verify(socket, opts.secret, value, max_age: opts.ttl)
+    Phoenix.Token.verify(socket, opts.secret, value, max_age: convert_ms_to_seconds(opts.ttl))
   end
 
   defp decode_token(socket, value, %{security_mode: :encrypt} = opts) do
-    Phoenix.Token.decrypt(socket, opts.secret, value, max_age: opts.ttl)
+    Phoenix.Token.decrypt(socket, opts.secret, value, max_age: convert_ms_to_seconds(opts.ttl))
   end
 
   defp encode_key(key) do
     key
     |> :erlang.term_to_binary()
     |> Base.encode64(padding: false)
+  end
+
+  defp convert_ms_to_seconds(ms) when is_integer(ms) and ms > 0 do
+    max(div(ms, 1000), 1)
   end
 end

@@ -1,0 +1,19 @@
+{
+  "name": "showcase_app",
+  "version": "1.0.0",
+  "description": "This projects features a few examples where you can see LiveStash in action:",
+  "main": "steal_state.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/node": "^25.5.0"
+  }
+}
