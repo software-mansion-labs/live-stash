@@ -9,18 +9,12 @@ In this mode, the stashed state is securely stored in an ETS table on the Elixir
 Choose the ETS mode when:
 
 - **Payloads are large:** You need to stash substantial amounts of data that would otherwise degrade WebSocket performance or exceed browser storage limits.
-
-  > #### Note {: .info}
-  >
-  > Storing large payloads server-side will increase your server's memory usage. Be sure to configure the TTL (Time-To-Live) responsibly based on the size and relevance of the data to prevent memory leaks or bloat.
-
+- **Memory footprint matters:** Storing large payloads server-side increases your server's memory usage, so configure TTL (Time-To-Live) responsibly based on data size and relevance to avoid memory leaks or bloat.
 - **Highly sensitive data:** You want to ensure the actual state never leaves your infrastructure and is not exposed to the browser.
 
-  > #### Warning {: .warning}
-  >
-  > While the data itself remains on the server, the client-side reference ID is vulnerable to Cross-Site Scripting (XSS). Without configuring a session-bound secret, an attacker can steal this reference and use your application as a black box to interact with the stashed data.
-
-- **Running a clustered environment:** You are running multiple server nodes and have formed a connected BEAM cluster (e.g., via [libcluster](https://hexdocs.pm/libcluster)). This ensures LiveStash can successfully use RPC to recover state if a user reconnects to a different node.
+> #### Warning {: .warning}
+>
+> While the data itself remains on the server, the client-side reference ID is vulnerable to Cross-Site Scripting (XSS). Without configuring a session-bound secret, an attacker can steal this reference and use your application as a black box to interact with the stashed data.
 
 ### State recovery
 

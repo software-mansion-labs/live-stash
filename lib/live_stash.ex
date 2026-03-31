@@ -1,8 +1,71 @@
 defmodule LiveStash do
   @moduledoc """
+  Main public API for stashing and recovering `Phoenix.LiveView` assigns.
 
-  LiveStash is a library that fixes problem of losing state on LiveView reconnects.
-  It allows you to store and retrieve data in a LiveView application. This module provides the main API for LiveStash and plays the role of a dispatcher for the different adapters that can be used to store the state (e.g. in the browser memory or in the ETS on the server).
+  `LiveStash` helps preserve selected server-side assigns across reconnects.
+  You explicitly choose which assigns to persist and when to persist them.
+
+  This module:
+
+  - integrates with `on_mount` via `use LiveStash`
+  - initializes the selected adapter
+  - delegates persistence and recovery operations to that adapter
+
+  ## Quick start
+
+  Add `use LiveStash` to your LiveView:
+
+      defmodule MyAppWeb.CounterLive do
+        use MyAppWeb, :live_view
+        use LiveStash
+      end
+
+  Stash assigns after state-changing events:
+
+      def handle_event("increment", _, socket) do
+        socket
+        |> assign(:count, socket.assigns.count + 1)
+        |> LiveStash.stash_assigns([:count])
+        |> then(&{:noreply, &1})
+      end
+
+  Recover stashed state in `mount/3`:
+
+      def mount(_params, _session, socket) do
+        socket
+        |> LiveStash.recover_state()
+        |> case do
+          {:recovered, recovered_socket} ->
+            # socket with previously stashed assigns is recovered
+            recovered_socket
+
+          _ ->
+            # could not recover assigns, proceed with standard setup
+            # ...
+        end
+        |> then(&{:ok, &1})
+      end
+
+  ## Recovery statuses
+
+  `recover_state/1` returns `{status, socket}` where `status` is one of:
+
+  - `:new` - fresh LiveView process, with no previously stashed state
+  - `:recovered` - state was found and applied
+  - `:not_found` - state was not found for this LiveView
+  - `:error` - adapter failed to recover state
+
+  ## Adapter selection
+
+  The default adapter is `LiveStash.Adapters.BrowserMemory`.
+  You can override it per LiveView:
+
+      use LiveStash, adapter: LiveStash.Adapters.ETS
+
+  Adapters used by your app must also be enabled in config:
+
+      config :live_stash,
+        adapters: [LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.ETS]
   """
 
   alias Phoenix.LiveView.Socket
@@ -23,7 +86,10 @@ defmodule LiveStash do
   end
 
   @doc """
-  Calls init_stash/3 to initialize the stash for a LiveView with the given options.
+  LiveView `on_mount` callback used by `use LiveStash`.
+
+  It initializes stash handling for the current socket and continues the mount
+  lifecycle.
   """
   def on_mount(opts, _params, session, socket) do
     socket = init_stash(socket, session, opts)
@@ -32,7 +98,13 @@ defmodule LiveStash do
   end
 
   @doc """
-  Initializes the stash for a LiveView. This function is called on every mount of the LiveView in on_mount. It should not be called directly. Use on_mount/1 to initialize the stash.
+  Initializes stash support for a socket using the configured adapter.
+
+  This function is called from `on_mount/4`. In normal usage, prefer
+  `use LiveStash` and do not call this function directly.
+
+  It validates that the selected adapter is active in
+  `config :live_stash, :adapters`.
   """
   @spec init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
           Socket.t()
@@ -57,7 +129,11 @@ defmodule LiveStash do
   end
 
   @doc """
-  Stashes the specified assigns from the socket. Every key in keys list must be an atom and must be present in `socket.assigns`. Assigns should be stashed consequently to ensure that the stashed state is consistent with the state of the LiveView.
+  Stashes the specified assigns from `socket.assigns`.
+
+  Every key must be an atom and should exist in `socket.assigns`.
+  Call this after assign updates to keep persisted state in sync.
+
   ## Examples
       def handle_event("increment", _, socket) do
         socket
@@ -83,7 +159,10 @@ defmodule LiveStash do
   end
 
   @doc """
-  Recovers socket updated with the stashed state for a LiveView. This function should be called during mount. The state is not cleared after recovery.
+  Recovers previously stashed state and returns `{status, socket}`.
+
+  This function is typically called in `mount/3`. Recovery does not clear the
+  stored state; use `reset_stash/1` when you want to remove it explicitly.
 
   ## Examples
       def mount(_params, _session, socket) do
@@ -105,7 +184,7 @@ defmodule LiveStash do
   end
 
   @doc """
-  Resets the stashed state for a LiveView.
+  Clears stashed state for the current LiveView socket.
 
   ## Examples
       def handle_event("restart_game", _params, socket) do
