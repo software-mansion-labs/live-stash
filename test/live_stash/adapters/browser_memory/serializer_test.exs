@@ -124,7 +124,7 @@ defmodule LiveStash.Adapters.BrowserMemory.SerializerTest do
       {ext_key, ext_val} =
         Serializer.term_to_external(socket, :time_test, "data", opts)
 
-      Process.sleep(1000)
+      Process.sleep(1200)
 
       stashed_state = %{ext_key => ext_val}
 
