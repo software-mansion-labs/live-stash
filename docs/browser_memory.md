@@ -11,7 +11,7 @@ Choose the Browser Memory mode when:
 - **Frequent deployments:** Ideal for preserving state across server restarts. Unlike the ETS mode, client-side state survives application downtime and redeploys.
 - **Lightweight payloads:** Since the state is synchronized over WebSockets on every stash operation, restrict usage to small data structures to minimize network overhead and latency.
 - **Non-sensitive data:** The payload is always cryptographically signed to prevent client-side tampering, and can optionally be encrypted. Keep in mind that unless encryption is explicitly enabled, the data remains readable in the browser's memory, so avoid stashing sensitive information in plaintext.
-- **Larger TTL** Moving state from to the user's browser offloads your server memory, allowing you to stash your assigns for a longer time.
+- **Larger TTL** Moving state from the server to the user's browser offloads your server memory, allowing you to stash your assigns for a longer time.
 
 ### State recovery
 
