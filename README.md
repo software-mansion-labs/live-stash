@@ -105,7 +105,7 @@ For those planning to contribute to this project, you can run an example project
 ```bash
 cd examples/showcase_app
 mix setup
-iex -S mix
+iex -S mix phx.server
 ```
 
 ## Authors
