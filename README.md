@@ -68,7 +68,28 @@ const liveSocket = new LiveSocket("/live", Socket, {
 });
 ```
 
-## When NOT to use
+## Storage modes
+
+You can control where the stashed data is kept by passing appropriate adapter module. LiveStash currently supports two adapters:
+
+- **ETS** - The data is kept on the server side in the ETS table.
+- **Browser memory** (default) - The data is saved in the client browser.
+
+```elixir
+use LiveStash, adapters: LiveStash.Adapters.ETS
+```
+
+Remember to define adapters you would like to activate in your `config.exs` file.
+
+```elixir
+config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory]
+```
+
+The default adapter is `LiveStash.Adapters.BrowserMemory` and it is always activated.
+
+See [ETS Adapter Guide](./docs/ets.md) and [Browser Memory Adapter Guide](./docs/browser_memory.md) for details on how to customize LiveStash to your needs.
+
+## When not to use
 
 LiveStash is meant for **explicitly stashing server-side LiveView assigns** that you truly need to survive reconnects. For a lot of state, there are better (and simpler) tools:
 
