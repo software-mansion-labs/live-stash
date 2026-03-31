@@ -2,11 +2,9 @@
 
 LiveStash provides a reliable, explicit API to safely stash and recover [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view) assigns, keeping your application state completely intact whenever a socket connection is interrupted or re-established.
 
-Try the interactive [demo](https://live-stash-demo.fly.dev/), check out our [documentation](https://docs.swmansion.com/live-stash/) or play around with [examples](./examples/showcase_app/README.md) to explore all capabilities in detail.
-
+Try the interactive [demo](https://live-stash-demo.fly.dev/), check out our [documentation](https://hexdocs.pm/live_stash/welcome.html) or play around with [examples](https://github.com/software-mansion-labs/live-stash/tree/main/examples/showcase_app) to explore all capabilities in detail.
 
 https://github.com/user-attachments/assets/c03836e1-362e-4e06-bfc7-3656c6672c8e
-
 
 ## Usage
 
