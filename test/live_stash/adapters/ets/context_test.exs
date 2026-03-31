@@ -16,13 +16,13 @@ defmodule LiveStash.Adapters.ETS.SettingsTest do
   describe "new/3" do
     test "returns default settings when no session_key is provided", %{socket: socket} do
       session = %{}
-      opts = [ttl: 1000]
+      opts = [ttl: 60]
 
       context = Context.new(socket, session, opts)
 
       assert %Context{} = context
       assert context.secret == @default_secret
-      assert context.ttl == 1000
+      assert context.ttl == 60
       assert context.reconnected? == false
     end
 

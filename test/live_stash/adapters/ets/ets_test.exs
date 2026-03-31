@@ -60,7 +60,7 @@ defmodule LiveStash.Adapters.ETSTest do
       delete_at: delete_at
     } do
       State.insert!(
-        State.state(id: ets_id, pid: self(), delete_at: delete_at, ttl: 1000, state: %{})
+        State.state(id: ets_id, pid: self(), delete_at: delete_at, ttl: 1, state: %{})
       )
 
       initialized_socket = ETS.init_stash(socket, %{}, [])
@@ -89,7 +89,7 @@ defmodule LiveStash.Adapters.ETSTest do
           id: ets_id,
           pid: self(),
           delete_at: delete_at,
-          ttl: 1000,
+          ttl: 86_400,
           state: %{recovered: true}
         )
       )

@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.E2eTest.LiveStashServerCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 500
+  use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 1
 
   import LiveStash
 

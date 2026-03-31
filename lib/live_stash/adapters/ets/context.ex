@@ -7,7 +7,7 @@ defmodule LiveStash.Adapters.ETS.Context do
   * `:reconnected?` - A boolean indicating whether the LiveView socket has successfully reconnected vs. a fresh mount.
   * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the ETS table.
   * `:secret` - A binary string used as part of the record id in the ETS for security purposes.
-  * `:ttl` - Time-to-live for the records kept in the ETS table, specified in milliseconds.
+  * `:ttl` - Time-to-live for the records kept in the ETS table, specified in seconds.
   * `:node_hint` - Information about the Elixir node that currently holds stashed state in the ETS. This is used to optimize state retrieval in a distributed deployment.
   """
 
@@ -24,7 +24,7 @@ defmodule LiveStash.Adapters.ETS.Context do
     :reconnected?,
     :id,
     secret: "live_stash",
-    ttl: 5 * 60 * 1000,
+    ttl: 5 * 60,
     node_hint: nil
   ]
 

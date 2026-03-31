@@ -23,7 +23,7 @@ test.describe("LiveView State Recovery - Single Node", () => {
     await incrementBtn.click();
     await expect(counterValue).toHaveText("2");
 
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
     await page.evaluate(() => window.liveSocket.disconnect());
 

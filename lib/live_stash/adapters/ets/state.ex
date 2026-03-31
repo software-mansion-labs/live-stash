@@ -54,7 +54,7 @@ defmodule LiveStash.Adapters.ETS.State do
     state(
       id: id,
       pid: self(),
-      delete_at: System.os_time(:millisecond) + ttl,
+      delete_at: System.os_time(:second) + ttl,
       ttl: ttl,
       state: state
     )
