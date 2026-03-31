@@ -12,18 +12,25 @@ defmodule ShowcaseAppWeb.DefaultTicTacToeLive do
     [2, 4, 6]
   ]
 
-  def mount(_params, _session, socket) do
-    {:ok, start_new_game(socket)}
+  def mount(params, _session, socket) do
+    is_embed = Map.get(params, "embed") == "true"
+
+    socket
+    |> assign(is_embed: is_embed)
+    |> start_new_game()
+    |> then(&{:ok, &1})
   end
 
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-base-300 flex flex-col items-center py-12 px-6" data-theme="dark">
       <div class="w-full max-w-lg">
-        <div class="flex justify-between items-center mb-10">
-          <h1 class="text-4xl font-bold text-white">Tic Tac Toe</h1>
-          <.return_link />
-        </div>
+        <%= if not @is_embed do %>
+          <div class="flex justify-between items-center mb-10">
+            <h1 class="text-4xl font-bold text-white">Tic Tac Toe</h1>
+            <.return_link />
+          </div>
+        <% end %>
 
         <div class="bg-base-100 rounded-3xl p-8 shadow-2xl border border-gray-800 flex flex-col items-center">
           <div class="text-2xl font-bold mb-8 h-8 flex items-center justify-center w-full rounded-xl bg-base-200 py-6">

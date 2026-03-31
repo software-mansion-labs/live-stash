@@ -15,7 +15,9 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
     [2, 4, 6]
   ]
 
-  def mount(_params, _session, socket) do
+  def mount(params, _session, socket) do
+    is_embed = Map.get(params, "embed") == "true"
+
     socket
     |> recover_state()
     |> case do
@@ -23,6 +25,7 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
         recovered_socket
       _ -> start_new_game(socket)
     end
+    |> assign(is_embed: is_embed)
     |> then(&{:ok, &1})
   end
 
@@ -30,10 +33,12 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
     ~H"""
     <div class="min-h-screen bg-base-300 flex flex-col items-center py-12 px-6" data-theme="dark">
       <div class="w-full max-w-lg">
+      <%= if not @is_embed do %>
         <div class="flex justify-between items-center mb-10">
           <h1 class="text-4xl font-bold text-white">Tic Tac Toe</h1>
           <.return_link />
         </div>
+      <% end %>
 
         <div class="bg-base-100 rounded-3xl p-8 shadow-2xl border border-gray-800 flex flex-col items-center">
           <div class="text-2xl font-bold mb-8 h-8 flex items-center justify-center w-full rounded-xl bg-base-200 py-6">
