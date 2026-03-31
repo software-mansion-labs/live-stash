@@ -13,7 +13,7 @@ defmodule ShowcaseAppWeb.ComparisonTicTacToeLive do
 
           <div class="flex flex-col rounded-3xl overflow-hidden shadow-2xl border-2 border-gray-700 bg-base-100 transition-all hover:border-[#4e2a8e]">
             <div class="bg-gray-900 text-center py-4 font-bold text-purple-400 tracking-wide uppercase text-sm">
-              Version with LiveStash
+              LiveStash Version
             </div>
             <iframe
               src="/tic-tac-toe/live_stash_client?embed=true"
