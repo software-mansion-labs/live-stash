@@ -90,7 +90,7 @@ config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.Browse
 
 The default adapter is `LiveStash.Adapters.BrowserMemory` and it is always activated.
 
-See [ETS Adapter Guide](./docs/ets.md) and [Browser Memory Adapter Guide](./docs/browser_memory.md) for details on how to customize LiveStash to your needs.
+See [ETS Adapter Guide](https://hexdocs.pm/live_stash/ets.html) and [Browser Memory Adapter Guide](https://hexdocs.pm/live_stash/browser_memory.html) for details on how to customize LiveStash to your needs.
 
 ## When not to use
 
@@ -120,4 +120,4 @@ Copyright 2026, [Software Mansion](https://swmansion.com/?utm_source=git&utm_med
 
 [![Software Mansion](https://logo.swmansion.com/logo?color=white&variant=desktop&width=200&tag=livestash-github)](https://swmansion.com/?utm_source=git&utm_medium=readme&utm_campaign=livestash)
 
-Licensed under the [Apache License, Version 2.0](LICENSE)
+Licensed under the [Apache License, Version 2.0](https://github.com/software-mansion-labs/live-stash/blob/main/LICENSE)

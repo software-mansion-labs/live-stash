@@ -86,7 +86,7 @@ config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.Browse
 
 The default adapter is `LiveStash.Adapters.BrowserMemory` and it is always activated.
 
-See [ETS Adapter Guide](./ets.md) and [Browser Memory Adapter Guide](./browser_memory.md) for details on how to customize LiveStash to your needs.
+See [ETS Adapter Guide](https://hexdocs.pm/live_stash/ets.html) and [Browser Memory Adapter Guide](https://hexdocs.pm/live_stash/browser_memory.html) for details on how to customize LiveStash to your needs.
 
 ## When not to use
 
