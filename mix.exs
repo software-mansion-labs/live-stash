@@ -64,7 +64,7 @@ defmodule LiveStash.MixProject do
         ]
       ],
       source_url: "https://github.com/software-mansion-labs/live-stash",
-      source_ref: "#{@version}",
+      source_ref: "v#{@version}",
       filter_modules: &filter_modules/2
     ]
   end
