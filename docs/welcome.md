@@ -6,7 +6,8 @@ LiveStash provides a reliable, explicit API to safely stash and recover [Phoenix
 
 Adding LiveStash to your existing LiveView is very simple.
 
-1. Add `use LiveStash` to your module
+1. Add `use LiveStash` to your module. It registers LiveStash's `on_mount` hook, which initializes stash support for the socket.
+   See [`LiveStash.__using__/1`](LiveStash.html#__using__/1).
 
 ```elixir
 defmodule ShowcaseAppWeb.CounterLive do
