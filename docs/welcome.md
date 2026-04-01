@@ -6,7 +6,8 @@ LiveStash provides a reliable, explicit API to safely stash and recover [Phoenix
 
 Adding LiveStash to your existing LiveView is very simple.
 
-1. Add `use LiveStash` to your module
+1. Add `use LiveStash` to your module. It registers LiveStash's `on_mount` hook, which initializes stash support for the socket.
+   See [`LiveStash.__using__/1`](LiveStash.html#__using__/1).
 
 ```elixir
 defmodule ShowcaseAppWeb.CounterLive do
@@ -86,7 +87,7 @@ config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.Browse
 
 The default adapter is `LiveStash.Adapters.BrowserMemory` and it is always activated.
 
-See [ETS Adapter Guide](https://hexdocs.pm/live_stash/ets.html) and [Browser Memory Adapter Guide](https://hexdocs.pm/live_stash/browser_memory.html) for details on how to customize LiveStash to your needs.
+See [ETS Adapter Guide](./ets.md) and [Browser Memory Adapter Guide](./browser_memory.md) for details on how to customize LiveStash to your needs.
 
 ## When not to use
 

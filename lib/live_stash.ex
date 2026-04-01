@@ -20,6 +20,10 @@ defmodule LiveStash do
         use LiveStash
       end
 
+  `use LiveStash` expands to an `on_mount({LiveStash, opts})` hook.
+  During mount, that hook calls `LiveStash.on_mount/4`, which initializes
+  stash support on the socket via the selected adapter.
+
   Stash assigns after state-changing events:
 
       def handle_event("increment", _, socket) do
