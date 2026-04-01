@@ -31,7 +31,7 @@ defmodule LiveStash.MixProject do
   defp deps do
     [
       {:phoenix_live_view, "~> 1.0"},
-      {:uniq, "~> 0.1"},
+      {:uniq, "~> 0.6"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:makeup_js, "~> 0.1.0", only: :dev, runtime: false},
