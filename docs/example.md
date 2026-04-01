@@ -2,6 +2,8 @@
 
 We are going to take a look at an example of a tic tac toe game that you can examine in full detail in LiveStash project subdirectory `/examples/showcase_app`. This particular example uses **browser memory** adapter with **encryption** and a **session key** set to guarantee extra safety.
 
+For a complete project example go to our [repository](https://github.com/software-mansion-labs/live-stash/blob/main/examples/showcase_app/README.md).
+
 ## Initialization
 
 ```elixir
@@ -19,62 +21,36 @@ Here, we define the LiveView module and inject the necessary dependencies. By ca
 ```elixir
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-300 flex flex-col items-center py-12 px-6" data-theme="dark">
-      <div class="w-full max-w-lg">
-        <div class="flex justify-between items-center mb-10">
-          <h1 class="text-4xl font-bold text-white">Tic Tac Toe</h1>
-          <.return_link />
-        </div>
-
-        <div class="bg-base-100 rounded-3xl p-8 shadow-2xl border border-gray-800 flex flex-col items-center">
-          <div class="text-2xl font-bold mb-8 h-8 flex items-center justify-center w-full rounded-xl bg-base-200 py-6">
+        <div>
+          <div>
             <%= cond do %>
               <% @winner == "Draw" -> %>
-                <span class="text-gray-400">It's a Draw!</span>
+                <span>It's a Draw!</span>
               <% @winner -> %>
-                <span class="text-green-400">Player {@winner} Wins!</span>
+                <span>Player {@winner} Wins!</span>
               <% true -> %>
-                <span class="text-white">
-                  Player <span class={
-                    if @current_player == "X", do: "text-purple-400", else: "text-blue-400"
-                  }>{@current_player}</span>'s Turn
+                <span>
+                  Player <span>{@current_player}</span>'s Turn
                 </span>
             <% end %>
           </div>
 
-          <div class="grid grid-cols-3 gap-3 bg-gray-900 p-4 rounded-2xl w-full max-w-sm mb-8 shadow-inner">
+          <div>
             <%= for i <- 0..8 do %>
               <button
                 phx-click="play"
                 phx-value-idx={i}
                 disabled={@board[i] != nil || @winner != nil}
-                class={[
-                  "h-24 sm:h-28 text-5xl font-extrabold rounded-xl flex items-center justify-center transition-all duration-200",
-                  @board[i] == nil && @winner == nil &&
-                    "bg-base-200 hover:bg-gray-700 cursor-pointer",
-                  @board[i] == nil && @winner != nil &&
-                    "bg-base-200 cursor-not-allowed opacity-50",
-                  @board[i] != nil && "bg-base-300 cursor-default",
-                  @board[i] == "X" && "text-purple-400",
-                  @board[i] == "O" && "text-blue-400",
-                  i in @winning_line && "bg-[#4e2a8e]/40 ring-2 ring-[#4e2a8e] scale-105"
-                ]}
               >
                 {@board[i]}
               </button>
             <% end %>
           </div>
 
-          <button
-            phx-click="reset"
-            class="btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none w-full max-w-xs text-lg"
-          >
+          <button phx-click="reset">
             Restart Game
           </button>
         </div>
-      </div>
-      <.socket_debugger />
-    </div>
     """
   end
 ```
