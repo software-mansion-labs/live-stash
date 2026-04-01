@@ -31,12 +31,12 @@ defmodule LiveStash.MixProject do
   defp deps do
     [
       {:phoenix_live_view, "~> 1.0"},
+      {:uniq, "~> 0.6.2"},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:makeup_js, "~> 0.1.0", only: :dev, runtime: false},
       {:makeup_eex, "~> 2.0", only: :dev, runtime: false},
-      {:makeup_html, "~> 0.2", only: :dev, runtime: false},
-      {:elixir_uuid, "~> 1.2.1"}
+      {:makeup_html, "~> 0.2", only: :dev, runtime: false}
     ]
   end
 
