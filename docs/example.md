@@ -19,36 +19,41 @@ Here, we define the LiveView module and inject the necessary dependencies. By ca
 ```elixir
   def render(assigns) do
     ~H"""
-        <div>
-          <div>
-            <%= cond do %>
-              <% @winner == "Draw" -> %>
-                <span>It's a Draw!</span>
-              <% @winner -> %>
-                <span>Player {@winner} Wins!</span>
-              <% true -> %>
-                <span>
-                  Player <span>{@current_player}</span>'s Turn
-                </span>
-            <% end %>
-          </div>
+    <div class="p-4">
+      <div class="mb-4 text-lg font-semibold">
+        <%= cond do %>
+          <% @winner == "Draw" -> %>
+            <span>It's a Draw!</span>
+          <% @winner -> %>
+            <span>Player {@winner} Wins!</span>
+          <% true -> %>
+            <span>Player {@current_player}'s Turn</span>
+        <% end %>
+      </div>
 
-          <div>
-            <%= for i <- 0..8 do %>
-              <button
-                phx-click="play"
-                phx-value-idx={i}
-                disabled={@board[i] != nil || @winner != nil}
-              >
-                {@board[i]}
-              </button>
-            <% end %>
-          </div>
-
-          <button phx-click="reset">
-            Restart Game
+      <div class="grid grid-cols-3 gap-2 w-fit">
+        <%= for i <- 0..8 do %>
+          <button
+            phx-click="play"
+            phx-value-idx={i}
+            disabled={@board[i] != nil || @winner != nil}
+            class={[
+              "h-16 w-16 border border-current text-2xl font-bold flex items-center justify-center",
+              @board[i] == nil && @winner == nil && "cursor-pointer",
+              @board[i] != nil && "cursor-default",
+              @board[i] == nil && @winner != nil && "cursor-not-allowed",
+              i in @winning_line && "border-2"
+            ]}
+          >
+            {@board[i]}
           </button>
-        </div>
+        <% end %>
+      </div>
+
+      <button phx-click="reset" class="mt-4 border px-3 py-2 rounded">
+        Restart Game
+      </button>
+    </div>
     """
   end
 ```
