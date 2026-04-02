@@ -32,6 +32,7 @@ defmodule ShowcaseAppWeb.Router do
     live "/counter/default", DefaultCounterLive
     live "/counter/live_stash_server", LiveStashServerCounterLive
     live "/counter/live_stash_client", LiveStashClientCounterLive
+    live "/counter/live_stash_redis", LiveStashRedisCounterLive
 
     live "/test/counter/live_stash_server", E2eTest.LiveStashServerCounterLive
     live "/test/counter/live_stash_client", E2eTest.LiveStashClientCounterLive
