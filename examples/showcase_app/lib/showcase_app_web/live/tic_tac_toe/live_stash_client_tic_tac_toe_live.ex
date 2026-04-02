@@ -2,8 +2,6 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
   use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt
 
-  import LiveStash
-
   @winning_lines [
     [0, 1, 2],
     [3, 4, 5],
@@ -19,7 +17,7 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
     is_embed = Map.get(params, "embed") == "true"
 
     socket
-    |> recover_state()
+    |> LiveStash.recover_state()
     |> case do
       {:recovered, recovered_socket} ->
         recovered_socket
@@ -101,7 +99,7 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
     |> then(&{:noreply, &1})
   end
 
