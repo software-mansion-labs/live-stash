@@ -10,8 +10,6 @@ For a complete project example go to our [repository](https://github.com/softwar
 defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
   use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, session_key: "user_token"
-
-  import LiveStash
 ```
 
 Here, we define the LiveView module and inject the necessary dependencies. By calling use LiveStash, we configure how the state should be persisted. In this specific example, it is configured to use the browser memory adapter, meaning the game's state will be encrypted and stored securely on the user's browser (client-side) using the defined `session_key`.
@@ -70,7 +68,7 @@ The `render/1` function defines the user interface using HEEx templates and Tail
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
     |> then(&{:noreply, &1})
   end
 
@@ -81,7 +79,7 @@ The `render/1` function defines the user interface using HEEx templates and Tail
   defp start_new_game(socket) do
     socket
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
-    |> stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
   end
 
   defp check_game_state(board) do
@@ -117,7 +115,7 @@ Crucially, after updating the socket assigns, we pipe it into `stash_assigns([:b
 ```elixir
   def mount(_params, _session, socket) do
     socket
-    |> recover_state()
+    |> LiveStash.recover_state()
     |> case do
       {:recovered, recovered_socket} ->
         recovered_socket

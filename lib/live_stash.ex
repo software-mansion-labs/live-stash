@@ -142,7 +142,7 @@ defmodule LiveStash do
       def handle_event("increment", _, socket) do
         socket
         |> assign(:count, socket.assigns.count + 1)
-        |> stash_assigns([:count])
+        |> LiveStash.stash_assigns([:count])
         |> then(&{:noreply, &1})  end
   """
   @spec stash_assigns(socket :: Socket.t(), keys :: [atom()]) :: Socket.t()
@@ -171,7 +171,7 @@ defmodule LiveStash do
   ## Examples
       def mount(_params, _session, socket) do
         socket
-        |> recover_state()
+        |> LiveStash.recover_state()
         |> case do
           {:recovered, recovered_socket} ->
             recovered_socket
@@ -193,7 +193,7 @@ defmodule LiveStash do
   ## Examples
       def handle_event("restart_game", _params, socket) do
         socket
-        |> reset_stash()
+        |> LiveStash.reset_stash()
         |> start_new_game()
         |> then(&{:noreply, &1})
       end
