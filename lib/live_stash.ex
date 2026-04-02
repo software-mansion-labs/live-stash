@@ -20,10 +20,6 @@ defmodule LiveStash do
         use LiveStash
       end
 
-  `use LiveStash` expands to an `on_mount({LiveStash, opts})` hook.
-  During mount, that hook calls `LiveStash.on_mount/4`, which initializes
-  stash support on the socket via the selected adapter.
-
   Stash assigns after state-changing events:
 
       def handle_event("increment", _, socket) do
@@ -83,6 +79,31 @@ defmodule LiveStash do
   @doc false
   def default_adapter, do: LiveStash.Adapters.BrowserMemory
 
+  @doc """
+  Injects LiveStash support into a `Phoenix.LiveView`. This macro expands to:
+
+      on_mount({LiveStash, opts})
+
+  so that LiveStash can initialize stash handling during the LiveView `mount/3`
+  lifecycle.
+
+  ## Options
+
+  The `opts` are forwarded to `LiveStash.on_mount/4` and ultimately to the
+  configured adapter. Most adapters use `:adapter` to select the persistence
+  backend:
+
+      use LiveStash, adapter: LiveStash.Adapters.ETS
+
+  Note: adapters must also be enabled in `config :live_stash, :adapters`.
+
+  ## Example
+
+      defmodule MyAppWeb.CounterLive do
+        use MyAppWeb, :live_view
+        use LiveStash, adapter: LiveStash.Adapters.BrowserMemory
+      end
+  """
   defmacro __using__(opts) do
     quote do
       on_mount({LiveStash, unquote(opts)})
