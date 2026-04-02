@@ -2,8 +2,6 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
   use ShowcaseAppWeb, :live_view
   use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 5 * 60 * 1000
 
-  import LiveStash
-
   @winning_lines [
     [0, 1, 2],
     [3, 4, 5],
@@ -17,7 +15,7 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
 
   def mount(_params, _session, socket) do
     socket
-    |> recover_state()
+    |> LiveStash.recover_state()
     |> case do
       {:recovered, recovered_socket} ->
         recovered_socket
@@ -96,7 +94,7 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
     |> then(&{:noreply, &1})
   end
 
