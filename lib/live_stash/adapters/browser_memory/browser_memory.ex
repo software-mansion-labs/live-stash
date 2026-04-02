@@ -90,7 +90,12 @@ defmodule LiveStash.Adapters.BrowserMemory do
           {:error, msg} ->
             Logger.error(msg)
 
-            LiveView.push_event(socket, "live-stash:init-browser-memory", %{})
+            socket
+            |> LiveView.put_private(:live_stash_context, %{
+              socket.private.live_stash_context
+              | key_set: MapSet.new()
+            })
+            |> LiveView.push_event("live-stash:init-browser-memory", %{})
             |> then(&{:error, &1})
         end
 
