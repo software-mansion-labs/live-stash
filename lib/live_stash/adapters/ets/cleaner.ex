@@ -22,12 +22,8 @@ defmodule LiveStash.Adapters.ETS.Cleaner do
 
   @impl true
   def handle_info(:cleanup, state) do
-    Logger.debug("[LiveStash] Cleaning up expired states...")
-
     clean_expired_states!()
     schedule_cleanup()
-
-    Logger.debug("[LiveStash] Expired states cleaned up")
 
     {:noreply, state}
   rescue
