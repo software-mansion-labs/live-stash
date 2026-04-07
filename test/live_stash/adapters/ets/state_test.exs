@@ -76,11 +76,11 @@ defmodule LiveStash.Adapters.ETS.StateTest do
     end
 
     test "raises exception if state is owned by a different process (PID mismatch)" do
-      id = "stale_id"
+      id = "test_id"
       opts = [ttl: 1000]
 
       Task.async(fn ->
-        State.put!(id, %{key: "initial"}, opts)
+        State.put!(id, %{key: "old_value"}, opts)
       end)
       |> Task.await()
 
