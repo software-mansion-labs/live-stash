@@ -40,19 +40,22 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
     socket = LiveView.put_private(socket, :live_stash_context, updated_context)
 
+    settings = get_settings(socket)
+
     serialized_assigns =
       Enum.reduce(keys, %{}, fn key, acc ->
         value = Map.fetch!(socket.assigns, key)
 
         {serialized_key, serialized_value} =
-          Serializer.term_to_external(socket, key, value, get_settings(socket))
+          Serializer.term_to_external(socket, key, value, settings)
 
         Map.put(acc, serialized_key, serialized_value)
       end)
 
     payload = %{
       "assigns" => serialized_assigns,
-      "keys" => Serializer.term_to_external(socket, keys, get_settings(socket))
+      "keys" => Serializer.term_to_external(socket, keys, settings),
+      "deleteAt" => System.os_time(:millisecond) + settings.ttl
     }
 
     LiveView.push_event(socket, "live-stash:stash-state", payload)
@@ -69,28 +72,40 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
-    case LiveView.get_connect_params(socket) do
-      %{"liveStash" => %{"stashedState" => %{"assigns" => stashed_state, "keys" => stashed_keys}}}
-      when is_map(stashed_state) ->
-        case Serializer.external_to_term(
-               socket,
-               stashed_state,
-               stashed_keys,
-               get_settings(socket)
-             ) do
-          {:ok, {recovered_state, key_set}} ->
-            context = socket.private.live_stash_context
-            updated_context = %{context | key_set: key_set}
+    with %{
+           "liveStash" => %{
+             "stashedState" => %{
+               "assigns" => stashed_state,
+               "keys" => stashed_keys,
+               "deleteAt" => delete_at
+             }
+           }
+         }
+         when is_map(stashed_state) <- LiveView.get_connect_params(socket),
+         true <- delete_at >= System.os_time(:millisecond),
+         {:ok, {recovered_state, key_set}} <-
+           Serializer.external_to_term(socket, stashed_state, stashed_keys, get_settings(socket)) do
+      context = socket.private.live_stash_context
 
-            socket
-            |> Component.assign(recovered_state)
-            |> LiveView.put_private(:live_stash_context, updated_context)
-            |> then(&{:recovered, &1})
+      socket
+      |> Component.assign(recovered_state)
+      |> LiveView.put_private(:live_stash_context, %{context | key_set: key_set})
+      |> then(&{:recovered, &1})
+    else
+      false ->
+        msg =
+          Utils.reason_message(
+            "Could not recover stashed state.",
+            :expired
+          )
 
-          {:error, msg} ->
-            Logger.error(msg)
-            {:error, socket}
-        end
+        Logger.warning(msg)
+
+        {:error, socket}
+
+      {:error, msg} ->
+        Logger.error(msg)
+        {:error, socket}
 
       _ ->
         {:not_found, socket}

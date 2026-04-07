@@ -115,23 +115,5 @@ defmodule LiveStash.Adapters.BrowserMemory.SerializerTest do
 
       assert msg =~ "Failed to decode stashed assign with key :test_key"
     end
-
-    test "returns an error for expired tokens", %{socket: socket} do
-      opts = %{security_mode: :sign, secret: "my_secret", ttl: 1000}
-
-      stashed_keys = Serializer.term_to_external(socket, [:time_test], opts)
-
-      {ext_key, ext_val} =
-        Serializer.term_to_external(socket, :time_test, "data", opts)
-
-      Process.sleep(1200)
-
-      stashed_state = %{ext_key => ext_val}
-
-      assert {:error, msg} =
-               Serializer.external_to_term(socket, stashed_state, stashed_keys, opts)
-
-      assert msg =~ "expired"
-    end
   end
 end
