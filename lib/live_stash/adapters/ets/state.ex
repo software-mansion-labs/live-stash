@@ -12,6 +12,8 @@ defmodule LiveStash.Adapters.ETS.State do
 
   require Record
 
+  alias LiveStash.Utils
+
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
   @batch_size Application.compile_env(:live_stash, :ets_cleanup_batch_size, 100)
 
@@ -70,17 +72,28 @@ defmodule LiveStash.Adapters.ETS.State do
   end
 
   @doc """
-  Puts a new state map into the state of a LiveView or creates a new state record if it doesn't exist.
+  Puts a new state map into the state of a LiveView or creates a new state record if it doesn't exist. Allows update only to the process that owns the state record (matching pid), otherwise raises an error.
   """
   @spec put!(id :: term(), state :: map(), opts :: Keyword.t()) :: :ok
   def put!(id, state, opts) do
+    pid = self()
+
     @table_name
     |> :ets.lookup(id)
     |> case do
-      [{:state, ^id, _pid, _delete_at, _ttl, map_state}] ->
+      [{:state, ^id, ^pid, _delete_at, _ttl, map_state}] ->
         id
         |> new(Map.merge(map_state, state), opts)
         |> insert!()
+
+      [{:state, ^id, _other_pid, _delete_at, _ttl, _map_state}] ->
+        msg =
+          Utils.reason_message(
+            "State with id #{inspect(id)} already exists for another process",
+            :conflict
+          )
+
+        raise RuntimeError, msg
 
       [] ->
         id
