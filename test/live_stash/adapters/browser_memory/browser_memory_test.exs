@@ -176,7 +176,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
           assert {:error, _socket} = BrowserMemory.recover_state(socket_with_params)
         end)
 
-      assert log =~ ":expired"
+      assert log =~ "expired"
     end
 
     test "rescues generic exceptions, logs them and returns :error", %{socket: socket} do
