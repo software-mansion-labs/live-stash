@@ -124,6 +124,11 @@ Crucially, after updating the socket assigns, we pipe it into `stash_assigns([:b
     |> case do
       {:recovered, recovered_socket} ->
         recovered_socket
+
+      {:error, socket} -> # using the recovered socket in error case to clear the invalid state
+        socket
+        |> start_new_game()
+
       _ -> start_new_game(socket)
     end
     |> then(&{:ok, &1})
@@ -133,3 +138,7 @@ Crucially, after updating the socket assigns, we pipe it into `stash_assigns([:b
 The `mount/3` lifecycle hook is where LiveStash's recovery mechanism kicks in. When a user connects to the LiveView (or reconnects after a network drop), we immediately call `recover_state/1`.
 
 If LiveStash finds a previously saved state (like an ongoing game), it returns `{:recovered, recovered_socket}` and seamlessly resumes the game right where the user left off. If no state is found (e.g., it's a brand new visit), it falls back to starting a fresh game with `start_new_game(socket)`.
+
+> #### Warning {: .warning}
+>
+> In case of an error you must use the returned socket for the invalid state to be cleared.

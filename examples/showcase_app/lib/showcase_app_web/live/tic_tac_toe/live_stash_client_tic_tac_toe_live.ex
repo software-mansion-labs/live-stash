@@ -21,6 +21,7 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
     |> case do
       {:recovered, recovered_socket} ->
         recovered_socket
+
       {:error, socket} ->
         socket
         |> start_new_game()

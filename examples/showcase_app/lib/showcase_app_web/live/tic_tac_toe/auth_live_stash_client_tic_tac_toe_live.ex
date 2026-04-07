@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, session_key: "user_token"
+  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, session_key: "user_token", ttl: 5000
 
   @winning_lines [
     [0, 1, 2],
@@ -19,6 +19,11 @@ defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
     |> case do
       {:recovered, recovered_socket} ->
         recovered_socket
+
+      {:error, socket} ->
+        socket
+        |> start_new_game()
+
       _ -> start_new_game(socket)
     end
     |> then(&{:ok, &1})
