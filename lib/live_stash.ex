@@ -76,9 +76,6 @@ defmodule LiveStash do
 
   @type recovery_status :: :recovered | :not_found | :new | :error
 
-  @doc false
-  def default_adapter, do: LiveStash.Adapters.BrowserMemory
-
   @doc """
   Injects LiveStash support into a `Phoenix.LiveView`. This macro expands to:
 
