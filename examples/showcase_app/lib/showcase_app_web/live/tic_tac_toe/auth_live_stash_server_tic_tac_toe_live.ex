@@ -108,8 +108,8 @@ defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
 
   defp start_new_game(socket) do
     socket
+    |> LiveStash.reset_stash()
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
-    |> LiveStash.stash_assigns()
   end
 
   defp check_game_state(board) do
