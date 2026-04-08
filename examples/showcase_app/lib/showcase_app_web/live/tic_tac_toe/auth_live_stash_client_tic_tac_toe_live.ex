@@ -1,6 +1,10 @@
 defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, session_key: "user_token"
+  use LiveStash,
+    adapter: LiveStash.Adapters.BrowserMemory,
+    security_mode: :encrypt,
+    session_key: "user_token",
+    assigns: [:board, :current_player, :winner, :winning_line]
 
   @winning_lines [
     [0, 1, 2],
@@ -94,7 +98,7 @@ defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash_assigns()
     |> then(&{:noreply, &1})
   end
 
@@ -105,7 +109,7 @@ defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   defp start_new_game(socket) do
     socket
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
-    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash_assigns()
   end
 
   defp check_game_state(board) do

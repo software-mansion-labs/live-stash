@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.E2eTest.LiveStashServerCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 500
+  use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 500, assigns: [:count]
 
   def mount(_params, _session, socket) do
     socket
@@ -81,13 +81,13 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashServerCounterLive do
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
-    |> LiveStash.stash_assigns([:count])
+    |> LiveStash.stash_assigns()
     |> then(&{:noreply, &1})  end
 
   def handle_event("decrement", _, socket) do
     socket
     |> assign(:count, socket.assigns.count - 1)
-    |> LiveStash.stash_assigns([:count])
+    |> LiveStash.stash_assigns()
     |> then(&{:noreply, &1})
   end
 

@@ -8,6 +8,8 @@ defmodule LiveStash.Adapters.ETS do
 
   @behaviour LiveStash.Adapter
 
+  require Logger
+
   alias Phoenix.Component
 
   alias LiveStash.Adapters.ETS.NodeHint
@@ -17,8 +19,6 @@ defmodule LiveStash.Adapters.ETS do
   alias LiveStash.Utils
 
   alias Phoenix.LiveView
-
-  require Logger
 
   @doc false
   @impl true

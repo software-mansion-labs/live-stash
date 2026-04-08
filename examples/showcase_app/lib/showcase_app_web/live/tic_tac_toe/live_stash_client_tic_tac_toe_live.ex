@@ -1,6 +1,9 @@
 defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt
+  use LiveStash,
+    adapter: LiveStash.Adapters.BrowserMemory,
+    security_mode: :encrypt,
+    assigns: [:board, :current_player, :winner, :winning_line]
 
   @winning_lines [
     [0, 1, 2],
@@ -99,7 +102,7 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash_assigns()
     |> then(&{:noreply, &1})
   end
 
