@@ -70,28 +70,6 @@ defmodule LiveStash.Adapters.ETS.State do
   end
 
   @doc """
-  Puts a new state map into the state of a LiveView or creates a new state record if it doesn't exist.
-  """
-  @spec put!(id :: term(), state :: map(), opts :: Keyword.t()) :: :ok
-  def put!(id, state, opts) do
-    @table_name
-    |> :ets.lookup(id)
-    |> case do
-      [{:state, ^id, _pid, _delete_at, _ttl, map_state}] ->
-        id
-        |> new(Map.merge(map_state, state), opts)
-        |> insert!()
-
-      [] ->
-        id
-        |> new(state, opts)
-        |> insert!()
-    end
-
-    :ok
-  end
-
-  @doc """
   Gets the state of a LiveView from the ETS table.
   """
   @spec get_by_id!(id :: term()) :: {:ok, map()} | :not_found

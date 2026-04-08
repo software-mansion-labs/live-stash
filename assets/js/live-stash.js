@@ -9,14 +9,7 @@ window.addEventListener('phx:live-stash:stash-state', (event) => {
     liveStash.stashedState = {};
   }
 
-  liveStash.stashedState['assigns'] = liveStash.stashedState['assigns'] || {};
-
-  liveStash.stashedState['assigns'] = {
-    ...liveStash.stashedState['assigns'],
-    ...event.detail.assigns,
-  };
-
-  liveStash.stashedState['keys'] = event.detail.keys;
+  liveStash.stashedState['assigns'] = event.detail.assigns;
 });
 
 window.addEventListener('phx:live-stash:init-ets', (event) => {

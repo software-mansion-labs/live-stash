@@ -33,26 +33,16 @@ defmodule LiveStash.Adapters.BrowserMemory do
   end
 
   @impl true
-  def stash_assigns(socket, keys) do
-    context = socket.private.live_stash_context
+  def stash_assigns(socket) do
+    keys = socket.private.live_stash_context.assigns
 
-    updated_context = %{context | key_set: MapSet.union(context.key_set, MapSet.new(keys))}
-
-    socket = LiveView.put_private(socket, :live_stash_context, updated_context)
+    assigns_to_stash = Map.take(socket.assigns, keys)
 
     serialized_assigns =
-      Enum.reduce(keys, %{}, fn key, acc ->
-        value = Map.fetch!(socket.assigns, key)
-
-        {serialized_key, serialized_value} =
-          Serializer.term_to_external(socket, key, value, get_settings(socket))
-
-        Map.put(acc, serialized_key, serialized_value)
-      end)
+      Serializer.term_to_external(socket, assigns_to_stash, get_settings(socket))
 
     payload = %{
-      "assigns" => serialized_assigns,
-      "keys" => Serializer.term_to_external(socket, keys, get_settings(socket))
+      "assigns" => serialized_assigns
     }
 
     LiveView.push_event(socket, "live-stash:stash-state", payload)
@@ -70,25 +60,32 @@ defmodule LiveStash.Adapters.BrowserMemory do
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
     case LiveView.get_connect_params(socket) do
-      %{"liveStash" => %{"stashedState" => %{"assigns" => stashed_state, "keys" => stashed_keys}}}
-      when is_map(stashed_state) ->
+      %{"liveStash" => %{"stashedState" => %{"assigns" => stashed_state}}}
+      when is_binary(stashed_state) ->
         case Serializer.external_to_term(
                socket,
                stashed_state,
-               stashed_keys,
                get_settings(socket)
              ) do
-          {:ok, {recovered_state, key_set}} ->
-            context = socket.private.live_stash_context
-            updated_context = %{context | key_set: key_set}
+          {:ok, recovered_state} ->
+            # context = socket.private.live_stash_context
+            # fingerprint = ""
+            # updated_context = %{context | state_fingerprint: fingerprint}
 
             socket
             |> Component.assign(recovered_state)
-            |> LiveView.put_private(:live_stash_context, updated_context)
+            # |> LiveView.put_private(:live_stash_context, updated_context)
             |> then(&{:recovered, &1})
 
-          {:error, msg} ->
+          {:error, reason} ->
+            msg =
+              Utils.reason_message(
+                "Failed to decode stashed state from token.",
+                reason
+              )
+
             Logger.error(msg)
+
             {:error, socket}
         end
 
@@ -113,12 +110,13 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def reset_stash(socket) do
-    context = socket.private.live_stash_context
-    updated_context = %{context | key_set: MapSet.new()}
+    # context = socket.private.live_stash_context
+    # updated_context = %{context | key_set: MapSet.new()}
 
     socket
     |> LiveView.push_event("live-stash:init-browser-memory", %{})
-    |> LiveView.put_private(:live_stash_context, updated_context)
+
+    # |> LiveView.put_private(:live_stash_context, updated_context)
   end
 
   defp get_settings(socket) do

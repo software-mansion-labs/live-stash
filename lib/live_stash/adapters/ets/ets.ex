@@ -71,14 +71,13 @@ defmodule LiveStash.Adapters.ETS do
   end
 
   @impl true
-  def stash_assigns(socket, keys) do
-    state =
-      Enum.reduce(keys, %{}, fn key, acc ->
-        value = Map.fetch!(socket.assigns, key)
-        Map.put(acc, key, value)
-      end)
+  def stash_assigns(socket) do
+    keys = socket.private.live_stash_context.assigns
 
-    State.put!(get_ets_id(socket), state, get_opts(socket))
+    assigns_to_stash = Map.take(socket.assigns, keys)
+
+    State.new(get_ets_id(socket), assigns_to_stash, get_opts(socket))
+    |> State.insert!()
 
     socket
   rescue

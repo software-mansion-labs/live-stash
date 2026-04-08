@@ -3,7 +3,7 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
   Holds the state and configuration for the BrowserMemory adapter.
 
   ## Fields
-
+  * `:assigns` - A list of assign keys to automatically stash on every update.
   * `:reconnected?` - A boolean indicating whether the LiveView socket has successfully reconnected vs. a fresh mount.
   * `:secret` - A binary string used as the cryptographic secret for signing or encrypting the data sent to the browser.
   * `:ttl` - Time-to-live for the stored browser data in milliseconds.
@@ -15,23 +15,24 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
   alias LiveStash.Adapters.Common
 
   @enforce_keys [
+    :assigns,
     :reconnected?
   ]
 
   defstruct [
+    :assigns,
     :reconnected?,
     secret: "live_stash",
     ttl: 5 * 60 * 1000,
-    security_mode: :sign,
-    key_set: MapSet.new()
+    security_mode: :sign
   ]
 
   @type t :: %__MODULE__{
+          assigns: [atom()],
           reconnected?: boolean(),
           secret: binary(),
           security_mode: :sign | :encrypt,
-          ttl: integer(),
-          key_set: MapSet.t()
+          ttl: integer()
         }
 
   @doc """

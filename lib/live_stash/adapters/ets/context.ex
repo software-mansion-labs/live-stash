@@ -1,9 +1,8 @@
 defmodule LiveStash.Adapters.ETS.Context do
   @moduledoc """
   Holds the state and configuration for the ETS adapter.
-
   ## Fields
-
+  * `:assigns` - A list of assign keys to automatically stash on every update.
   * `:reconnected?` - A boolean indicating whether the LiveView socket has successfully reconnected vs. a fresh mount.
   * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the ETS table.
   * `:secret` - A binary string used as part of the record id in the ETS for security purposes.
@@ -16,11 +15,13 @@ defmodule LiveStash.Adapters.ETS.Context do
   alias LiveStash.Adapters.Common
 
   @enforce_keys [
+    :assigns,
     :reconnected?,
     :id
   ]
 
   defstruct [
+    :assigns,
     :reconnected?,
     :id,
     secret: "live_stash",
@@ -29,6 +30,7 @@ defmodule LiveStash.Adapters.ETS.Context do
   ]
 
   @type t :: %__MODULE__{
+          assigns: [atom()],
           reconnected?: boolean(),
           secret: binary(),
           ttl: integer(),
