@@ -40,19 +40,22 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
     socket = LiveView.put_private(socket, :live_stash_context, updated_context)
 
+    settings = get_settings(socket)
+
     serialized_assigns =
       Enum.reduce(keys, %{}, fn key, acc ->
         value = Map.fetch!(socket.assigns, key)
 
         {serialized_key, serialized_value} =
-          Serializer.term_to_external(socket, key, value, get_settings(socket))
+          Serializer.term_to_external(socket, key, value, settings)
 
         Map.put(acc, serialized_key, serialized_value)
       end)
 
     payload = %{
       "assigns" => serialized_assigns,
-      "keys" => Serializer.term_to_external(socket, keys, get_settings(socket))
+      "keys" => Serializer.term_to_external(socket, keys, settings),
+      "deleteAt" => System.os_time(:millisecond) + settings.ttl
     }
 
     LiveView.push_event(socket, "live-stash:stash-state", payload)
@@ -69,31 +72,44 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
-    case LiveView.get_connect_params(socket) do
-      %{"liveStash" => %{"stashedState" => %{"assigns" => stashed_state, "keys" => stashed_keys}}}
-      when is_map(stashed_state) ->
-        case Serializer.external_to_term(
-               socket,
-               stashed_state,
-               stashed_keys,
-               get_settings(socket)
-             ) do
-          {:ok, {recovered_state, key_set}} ->
-            context = socket.private.live_stash_context
-            updated_context = %{context | key_set: key_set}
+    with params when is_map(params) <- LiveView.get_connect_params(socket),
+         {:ok, payload} <- get_stash_payload(params),
+         {:ok, stashed_state} <- get_state(payload),
+         {:ok, stashed_keys} <- get_keys(payload),
+         {:ok, delete_at} <- get_delete_at(payload),
+         true <- delete_at >= System.os_time(:millisecond),
+         {:ok, {recovered_state, key_set}} <-
+           Serializer.external_to_term(socket, stashed_state, stashed_keys, get_settings(socket)) do
+      context = socket.private.live_stash_context
 
-            socket
-            |> Component.assign(recovered_state)
-            |> LiveView.put_private(:live_stash_context, updated_context)
-            |> then(&{:recovered, &1})
+      socket
+      |> Component.assign(recovered_state)
+      |> LiveView.put_private(:live_stash_context, %{context | key_set: key_set})
+      |> then(&{:recovered, &1})
+    else
+      false ->
+        msg =
+          Utils.reason_message(
+            "Could not recover stashed state due to expired stash.",
+            :expired
+          )
 
-          {:error, msg} ->
-            Logger.error(msg)
+        Logger.warning(msg)
 
-            socket
-            |> LiveView.push_event("live-stash:init-browser-memory", %{})
-            |> then(&{:error, &1})
-        end
+        {:error, socket}
+
+      {:error, reason} ->
+        msg =
+          Utils.reason_message(
+            "Could not recover stashed state due to invalid connect params.",
+            reason
+          )
+
+        Logger.warning(msg)
+
+        socket
+        |> LiveView.push_event("live-stash:init-browser-memory", %{})
+        |> then(&{:error, &1})
 
       _ ->
         {:not_found, socket}
@@ -123,6 +139,21 @@ defmodule LiveStash.Adapters.BrowserMemory do
     |> LiveView.push_event("live-stash:init-browser-memory", %{})
     |> LiveView.put_private(:live_stash_context, updated_context)
   end
+
+  defp get_stash_payload(%{"liveStash" => %{"stashedState" => state}}) when state != %{} do
+    {:ok, state}
+  end
+
+  defp get_stash_payload(_), do: :not_found
+
+  defp get_delete_at(%{"deleteAt" => delete_at}) when is_integer(delete_at), do: {:ok, delete_at}
+  defp get_delete_at(_), do: {:error, :invalid}
+
+  defp get_state(%{"assigns" => assigns}) when is_map(assigns), do: {:ok, assigns}
+  defp get_state(_), do: {:error, :invalid}
+
+  defp get_keys(%{"keys" => keys}) when is_binary(keys), do: {:ok, keys}
+  defp get_keys(_), do: {:error, :invalid}
 
   defp get_settings(socket) do
     %{
