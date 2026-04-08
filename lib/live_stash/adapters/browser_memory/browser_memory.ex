@@ -72,16 +72,10 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
-    with %{
-           "liveStash" => %{
-             "stashedState" => %{
-               "assigns" => stashed_state,
-               "keys" => stashed_keys,
-               "deleteAt" => delete_at
-             }
-           }
-         }
-         when is_map(stashed_state) <- LiveView.get_connect_params(socket),
+    with {:ok, params} <- LiveView.get_connect_params(socket),
+         {:ok, stashed_state} <- get_state(params),
+         {:ok, stashed_keys} <- get_keys(params),
+         {:ok, delete_at} <- get_delete_at(params),
          true <- delete_at >= System.os_time(:millisecond),
          {:ok, {recovered_state, key_set}} <-
            Serializer.external_to_term(socket, stashed_state, stashed_keys, get_settings(socket)) do
@@ -95,7 +89,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
       false ->
         msg =
           Utils.reason_message(
-            "Could not recover stashed state.",
+            "Could not recover stashed state due to expired stash.",
             :expired
           )
 
@@ -103,8 +97,15 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
         {:error, socket}
 
-      {:error, msg} ->
-        Logger.error(msg)
+      {:error, reason} ->
+        msg =
+          Utils.reason_message(
+            "Could not recover stashed state due to invalid connect params.",
+            reason
+          )
+
+        Logger.warning(msg)
+
         {:error, socket}
 
       _ ->
@@ -135,6 +136,23 @@ defmodule LiveStash.Adapters.BrowserMemory do
     |> LiveView.push_event("live-stash:init-browser-memory", %{})
     |> LiveView.put_private(:live_stash_context, updated_context)
   end
+
+  defp get_delete_at(%{"liveStash" => %{"stashedState" => %{"delete_at" => delete_at}}})
+       when is_integer(delete_at), do: {:ok, delete_at}
+
+  defp get_delete_at(_), do: {:error, :invalid}
+
+  defp get_state(%{"liveStash" => %{"stashedState" => %{"assigns" => assigns}}})
+       when is_map(assigns),
+       do: {:ok, assigns}
+
+  defp get_state(_), do: {:error, :invalid}
+
+  defp get_keys(%{"liveStash" => %{"stashedState" => %{"keys" => keys}}})
+       when is_binary(keys),
+       do: {:ok, keys}
+
+  defp get_keys(_), do: {:error, :invalid}
 
   defp get_settings(socket) do
     %{
