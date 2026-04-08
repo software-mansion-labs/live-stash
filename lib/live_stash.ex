@@ -39,8 +39,8 @@ defmodule LiveStash do
             # socket with previously stashed assigns is recovered
             recovered_socket
 
-          _ ->
-            # could not recover assigns, proceed with standard setup
+          {_, socket} ->
+            # could not recover assigns, proceed with standard setup using returned socket
             # ...
         end
         |> then(&{:ok, &1})
@@ -196,7 +196,9 @@ defmodule LiveStash do
         |> case do
           {:recovered, recovered_socket} ->
             recovered_socket
-          _ -> start_new_game(socket)
+
+          {_, socket} ->
+            start_new_game(socket)
         end
         |> then(&{:ok, &1})
       end

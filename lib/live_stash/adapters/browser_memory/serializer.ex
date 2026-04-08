@@ -49,7 +49,7 @@ defmodule LiveStash.Adapters.BrowserMemory.Serializer do
       _ ->
         msg =
           Utils.reason_message(
-            "Failed to decode stashed assign with key #{inspect(key)}. It may be missing or malformed.",
+            "Failed to decode stashed assign with key #{inspect(key)}. It may be expired, missing or malformed.",
             :error
           )
 
