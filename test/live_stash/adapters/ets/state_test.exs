@@ -47,7 +47,7 @@ defmodule LiveStash.Adapters.ETS.StateTest do
     end
   end
 
-  describe "put!/4" do
+  describe "put!/3" do
     test "creates a new state record when id doesn't exist" do
       id = "new_id"
       assert State.put!(id, %{key: "value"}, ttl: 1000) == :ok
@@ -73,6 +73,20 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       State.put!(id, %{key: "value2"}, opts)
 
       assert {:ok, %{key: "value2"}} = State.get_by_id!(id)
+    end
+
+    test "raises exception if state is owned by a different process (PID mismatch)" do
+      id = "test_id"
+      opts = [ttl: 1000]
+
+      Task.async(fn ->
+        State.put!(id, %{key: "old_value"}, opts)
+      end)
+      |> Task.await()
+
+      assert_raise RuntimeError, fn ->
+        State.put!(id, %{key: "new_value"}, opts)
+      end
     end
   end
 
