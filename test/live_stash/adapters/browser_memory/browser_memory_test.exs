@@ -107,6 +107,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       params = %{
         "liveStash" => %{
           "stashedState" => %{
+            "deleteAt" => System.os_time(:millisecond) + 86_400,
             "keys" => stashed_keys,
             "assigns" => %{
               ext_key_1 => ext_val_1
@@ -139,6 +140,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       params = %{
         "liveStash" => %{
           "stashedState" => %{
+            "deleteAt" => System.os_time(:millisecond) + 86_400,
             "keys" => "invalid_keys_token",
             "assigns" => %{}
           }
@@ -160,6 +162,29 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
         end)
 
       assert log =~ "Failed to retrieve key set"
+    end
+
+    test "returns :error and logs warning when deleteAt is in the past", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
+      params = %{
+        "liveStash" => %{
+          "stashedState" => %{
+            "deleteAt" => System.os_time(:millisecond) - 1000,
+            "keys" => "keys_token",
+            "assigns" => %{}
+          }
+        }
+      }
+
+      socket_with_params = put_in(socket.private.connect_params, params)
+
+      log =
+        capture_log(fn ->
+          assert {:error, _socket} = BrowserMemory.recover_state(socket_with_params)
+        end)
+
+      assert log =~ "expired"
     end
 
     test "rescues generic exceptions, logs them and returns :error", %{socket: socket} do

@@ -17,6 +17,8 @@ window.addEventListener('phx:live-stash:stash-state', (event) => {
   };
 
   liveStash.stashedState['keys'] = event.detail.keys;
+
+  liveStash.stashedState['deleteAt'] = event.detail.deleteAt;
 });
 
 window.addEventListener('phx:live-stash:init-ets', (event) => {
