@@ -136,6 +136,6 @@ The `mount/3` lifecycle hook is where LiveStash's recovery mechanism kicks in. W
 
 If LiveStash finds a previously saved state (like an ongoing game), it returns `{:recovered, recovered_socket}` and seamlessly resumes the game right where the user left off. If no state is found (e.g., it's a brand new visit), it falls back to starting a fresh game with `start_new_game(socket)`.
 
-> #### Warning {: .warning}
+> #### Note {: .note}
 >
 > In case of an error you must use the returned socket for the invalid state to be cleared.
