@@ -10,7 +10,7 @@ defmodule LiveStash.Adapter do
   alias Phoenix.LiveView.Socket
 
   @doc false
-  def default, do: LiveStash.Adapters.BrowserMemory
+  def default, do: LiveStash.Adapters.ETS
 
   @type recovery_status :: :recovered | :not_found | :new | :error
 
