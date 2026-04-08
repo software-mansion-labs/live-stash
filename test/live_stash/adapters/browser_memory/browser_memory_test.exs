@@ -132,7 +132,8 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       assert returned_socket == socket
     end
 
-    test "returns :error and logs warning when token decryption fails", %{socket: socket} do
+    test "returns :error, logs warning and pushes init-browser-memory event when token decryption fails",
+         %{socket: socket} do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
       params = %{
@@ -148,7 +149,14 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
 
       log =
         capture_log(fn ->
-          assert {:error, _socket} = BrowserMemory.recover_state(socket_with_params)
+          assert {:error, returned_socket} = BrowserMemory.recover_state(socket_with_params)
+
+          queued_events = get_in(returned_socket.private, [:live_temp, :push_events]) || []
+
+          assert Enum.any?(queued_events, fn
+                   ["live-stash:init-browser-memory", payload] -> payload == %{}
+                   _other -> false
+                 end)
         end)
 
       assert log =~ "Failed to retrieve key set"
