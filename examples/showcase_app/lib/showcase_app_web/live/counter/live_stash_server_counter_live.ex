@@ -9,8 +9,9 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
         {:recovered, recovered_socket} ->
           recovered_socket
 
-        _ ->
-          assign(socket, count: 0)
+        {_, socket} ->
+          socket
+          |> assign(count: 0)
     end
     |> then(&{:ok, &1})
   end

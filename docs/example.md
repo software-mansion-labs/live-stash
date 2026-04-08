@@ -125,11 +125,8 @@ Crucially, after updating the socket assigns, we pipe it into `stash_assigns([:b
       {:recovered, recovered_socket} ->
         recovered_socket
 
-      {:error, socket} -> # using the recovered socket in error case to clear the invalid state
-        socket
-        |> start_new_game()
-
-      _ -> start_new_game(socket)
+      {_, socket} ->
+        start_new_game(socket)
     end
     |> then(&{:ok, &1})
   end
