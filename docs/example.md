@@ -77,7 +77,7 @@ The `render/1` function defines the user interface using HEEx templates and Tail
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> LiveStash.stash_assigns()
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 
@@ -88,7 +88,7 @@ The `render/1` function defines the user interface using HEEx templates and Tail
   defp start_new_game(socket) do
     socket
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
-    |> LiveStash.stash_assigns()
+    |> LiveStash.stash()
   end
 
   defp check_game_state(board) do
@@ -117,7 +117,7 @@ end
 
 This section handles the core game logic and user actions. The `handle_event/3` callbacks listen for the actions triggered from the UI. When a player makes a move, the board is updated, checked for a win or draw, and the turn shifts to the next player.
 
-Crucially, after updating the socket assigns, we pipe it into `stash_assigns()`. The assigns to persist are declared in `use LiveStash` (`assigns: [:board, :current_player, :winner, :winning_line]`), so LiveStash securely persists that configured state when the connection drops.
+Crucially, after updating the socket assigns, we pipe it into `stash()`. The assigns to persist are declared in `use LiveStash` (`assigns: [:board, :current_player, :winner, :winning_line]`), so LiveStash securely persists that configured state when the connection drops.
 
 ## State recovery
 

@@ -4,6 +4,10 @@ defmodule LiveStash.Adapters.Common do
   alias Phoenix.LiveView
   alias LiveStash.Utils
 
+  def hash_term(term) do
+    :crypto.hash(:sha256, :erlang.term_to_binary(term))
+  end
+
   def get_connect_params(socket) do
     try do
       LiveView.get_connect_params(socket)

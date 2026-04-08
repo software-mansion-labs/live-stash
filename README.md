@@ -25,7 +25,7 @@ defmodule ShowcaseAppWeb.CounterLive do
     socket
     |> assign(:count, socket.assigns.count + 1)
     |> assign(:user_id, 123)
-    |> LiveStash.stash_assigns([:count, :user_id]) # pass the list of assigns that you want to stash
+    |> LiveStash.stash([:count, :user_id]) # pass the list of assigns that you want to stash
     |> then(&{:noreply, &1})
   end
 ```

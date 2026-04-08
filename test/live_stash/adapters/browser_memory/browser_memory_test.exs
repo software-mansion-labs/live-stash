@@ -60,12 +60,12 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     end
   end
 
-  describe "stash_assigns/2" do
+  describe "stash/2" do
     test "updates live_stash_keys with new keys and pushes stash event", %{socket: socket} do
       assert MapSet.member?(socket.private.live_stash_context.key_set, :player_id)
       refute MapSet.member?(socket.private.live_stash_context.key_set, :username)
 
-      stashed_socket = BrowserMemory.stash_assigns(socket, [:username])
+      stashed_socket = BrowserMemory.stash(socket, [:username])
 
       assert MapSet.member?(stashed_socket.private.live_stash_context.key_set, :player_id)
       assert MapSet.member?(stashed_socket.private.live_stash_context.key_set, :username)
@@ -85,7 +85,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
 
     test "raises a custom RuntimeError when attempting to stash a missing key", %{socket: socket} do
       assert_raise RuntimeError, ~r/Key :missing_key is missing from socket.assigns/, fn ->
-        BrowserMemory.stash_assigns(socket, [:missing_key])
+        BrowserMemory.stash(socket, [:missing_key])
       end
     end
   end

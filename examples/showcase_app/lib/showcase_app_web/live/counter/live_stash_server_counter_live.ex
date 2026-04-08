@@ -81,13 +81,13 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
-    |> LiveStash.stash_assigns()
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})  end
 
   def handle_event("decrement", _, socket) do
     socket
     |> assign(:count, socket.assigns.count - 1)
-    |> LiveStash.stash_assigns()
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 

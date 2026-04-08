@@ -48,6 +48,14 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashServerCounterLive do
             </button>
 
             <button
+              phx-click="add_zero"
+              class="btn btn-circle btn-lg btn-neutral text-xl"
+              aria-label="Add Zero"
+            >
+              0
+            </button>
+
+            <button
               phx-click="increment"
               class="btn btn-circle btn-lg btn-primary"
               aria-label="Increment"
@@ -78,16 +86,23 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashServerCounterLive do
     """
   end
 
+  def handle_event("add_zero", _, socket) do
+    socket
+    |> assign(:count, socket.assigns.count + 0)
+    |> LiveStash.stash()
+    |> then(&{:noreply, &1})
+  end
+
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
-    |> LiveStash.stash_assigns()
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})  end
 
   def handle_event("decrement", _, socket) do
     socket
     |> assign(:count, socket.assigns.count - 1)
-    |> LiveStash.stash_assigns()
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 

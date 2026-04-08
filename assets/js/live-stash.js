@@ -5,11 +5,7 @@ window.addEventListener('phx:live-stash:init-browser-memory', (_event) => {
 });
 
 window.addEventListener('phx:live-stash:stash-state', (event) => {
-  if (!liveStash.stashedState) {
-    liveStash.stashedState = {};
-  }
-
-  liveStash.stashedState['assigns'] = event.detail.assigns;
+  liveStash['stashedState'] = event.detail.assigns;
 });
 
 window.addEventListener('phx:live-stash:init-ets', (event) => {

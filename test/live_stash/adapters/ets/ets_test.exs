@@ -116,9 +116,9 @@ defmodule LiveStash.Adapters.ETSTest do
     end
   end
 
-  describe "stash_assigns/2" do
+  describe "stash/2" do
     test "saves specified assigns to the ETS table", %{socket: socket, ets_id: ets_id} do
-      returned_socket = ETS.stash_assigns(socket, [:username])
+      returned_socket = ETS.stash(socket, [:username])
 
       assert %Socket{} = returned_socket
 
@@ -128,7 +128,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
     test "raises a custom RuntimeError when attempting to stash a missing key", %{socket: socket} do
       assert_raise RuntimeError, ~r/Key :missing_key is missing from socket.assigns/, fn ->
-        ETS.stash_assigns(socket, [:missing_key])
+        ETS.stash(socket, [:missing_key])
       end
     end
   end

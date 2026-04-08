@@ -2,7 +2,7 @@
 
 ## Description
 
-In this mode, the stashed state is kept in the browser's memory. Each call to `stash_assigns/2` pushes assigns to the client via `Phoenix.LiveView.push_event/3`, storing them in a JavaScript variable. Upon LiveView reconnection, the client automatically sends this state back to the server via connection parameters.
+In this mode, the stashed state is kept in the browser's memory. Each call to `stash/2` pushes assigns to the client via `Phoenix.LiveView.push_event/3`, storing them in a JavaScript variable. Upon LiveView reconnection, the client automatically sends this state back to the server via connection parameters.
 
 ## When to use
 

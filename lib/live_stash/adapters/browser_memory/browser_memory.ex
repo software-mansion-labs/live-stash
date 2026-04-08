@@ -11,6 +11,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
   require Logger
 
   alias LiveStash.Utils
+  alias LiveStash.Adapters.Common
   alias LiveStash.Adapters.BrowserMemory.Serializer
   alias LiveStash.Adapters.BrowserMemory.Context
 
@@ -33,19 +34,28 @@ defmodule LiveStash.Adapters.BrowserMemory do
   end
 
   @impl true
-  def stash_assigns(socket) do
-    keys = socket.private.live_stash_context.assigns
-
+  def stash(socket) do
+    context = socket.private.live_stash_context
+    keys = context.assigns
     assigns_to_stash = Map.take(socket.assigns, keys)
+    new_fingerprint = Common.hash_term(assigns_to_stash)
 
-    serialized_assigns =
-      Serializer.term_to_external(socket, assigns_to_stash, get_settings(socket))
+    if new_fingerprint != context.stash_fingerprint do
+      serialized_assigns =
+        Serializer.term_to_external(socket, assigns_to_stash, get_settings(socket))
 
-    payload = %{
-      "assigns" => serialized_assigns
-    }
+      payload = %{
+        "assigns" => serialized_assigns
+      }
 
-    LiveView.push_event(socket, "live-stash:stash-state", payload)
+      new_context = %{context | stash_fingerprint: new_fingerprint}
+
+      socket
+      |> LiveView.put_private(:live_stash_context, new_context)
+      |> LiveView.push_event("live-stash:stash-state", payload)
+    else
+      socket
+    end
   rescue
     e in KeyError ->
       msg =
@@ -60,7 +70,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
     case LiveView.get_connect_params(socket) do
-      %{"liveStash" => %{"stashedState" => %{"assigns" => stashed_state}}}
+      %{"liveStash" => %{"stashedState" => stashed_state}}
       when is_binary(stashed_state) ->
         case Serializer.external_to_term(
                socket,
@@ -68,13 +78,13 @@ defmodule LiveStash.Adapters.BrowserMemory do
                get_settings(socket)
              ) do
           {:ok, recovered_state} ->
-            # context = socket.private.live_stash_context
-            # fingerprint = ""
-            # updated_context = %{context | state_fingerprint: fingerprint}
+            context = socket.private.live_stash_context
+            fingerprint = Common.hash_term(recovered_state)
+            updated_context = %{context | stash_fingerprint: fingerprint}
 
             socket
             |> Component.assign(recovered_state)
-            # |> LiveView.put_private(:live_stash_context, updated_context)
+            |> LiveView.put_private(:live_stash_context, updated_context)
             |> then(&{:recovered, &1})
 
           {:error, reason} ->

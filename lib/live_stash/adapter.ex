@@ -29,7 +29,7 @@ defmodule LiveStash.Adapter do
   The keys are atoms that reference entries in `socket.assigns`.
   Returns an updated socket.
   """
-  @callback stash_assigns(socket :: Socket.t()) :: Socket.t()
+  @callback stash(socket :: Socket.t()) :: Socket.t()
 
   @doc """
   Attempts to restore previously persisted state to the socket.

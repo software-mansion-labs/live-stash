@@ -98,7 +98,7 @@ defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> LiveStash.stash_assigns()
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 

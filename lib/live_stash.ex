@@ -25,7 +25,7 @@ defmodule LiveStash do
       def handle_event("increment", _, socket) do
         socket
         |> assign(:count, socket.assigns.count + 1)
-        |> LiveStash.stash_assigns([:count])
+        |> LiveStash.stash([:count])
         |> then(&{:noreply, &1})
       end
 
@@ -162,15 +162,15 @@ defmodule LiveStash do
       def handle_event("increment", _, socket) do
         socket
         |> assign(:count, socket.assigns.count + 1)
-        |> LiveStash.stash_assigns()
+        |> LiveStash.stash()
         |> then(&{:noreply, &1})
       end
   """
-  @spec stash_assigns(socket :: Socket.t()) :: Socket.t()
-  def stash_assigns(socket) do
+  @spec stash(socket :: Socket.t()) :: Socket.t()
+  def stash(socket) do
     socket
     |> get_adapter()
-    |> apply(:stash_assigns, [socket])
+    |> apply(:stash, [socket])
   end
 
   @doc """
