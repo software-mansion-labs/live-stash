@@ -2,7 +2,7 @@
 
 LiveStash provides a reliable, explicit API to safely stash and recover [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view) assigns, keeping your application state completely intact whenever a socket connection is interrupted or re-established.
 
-Try the interactive [demo](https://live-stash-demo.fly.dev/), check out our [documentation](https://hexdocs.pm/live_stash/welcome.html) or play around with [examples](https://github.com/software-mansion-labs/live-stash/tree/main/examples/showcase_app) to explore all capabilities in detail.
+Try the interactive [demo](https://live-stash-demo.fly.dev/), check out our [documentation](https://hexdocs.pm/live_stash/welcome.html).
 
 https://github.com/user-attachments/assets/c03836e1-362e-4e06-bfc7-3656c6672c8e
 
@@ -41,8 +41,8 @@ defmodule ShowcaseAppWeb.CounterLive do
           # socket with previously stashed assigns is recovered
           recovered_socket
 
-        _ ->
-          # could not recover assigns, proceed with standard setup
+        {_, socket} ->
+          # could not recover assigns, proceed with standard setup using returned socket
           # ...
     end
     |> then(&{:ok, &1})

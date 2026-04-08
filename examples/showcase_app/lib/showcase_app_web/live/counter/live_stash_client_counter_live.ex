@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, ttl: 5 * 60 * 1000
+  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt
 
   def mount(_params, _session, socket) do
     socket
@@ -9,7 +9,7 @@ defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
         {:recovered, recovered_socket} ->
           recovered_socket
 
-        _ ->
+        {_, socket} ->
           assign(socket, count: 0)
     end
     |> then(&{:ok, &1})
