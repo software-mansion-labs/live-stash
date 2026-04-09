@@ -5,7 +5,7 @@ const routes = [
   "/test/counter/live_stash_client",
 ];
 
-test.describe("LiveView State Recovery - Single Node", () => {
+test.describe("ETS & Browser memory adapters - state recovery with bad state", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {

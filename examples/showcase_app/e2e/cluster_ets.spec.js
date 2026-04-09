@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
-test.describe("LiveView State Recovery - Cluster", () => {
+test.describe("ETS adapter - state recovery on cluster", () => {
   test.use({ baseURL: "http://localhost:8080" });
 
   test("should retain state when a node goes down and traffic is redirected", async ({

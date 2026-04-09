@@ -1,6 +1,6 @@
 const { test, expect } = require("@playwright/test");
 
-test.describe("LiveView State Recovery - Single Node", () => {
+test.describe("ETS adapter - TTL expiration", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   test(`should not recover counter state after ttl expires in ETS adapter`, async ({
