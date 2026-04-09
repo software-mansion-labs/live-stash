@@ -106,23 +106,36 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       assert stash_events_count == 1
     end
 
-    test "gracefully handles missing configured keys", %{socket: socket} do
+    test "stashes only the intersection of configured keys and present socket assigns", %{
+      socket: socket
+    } do
       context = socket.private.live_stash_context
-      updated_context = %{context | assigns: [:missing_key]}
-      updated_private = Map.put(socket.private, :live_stash_context, updated_context)
-      socket_with_missing_key_context = %{socket | private: updated_private}
+      updated_context = %{context | assigns: [:username, :missing_key]}
+      socket_configured = put_in(socket.private.live_stash_context, updated_context)
 
-      stashed_socket = BrowserMemory.stash(socket_with_missing_key_context)
+      stashed_socket = BrowserMemory.stash(socket_configured)
 
       queued_events = get_in(stashed_socket.private, [:live_temp, :push_events]) || []
 
-      assert Enum.any?(queued_events, fn
-               ["live-stash:stash-state", payload] ->
-                 is_map(payload) and is_binary(payload["assigns"])
+      stash_event =
+        Enum.find(queued_events, fn
+          ["live-stash:stash-state", _payload] -> true
+          _ -> false
+        end)
 
-               _other ->
-                 false
-             end)
+      assert ["live-stash:stash-state", payload] = stash_event
+      assert is_binary(payload["assigns"])
+
+      settings = %{
+        ttl: context.ttl,
+        secret: context.secret,
+        security_mode: context.security_mode
+      }
+
+      assert {:ok, recovered_assigns} =
+               Serializer.external_to_term(socket, payload["assigns"], settings)
+
+      assert recovered_assigns == %{username: "tester"}
     end
   end
 

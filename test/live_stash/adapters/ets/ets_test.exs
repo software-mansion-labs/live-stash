@@ -128,28 +128,26 @@ defmodule LiveStash.Adapters.ETSTest do
       assert saved_state == %{username: "tester"}
     end
 
-    test "does not insert state again when stashed assigns fingerprint did not change", %{
-      socket: socket,
-      ets_id: ets_id
-    } do
+    test "does not update ETS when only untracked assigns change - fingerprint remains the same",
+         %{
+           socket: socket,
+           ets_id: ets_id
+         } do
       stashed_socket = ETS.stash(socket)
 
-      [{:state, ^ets_id, first_pid, first_delete_at, first_ttl, first_state}] =
-        :ets.lookup(@table_name, ets_id)
+      [record_before] = :ets.lookup(@table_name, ets_id)
 
-      same_socket =
-        %{stashed_socket | assigns: Map.put(stashed_socket.assigns, :player_id, 999)}
+      socket_with_untracked_change = %{
+        stashed_socket
+        | assigns: Map.put(stashed_socket.assigns, :player_id, 999)
+      }
 
-      ETS.stash(same_socket)
+      ETS.stash(socket_with_untracked_change)
 
-      [{:state, ^ets_id, second_pid, second_delete_at, second_ttl, second_state}] =
-        :ets.lookup(@table_name, ets_id)
+      [record_after] = :ets.lookup(@table_name, ets_id)
 
-      assert second_pid == first_pid
-      assert second_delete_at == first_delete_at
-      assert second_ttl == first_ttl
-      assert second_state == first_state
-      assert second_state == %{username: "tester"}
+      assert record_before == record_after
+      assert {:ok, %{username: "tester"}} = StateFinder.get_from_cluster(ets_id, Node.self())
     end
 
     test "updates state when stashed assigns fingerprint changes", %{
@@ -166,14 +164,19 @@ defmodule LiveStash.Adapters.ETSTest do
       assert saved_state == %{username: "tester-2"}
     end
 
-    test "gracefully handles missing configured keys", %{socket: socket, ets_id: ets_id} do
+    test "stashes only the intersection of configured keys and present socket assigns", %{
+      socket: socket,
+      ets_id: ets_id
+    } do
       context = socket.private.live_stash_context
-      updated_context = %{context | assigns: [:missing_key]}
-      updated_private = Map.put(socket.private, :live_stash_context, updated_context)
-      socket_with_missing_key_context = %{socket | private: updated_private}
+      updated_context = %{context | assigns: [:username, :missing_key]}
+      socket_configured = put_in(socket.private.live_stash_context, updated_context)
 
-      assert %Socket{} = ETS.stash(socket_with_missing_key_context)
-      assert {:ok, %{}} = StateFinder.get_from_cluster(ets_id, Node.self())
+      assert %Socket{} = ETS.stash(socket_configured)
+
+      assert {:ok, saved_state} = StateFinder.get_from_cluster(ets_id, Node.self())
+
+      assert saved_state == %{username: "tester"}
     end
   end
 
