@@ -47,32 +47,20 @@ defmodule LiveStash.Adapters.ETS.StateTest do
     end
   end
 
-  describe "put!/4" do
-    test "creates a new state record when id doesn't exist" do
-      id = "new_id"
-      assert State.put!(id, %{key: "value"}, ttl: 1000) == :ok
-
-      assert {:ok, %{key: "value"}} = State.get_by_id!(id)
-    end
-
-    test "updates existing state record when id exists" do
+  describe "insert!/1 with duplicate id" do
+    test "replaces existing state map as a whole" do
       id = "existing_id"
-      opts = [ttl: 1000]
-      State.put!(id, %{key1: "value1"}, opts)
-      State.put!(id, %{key2: "value2"}, opts)
+      first_record = State.new(id, %{key1: "value1", key2: "value2"}, ttl: 1000)
+      second_record = State.new(id, %{key2: "new_value"}, ttl: 2000)
+
+      assert :ok = State.insert!(first_record)
+      assert :ok = State.insert!(second_record)
 
       assert {:ok, state} = State.get_by_id!(id)
-      assert state.key1 == "value1"
-      assert state.key2 == "value2"
-    end
+      assert state == %{key2: "new_value"}
 
-    test "overwrites existing key when updating" do
-      id = "update_id"
-      opts = [ttl: 1000]
-      State.put!(id, %{key: "value1"}, opts)
-      State.put!(id, %{key: "value2"}, opts)
-
-      assert {:ok, %{key: "value2"}} = State.get_by_id!(id)
+      [{:state, ^id, _pid, _delete_at, ttl, _state}] = :ets.lookup(@table_name, id)
+      assert ttl == 2000
     end
   end
 

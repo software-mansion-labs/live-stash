@@ -32,7 +32,7 @@ defmodule LiveStash.Adapters.ETS.StateFinderTest do
         true = Node.connect(peer2_node)
 
         local_state = %{from: :local}
-        :ok = State.put!(id, local_state, ttl: 60_000)
+        :ok = State.insert!(State.new(id, local_state, ttl: 60_000))
 
         # Put state on peers too; it should NOT be popped if local state is found.
         :ok =

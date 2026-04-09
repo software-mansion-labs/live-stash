@@ -21,11 +21,11 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
           live_temp: %{},
           connect_params: %{},
           live_stash_context: %BrowserMemory.Context{
+            assigns: [:player_id],
             reconnected?: false,
             ttl: 86_400,
             secret: secret,
-            security_mode: :sign,
-            key_set: MapSet.new([:player_id])
+            security_mode: :sign
           }
         }
       )
@@ -37,7 +37,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     test "does not push reset event if reconnected? is true", %{socket: socket} do
       socket = put_in(socket.private[:connect_params], %{"_mounts" => 1})
 
-      result_socket = BrowserMemory.init_stash(socket, %{}, [])
+      result_socket = BrowserMemory.init_stash(socket, %{}, assigns: [:player_id])
 
       assert result_socket.private.live_stash_context.reconnected? == true
 
@@ -48,50 +48,82 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
              end)
     end
 
-    test "resets state and initializes empty live_stash_keys when reconnected? is false", %{
+    test "pushes init event when reconnected? is false", %{
       socket: socket
     } do
       socket = put_in(socket.private.live_stash_context.reconnected?, false)
 
-      initialized_socket = BrowserMemory.init_stash(socket, %{}, [])
+      initialized_socket = BrowserMemory.init_stash(socket, %{}, assigns: [:player_id])
 
-      assert initialized_socket.private.live_stash_context.key_set == MapSet.new()
+      queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
+
+      assert Enum.any?(queued_events, fn
+               ["live-stash:init-browser-memory", payload] -> payload == %{}
+               _other -> false
+             end)
+
       assert %Socket{} = initialized_socket
     end
   end
 
-  describe "stash/2" do
-    test "updates live_stash_keys with new keys and pushes stash event", %{socket: socket} do
-      assert MapSet.member?(socket.private.live_stash_context.key_set, :player_id)
-      refute MapSet.member?(socket.private.live_stash_context.key_set, :username)
+  describe "stash/1" do
+    test "pushes stash event with serialized assigns string", %{socket: socket} do
+      stashed_socket = BrowserMemory.stash(socket)
 
-      stashed_socket = BrowserMemory.stash(socket, [:username])
-
-      assert MapSet.member?(stashed_socket.private.live_stash_context.key_set, :player_id)
-      assert MapSet.member?(stashed_socket.private.live_stash_context.key_set, :username)
       assert %Socket{} = stashed_socket
 
       queued_events = get_in(stashed_socket.private, [:live_temp, :push_events]) || []
 
       assert Enum.any?(queued_events, fn
                ["live-stash:stash-state", payload] ->
-                 is_map(payload) and Map.has_key?(payload, "assigns") and
-                   Map.has_key?(payload, "keys")
+                 is_map(payload) and is_binary(payload["assigns"])
 
                _other ->
                  false
              end)
     end
 
-    test "raises a custom RuntimeError when attempting to stash a missing key", %{socket: socket} do
-      assert_raise RuntimeError, ~r/Key :missing_key is missing from socket.assigns/, fn ->
-        BrowserMemory.stash(socket, [:missing_key])
-      end
+    test "does not push stash event when fingerprint did not change", %{socket: socket} do
+      stashed_socket = BrowserMemory.stash(socket)
+
+      new_socket =
+        %{stashed_socket | assigns: Map.put(stashed_socket.assigns, :username, "changed-but-not-stashed")}
+
+      stashed_again_socket = BrowserMemory.stash(new_socket)
+
+      queued_events = get_in(stashed_again_socket.private, [:live_temp, :push_events]) || []
+
+      stash_events_count =
+        Enum.count(queued_events, fn
+          ["live-stash:stash-state", _payload] -> true
+          _ -> false
+        end)
+
+      assert stash_events_count == 1
+    end
+
+    test "gracefully handles missing configured keys", %{socket: socket} do
+      context = socket.private.live_stash_context
+      updated_context = %{context | assigns: [:missing_key]}
+      updated_private = Map.put(socket.private, :live_stash_context, updated_context)
+      socket_with_missing_key_context = %{socket | private: updated_private}
+
+      stashed_socket = BrowserMemory.stash(socket_with_missing_key_context)
+
+      queued_events = get_in(stashed_socket.private, [:live_temp, :push_events]) || []
+
+      assert Enum.any?(queued_events, fn
+               ["live-stash:stash-state", payload] ->
+                 is_map(payload) and is_binary(payload["assigns"])
+
+               _other ->
+                 false
+             end)
     end
   end
 
   describe "recover_state/1" do
-    test "recovers assigns and updates live_stash_keys when connect_params contain valid stashedState",
+    test "recovers assigns when connect_params contain valid stashedState",
          %{socket: socket} do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
@@ -101,17 +133,11 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
         security_mode: :sign
       }
 
-      stashed_keys = Serializer.term_to_external(socket, [:player_id], settings)
-      {ext_key_1, ext_val_1} = Serializer.term_to_external(socket, :player_id, 999, settings)
+      stashed_state = Serializer.term_to_external(socket, %{player_id: 999}, settings)
 
       params = %{
         "liveStash" => %{
-          "stashedState" => %{
-            "keys" => stashed_keys,
-            "assigns" => %{
-              ext_key_1 => ext_val_1
-            }
-          }
+          "stashedState" => stashed_state
         }
       }
 
@@ -121,8 +147,6 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
 
       assert recovered_socket.assigns.player_id == 999
       assert recovered_socket.assigns.username == "tester"
-
-      assert recovered_socket.private.live_stash_context.key_set == MapSet.new([:player_id])
     end
 
     test "returns :not_found when connect_params do not contain stashedState", %{socket: socket} do
@@ -137,10 +161,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
 
       params = %{
         "liveStash" => %{
-          "stashedState" => %{
-            "keys" => "invalid_keys_token",
-            "assigns" => %{}
-          }
+          "stashedState" => "invalid_stashed_state"
         }
       }
 
@@ -151,7 +172,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
           assert {:error, _socket} = BrowserMemory.recover_state(socket_with_params)
         end)
 
-      assert log =~ "Failed to retrieve key set"
+      assert log =~ "Failed to decode stashed state from token"
     end
 
     test "rescues generic exceptions, logs them and returns :error", %{socket: socket} do
@@ -173,11 +194,10 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
   end
 
   describe "reset_stash/1" do
-    test "pushes reset event and clears live_stash_keys", %{socket: socket} do
+    test "pushes reset event", %{socket: socket} do
       reset_socket = BrowserMemory.reset_stash(socket)
 
       assert %Socket{} = reset_socket
-      assert reset_socket.private.live_stash_context.key_set == MapSet.new()
 
       queued_events = get_in(reset_socket.private, [:live_temp, :push_events]) || []
 

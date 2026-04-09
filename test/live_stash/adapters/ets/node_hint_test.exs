@@ -14,6 +14,7 @@ defmodule LiveStash.Adapters.ETS.NodeHintTest do
         private: %{
           connect_params: %{},
           live_stash_context: %ETS.Context{
+            assigns: [:username],
             secret: secret,
             id: "test_stash_id",
             reconnected?: false

@@ -33,6 +33,7 @@ defmodule LiveStash.Adapters.ETSTest do
           live_temp: %{},
           connect_params: %{"liveStash" => %{"stashId" => stash_id}},
           live_stash_context: %ETS.Context{
+            assigns: [:username],
             reconnected?: false,
             ttl: 86_400,
             secret: secret,
@@ -63,7 +64,7 @@ defmodule LiveStash.Adapters.ETSTest do
         State.state(id: ets_id, pid: self(), delete_at: delete_at, ttl: 1000, state: %{})
       )
 
-      initialized_socket = ETS.init_stash(socket, %{}, [])
+      initialized_socket = ETS.init_stash(socket, %{}, assigns: [:username])
 
       generated_id = initialized_socket.private.live_stash_context.id
 
@@ -96,7 +97,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
       socket = put_in(socket.private[:connect_params]["_mounts"], 1)
 
-      initialized_socket = ETS.init_stash(socket, %{}, [])
+      initialized_socket = ETS.init_stash(socket, %{}, assigns: [:username])
 
       id_after_init = initialized_socket.private.live_stash_context.id
       assert id_after_init == "test_uuid_1234"
@@ -116,9 +117,9 @@ defmodule LiveStash.Adapters.ETSTest do
     end
   end
 
-  describe "stash/2" do
+  describe "stash/1" do
     test "saves specified assigns to the ETS table", %{socket: socket, ets_id: ets_id} do
-      returned_socket = ETS.stash(socket, [:username])
+      returned_socket = ETS.stash(socket)
 
       assert %Socket{} = returned_socket
 
@@ -126,10 +127,49 @@ defmodule LiveStash.Adapters.ETSTest do
       assert saved_state == %{username: "tester"}
     end
 
-    test "raises a custom RuntimeError when attempting to stash a missing key", %{socket: socket} do
-      assert_raise RuntimeError, ~r/Key :missing_key is missing from socket.assigns/, fn ->
-        ETS.stash(socket, [:missing_key])
-      end
+    test "does not insert state again when stashed assigns fingerprint did not change", %{
+      socket: socket,
+      ets_id: ets_id
+    } do
+      stashed_socket = ETS.stash(socket)
+
+      [{:state, ^ets_id, first_pid, first_delete_at, first_ttl, first_state}] =
+        :ets.lookup(@table_name, ets_id)
+
+      same_socket =
+        %{stashed_socket | assigns: Map.put(stashed_socket.assigns, :player_id, 999)}
+
+      ETS.stash(same_socket)
+
+      [{:state, ^ets_id, second_pid, second_delete_at, second_ttl, second_state}] =
+        :ets.lookup(@table_name, ets_id)
+
+      assert second_pid == first_pid
+      assert second_delete_at == first_delete_at
+      assert second_ttl == first_ttl
+      assert second_state == first_state
+      assert second_state == %{username: "tester"}
+    end
+
+    test "updates state when stashed assigns fingerprint changes", %{socket: socket, ets_id: ets_id} do
+      stashed_socket = ETS.stash(socket)
+
+      updated_socket = put_in(stashed_socket.assigns.username, "tester-2")
+
+      ETS.stash(updated_socket)
+
+      assert {:ok, saved_state} = StateFinder.get_from_cluster(ets_id, Node.self())
+      assert saved_state == %{username: "tester-2"}
+    end
+
+    test "gracefully handles missing configured keys", %{socket: socket, ets_id: ets_id} do
+      context = socket.private.live_stash_context
+      updated_context = %{context | assigns: [:missing_key]}
+      updated_private = Map.put(socket.private, :live_stash_context, updated_context)
+      socket_with_missing_key_context = %{socket | private: updated_private}
+
+      assert %Socket{} = ETS.stash(socket_with_missing_key_context)
+      assert {:ok, %{}} = StateFinder.get_from_cluster(ets_id, Node.self())
     end
   end
 
@@ -141,7 +181,8 @@ defmodule LiveStash.Adapters.ETSTest do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
       state_to_recover = %{player_level: 42, theme: "dark"}
-      State.put!(ets_id, state_to_recover, ttl: 86_400)
+
+      State.insert!(State.new(ets_id, state_to_recover, ttl: 86_400))
 
       assert {:recovered, recovered_socket} = ETS.recover_state(socket)
 
@@ -180,7 +221,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
   describe "reset_stash/1" do
     test "deletes the state from ETS", %{socket: socket, ets_id: ets_id} do
-      State.put!(ets_id, %{data: "to_be_deleted"}, ttl: 86_400)
+      State.insert!(State.new(ets_id, %{data: "to_be_deleted"}, ttl: 86_400))
 
       assert {:ok, _} = StateFinder.get_from_cluster(ets_id, Node.self())
 
