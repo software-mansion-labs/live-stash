@@ -2,7 +2,9 @@
 
 ## Description
 
-In this mode, the stashed state is kept in the browser's memory. Each call to `stash/2` pushes assigns to the client via `Phoenix.LiveView.push_event/3`, storing them in a JavaScript variable. Upon LiveView reconnection, the client automatically sends this state back to the server via connection parameters.
+In this mode, the stashed state is kept in the browser's memory. Each call to `stash/1` pushes the configured assigns to the client via `Phoenix.LiveView.push_event/3`, storing them in a JavaScript variable. Upon LiveView reconnection, the client automatically sends this state back to the server via connection parameters.
+
+The assigns you want to persist are declared once at the module level with `assigns: [...]`, and `stash/1` only sends the state to the client if those values have changed since the last stash.
 
 ## When to use
 
@@ -15,7 +17,7 @@ Choose the Browser Memory mode when:
 
 ### State recovery
 
-An updated socket is returned from `LiveStash.recover_state/1` only if **every** key-value pair from the signed list of stashed keys was succesfully recovered.
+An updated socket is returned from `LiveStash.recover_state/1` only if the stored browser token can be successfully decoded and applied. The recovered state is the exact map that was previously serialized during `stash/1`.
 
 ### Reseting the stash
 
@@ -28,7 +30,7 @@ The stash is always cleared after a LiveView using this mode is rendered for the
 Stashed data has a Time-To-Live (TTL) that is used in signature and encryption. The default TTL is 5 minutes. You can adjust this using the `:ttl` option.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, ttl: 60 * 1000,
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, ttl: 60 * 1000, assigns: [:count]
 ```
 
 ## Security
@@ -40,7 +42,7 @@ By default, LiveStash uses a hardcoded default secret (`"live_stash"`) to secure
 You can do this by providing a `:session_key`. LiveStash will extract the value from the connection session securely hash it (SHA-256) to use as the operational secret. If you provide the key and it is not present in the session, `Argument Error` will be raised.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, session_token: "user_token"
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, session_key: "user_token", assigns: [:count]
 ```
 
 ### Security mode
@@ -50,5 +52,5 @@ In browser mode, the secret defined in the configuration section is used as part
 Additionally, you can configure how the data is secured in client mode using the `:security_mode` option. It defaults to `:sign`, but can be set to `:encrypt` for sensitive payloads.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory,  security_mode: :encrypt
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, assigns: [:count]
 ```

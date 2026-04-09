@@ -4,6 +4,8 @@
 
 In this mode, the stashed state is securely stored in an ETS table on the Elixir node. Instead of sending the entire payload to the browser, the client only receives and stores a lightweight, cryptographically signed reference (a stash ID and a node hint). Upon reconnection, LiveStash uses this reference to retrieve the state from the server's memory.
 
+The assigns you want to persist are declared once at the module level with `assigns: [...]`, and `stash/1` only replaces the stash in ETS record when those values have changed since the last stash.
+
 ## When to use
 
 Choose the ETS mode when:
@@ -39,7 +41,7 @@ State can also be cleared manually by calling `LiveStash.reset_stash/1`.
 Stashed data in server mode has a Time-To-Live (TTL) to prevent stale state from persisting indefinitely. The default TTL is 5 minutes. You can adjust this using the `:ttl` option.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 60 * 1000,
+use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 60 * 1000, assigns: [:count]
 ```
 
 ### Cleanup interval
@@ -87,5 +89,5 @@ You can do this by providing a `:session_key`. LiveStash will extract the value 
 In ETS mode, this operational secret is used as part of the record ID for your stashed state.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.ETS, session_token: "user_token"
+use LiveStash, adapter: LiveStash.Adapters.ETS, session_key: "user_token", assigns: [:count]
 ```
