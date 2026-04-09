@@ -68,27 +68,34 @@ defmodule LiveStash.Adapters.Redis do
   end
 
   @impl true
-  def stash_assigns(socket, keys) do
-    state =
-      Enum.reduce(keys, %{}, fn key, acc ->
-        value = Map.fetch!(socket.assigns, key)
-        Map.put(acc, key, value)
-      end)
+  def stash(socket) do
+    context = socket.private.live_stash_context
+
+    keys = context.assigns
+    assigns_to_stash = Map.take(socket.assigns, keys)
+    new_fingerprint = Common.hash_term(assigns_to_stash)
 
     id = get_redis_key(socket)
-    ttl = socket.private.live_stash_context.ttl
+    ttl = context.ttl
+    serialized_assigns = :erlang.term_to_binary(assigns_to_stash)
 
-    binary_state = :erlang.term_to_binary(state)
+    if new_fingerprint != context.fingerprint do
+      case command(["SET", id, serialized_assigns, "EX", to_string(ttl)]) do
+        {:ok, "OK"} ->
+          Registry.put!(id, ttl: ttl)
 
-    case command(["SET", id, binary_state, "EX", to_string(ttl)]) do
-      {:ok, "OK"} ->
-        Registry.put!(id, ttl: ttl)
-        socket
+          new_context = %{context | stash_fingerprint: new_fingerprint}
 
-      {:error, error} ->
-        err = format_command_error_message("Failed to stash assigns", error)
-        Logger.error(err)
-        socket
+          socket
+          |> LiveView.put_private(:live_stash_context, new_context)
+
+        {:error, error} ->
+          err = format_command_error_message("Failed to stash assigns", error)
+          Logger.error(err)
+          socket
+      end
+    else
+      socket
     end
   rescue
     e in KeyError ->
