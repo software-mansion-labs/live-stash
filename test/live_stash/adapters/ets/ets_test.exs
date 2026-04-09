@@ -38,7 +38,8 @@ defmodule LiveStash.Adapters.ETSTest do
             ttl: 86_400,
             secret: secret,
             id: stash_id,
-            node_hint: Node.self()
+            node_hint: Node.self(),
+            stash_fingerprint: nil
           }
         }
       )
@@ -151,7 +152,10 @@ defmodule LiveStash.Adapters.ETSTest do
       assert second_state == %{username: "tester"}
     end
 
-    test "updates state when stashed assigns fingerprint changes", %{socket: socket, ets_id: ets_id} do
+    test "updates state when stashed assigns fingerprint changes", %{
+      socket: socket,
+      ets_id: ets_id
+    } do
       stashed_socket = ETS.stash(socket)
 
       updated_socket = put_in(stashed_socket.assigns.username, "tester-2")
@@ -220,13 +224,17 @@ defmodule LiveStash.Adapters.ETSTest do
   end
 
   describe "reset_stash/1" do
-    test "deletes the state from ETS", %{socket: socket, ets_id: ets_id} do
+    test "deletes the state from ETS and clears fingerprint", %{socket: socket, ets_id: ets_id} do
+      socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
+
       State.insert!(State.new(ets_id, %{data: "to_be_deleted"}, ttl: 86_400))
 
       assert {:ok, _} = StateFinder.get_from_cluster(ets_id, Node.self())
 
-      assert %Socket{} = ETS.reset_stash(socket)
+      reset_socket = ETS.reset_stash(socket)
 
+      assert %Socket{} = reset_socket
+      assert reset_socket.private.live_stash_context.stash_fingerprint == nil
       assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
     end
 

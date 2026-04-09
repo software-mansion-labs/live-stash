@@ -25,7 +25,8 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
             reconnected?: false,
             ttl: 86_400,
             secret: secret,
-            security_mode: :sign
+            security_mode: :sign,
+            stash_fingerprint: nil
           }
         }
       )
@@ -87,7 +88,10 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       stashed_socket = BrowserMemory.stash(socket)
 
       new_socket =
-        %{stashed_socket | assigns: Map.put(stashed_socket.assigns, :username, "changed-but-not-stashed")}
+        %{
+          stashed_socket
+          | assigns: Map.put(stashed_socket.assigns, :username, "changed-but-not-stashed")
+        }
 
       stashed_again_socket = BrowserMemory.stash(new_socket)
 
@@ -194,10 +198,13 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
   end
 
   describe "reset_stash/1" do
-    test "pushes reset event", %{socket: socket} do
+    test "pushes reset event and clears fingerprint", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
+
       reset_socket = BrowserMemory.reset_stash(socket)
 
       assert %Socket{} = reset_socket
+      assert reset_socket.private.live_stash_context.stash_fingerprint == nil
 
       queued_events = get_in(reset_socket.private, [:live_temp, :push_events]) || []
 

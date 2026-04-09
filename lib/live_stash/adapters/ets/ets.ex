@@ -135,11 +135,14 @@ defmodule LiveStash.Adapters.ETS do
 
   @impl true
   def reset_stash(socket) do
+    context = socket.private.live_stash_context
+    updated_context = %{context | stash_fingerprint: nil}
+
     socket
     |> get_ets_id()
     |> State.delete_by_id!()
 
-    socket
+    LiveView.put_private(socket, :live_stash_context, updated_context)
   rescue
     error ->
       err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)

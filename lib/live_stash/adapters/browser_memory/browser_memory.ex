@@ -120,13 +120,12 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def reset_stash(socket) do
-    # context = socket.private.live_stash_context
-    # updated_context = %{context | key_set: MapSet.new()}
+    context = socket.private.live_stash_context
+    updated_context = %{context | stash_fingerprint: nil}
 
     socket
     |> LiveView.push_event("live-stash:init-browser-memory", %{})
-
-    # |> LiveView.put_private(:live_stash_context, updated_context)
+    |> LiveView.put_private(:live_stash_context, updated_context)
   end
 
   defp get_settings(socket) do
