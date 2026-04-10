@@ -50,7 +50,7 @@ defmodule LiveStash.Adapters.CommonTest do
 
     test "raises ArgumentError when session secret is not a binary" do
       assert_raise ArgumentError, ~r/returned an invalid type/, fn ->
-        Common.maybe_put_secret([], "int_secret", %{"int_secret" => 12345})
+        Common.maybe_put_secret([], "int_secret", %{"int_secret" => 123})
       end
     end
   end
