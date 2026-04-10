@@ -55,13 +55,12 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       assert {:ok, %{key: "value"}} = State.get_by_id!(id)
     end
 
-    test "replaces existing state map when id exists" do
+    test "replaces existing state map when id exists and is owned by the current process" do
       id = "existing_id"
-      first_record = State.new(id, %{key1: "value1", key2: "value2"}, ttl: 1000)
-      second_record = State.new(id, %{key2: "new_value"}, ttl: 2000)
 
-      assert :ok = State.insert!(first_record)
-      assert :ok = State.insert!(second_record)
+      assert :ok = State.put!(id, %{key1: "value1", key2: "value2"}, ttl: 1000)
+
+      assert :ok = State.put!(id, %{key2: "new_value"}, ttl: 2000)
 
       assert {:ok, state} = State.get_by_id!(id)
       assert state == %{key2: "new_value"}
