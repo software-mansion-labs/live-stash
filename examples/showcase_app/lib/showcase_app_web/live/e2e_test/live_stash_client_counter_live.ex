@@ -13,8 +13,8 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashClientCounterLive do
         {:recovered, recovered_socket} ->
           recovered_socket
 
-        _ ->
-          assign(socket, count: 0)
+        {_, socket} ->
+           assign(socket, count: 0)
     end
     |> then(&{:ok, &1})
   end

@@ -2,6 +2,7 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
   use ShowcaseAppWeb, :live_view
   use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 1000, assigns: [:count]
 
+
   def mount(_params, _session, socket) do
     socket
     |> LiveStash.recover_state()
@@ -9,7 +10,7 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
         {:recovered, recovered_socket} ->
           recovered_socket
 
-        _ ->
+        {_, socket} ->
           assign(socket, count: 0)
     end
     |> then(&{:ok, &1})

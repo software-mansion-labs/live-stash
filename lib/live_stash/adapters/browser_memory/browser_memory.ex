@@ -42,7 +42,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
     if new_fingerprint != context.stash_fingerprint do
       serialized_assigns =
-        Serializer.term_to_external(socket, assigns_to_stash, get_settings(socket))
+        Serializer.encode_token(socket, assigns_to_stash, get_settings(socket))
 
       payload = %{
         "assigns" => serialized_assigns
@@ -72,7 +72,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
     case LiveView.get_connect_params(socket) do
       %{"liveStash" => %{"stashedState" => stashed_state}}
       when is_binary(stashed_state) ->
-        case Serializer.external_to_term(
+        case Serializer.decode_token(
                socket,
                stashed_state,
                get_settings(socket)
@@ -94,9 +94,11 @@ defmodule LiveStash.Adapters.BrowserMemory do
                 reason
               )
 
-            Logger.error(msg)
+            Logger.warning(msg)
 
-            {:error, socket}
+            socket
+            |> LiveView.push_event("live-stash:init-browser-memory", %{})
+            |> then(&{:error, &1})
         end
 
       _ ->

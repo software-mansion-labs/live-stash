@@ -47,8 +47,15 @@ defmodule LiveStash.Adapters.ETS.StateTest do
     end
   end
 
-  describe "insert!/1 with duplicate id" do
-    test "replaces existing state map as a whole" do
+  describe "put!/3" do
+    test "creates a new state record when id doesn't exist" do
+      id = "new_id"
+      assert State.put!(id, %{key: "value"}, ttl: 1000) == :ok
+
+      assert {:ok, %{key: "value"}} = State.get_by_id!(id)
+    end
+
+    test "replaces existing state map when id exists" do
       id = "existing_id"
       first_record = State.new(id, %{key1: "value1", key2: "value2"}, ttl: 1000)
       second_record = State.new(id, %{key2: "new_value"}, ttl: 2000)
@@ -61,6 +68,20 @@ defmodule LiveStash.Adapters.ETS.StateTest do
 
       [{:state, ^id, _pid, _delete_at, ttl, _state}] = :ets.lookup(@table_name, id)
       assert ttl == 2000
+    end
+
+    test "raises exception if state is owned by a different process (PID mismatch)" do
+      id = "test_id"
+      opts = [ttl: 1000]
+
+      Task.async(fn ->
+        State.put!(id, %{key: "old_value"}, opts)
+      end)
+      |> Task.await()
+
+      assert_raise RuntimeError, fn ->
+        State.put!(id, %{key: "new_value"}, opts)
+      end
     end
   end
 

@@ -1,7 +1,7 @@
 let liveStash = {};
 
 window.addEventListener('phx:live-stash:init-browser-memory', (_event) => {
-  liveStash = { stashedState: {} };
+  liveStash = { stashedState: null };
 });
 
 window.addEventListener('phx:live-stash:stash-state', (event) => {

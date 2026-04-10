@@ -24,7 +24,9 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
     |> case do
       {:recovered, recovered_socket} ->
         recovered_socket
-      _ -> start_new_game(socket)
+
+      {_, socket} ->
+        start_new_game(socket)
     end
     |> assign(is_embed: is_embed)
     |> then(&{:ok, &1})

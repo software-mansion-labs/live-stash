@@ -178,6 +178,22 @@ defmodule LiveStash.Adapters.ETSTest do
 
       assert saved_state == %{username: "tester"}
     end
+
+    test "crashes the process if attempting to stash to a record owned by a different PID", %{
+      socket: socket,
+      ets_id: ets_id
+    } do
+      Task.async(fn ->
+        State.put!(ets_id, %{username: "detached process"}, ttl: 86_400)
+      end)
+      |> Task.await()
+
+      socket_with_new_state = put_in(socket.assigns.username, "current process")
+
+      assert_raise RuntimeError, ~r/already exists for another process/, fn ->
+        ETS.stash(socket_with_new_state)
+      end
+    end
   end
 
   describe "recover_state/1" do
@@ -198,6 +214,24 @@ defmodule LiveStash.Adapters.ETSTest do
       assert recovered_socket.assigns.__changed__ == %{player_level: true, theme: true}
       assert recovered_socket.assigns.player_id == 123
       assert recovered_socket.assigns.username == "tester"
+    end
+
+    test "takes ownership of the ETS record (updates PID) upon recovery", %{
+      socket: socket,
+      ets_id: ets_id
+    } do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+      opts = [ttl: 86_400]
+
+      Task.async(fn ->
+        State.put!(ets_id, %{player_level: 10}, opts)
+      end)
+      |> Task.await()
+
+      assert {:recovered, recovered_socket} = ETS.recover_state(socket)
+      assert recovered_socket.assigns.player_level == 10
+
+      assert State.put!(ets_id, %{player_level: 11}, opts) == :ok
     end
 
     test "returns :not_found when there is no state in ETS for the given id", %{socket: socket} do

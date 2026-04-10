@@ -79,8 +79,7 @@ defmodule LiveStash.Adapters.ETS do
     new_fingerprint = Common.hash_term(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
-      State.new(get_ets_id(socket), assigns_to_stash, get_opts(socket))
-      |> State.insert!()
+      State.put!(get_ets_id(socket), assigns_to_stash, get_opts(socket))
 
       new_context = %{context | stash_fingerprint: new_fingerprint}
 

@@ -2,7 +2,7 @@
 
 LiveStash provides a reliable, explicit API to safely stash and recover [Phoenix LiveView](https://github.com/phoenixframework/phoenix_live_view) assigns, keeping your application state completely intact whenever a socket connection is interrupted or re-established.
 
-Try the interactive [demo](https://live-stash-demo.fly.dev/), check out our [documentation](https://hexdocs.pm/live_stash/welcome.html) or play around with [examples](https://github.com/software-mansion-labs/live-stash/tree/main/examples/showcase_app) to explore all capabilities in detail.
+Try the interactive [demo](https://live-stash-demo.fly.dev/), check out our [documentation](https://hexdocs.pm/live_stash/welcome.html).
 
 https://github.com/user-attachments/assets/c03836e1-362e-4e06-bfc7-3656c6672c8e
 
@@ -43,8 +43,8 @@ defmodule ShowcaseAppWeb.CounterLive do
           # socket with previously stashed assigns is recovered
           recovered_socket
 
-        _ ->
-          # could not recover assigns, proceed with standard setup
+        {_, socket} ->
+          # could not recover assigns, proceed with standard setup using returned socket
           # ...
     end
     |> then(&{:ok, &1})
@@ -78,8 +78,8 @@ const liveSocket = new LiveSocket("/live", Socket, {
 
 You can control where the stashed data is kept by passing appropriate adapter module. LiveStash currently supports two adapters:
 
-- **ETS** - The data is kept on the server side in the ETS table.
-- **Browser memory** (default) - The data is saved in the client browser.
+- **ETS** - (default) The data is kept on the server side in the ETS table.
+- **Browser memory** - The data is saved in the client browser.
 
 ```elixir
 use LiveStash, adapter: LiveStash.Adapters.ETS, assigns: [:count, :user_id]
@@ -91,7 +91,7 @@ Remember to define adapters you would like to activate in your `config.exs` file
 config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory]
 ```
 
-The default adapter is `LiveStash.Adapters.BrowserMemory` and it is always activated.
+The default adapter is `LiveStash.Adapters.ETS` and it is always activated.
 
 See [ETS Adapter Guide](https://hexdocs.pm/live_stash/ets.html) and [Browser Memory Adapter Guide](https://hexdocs.pm/live_stash/browser_memory.html) for details on how to customize LiveStash to your needs.
 
