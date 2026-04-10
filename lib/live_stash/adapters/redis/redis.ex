@@ -9,6 +9,7 @@ defmodule LiveStash.Adapters.Redis do
   alias Phoenix.LiveView
   alias LiveStash.Adapters.Redis.Context
   alias LiveStash.Utils
+  alias LiveStash.Adapters.Common
   alias LiveStash.Adapters.Redis.Registry
 
   require Logger
@@ -82,7 +83,8 @@ defmodule LiveStash.Adapters.Redis do
     if new_fingerprint != context.fingerprint do
       case command(["SET", id, serialized_assigns, "EX", to_string(ttl)]) do
         {:ok, "OK"} ->
-          Registry.put!(id, ttl: ttl)
+          Registry.new(id, ttl: ttl)
+          |> Registry.insert!()
 
           new_context = %{context | stash_fingerprint: new_fingerprint}
 
@@ -118,7 +120,15 @@ defmodule LiveStash.Adapters.Redis do
 
       {:ok, binary_state} when is_binary(binary_state) ->
         recovered_state = :erlang.binary_to_term(binary_state)
-        {:recovered, Component.assign(socket, recovered_state)}
+
+        context = socket.private.live_stash_context
+        fingerprint = Common.hash_term(recovered_state)
+        updated_context = %{context | stash_fingerprint: fingerprint}
+
+        socket
+        |> Component.assign(recovered_state)
+        |> LiveView.put_private(:live_stash_context, updated_context)
+        |> then(&{:recovered, &1})
 
       {:error, error} ->
         err = format_command_error_message("Failed to recover state", error)
@@ -139,6 +149,10 @@ defmodule LiveStash.Adapters.Redis do
     id = get_redis_key(socket)
 
     Registry.delete_by_id!(id)
+
+    context = socket.private.live_stash_context
+    updated_context = %{context | stash_fingerprint: nil}
+    socket = LiveView.put_private(socket, :live_stash_context, updated_context)
 
     case command(["DEL", id]) do
       {:ok, _count} ->
