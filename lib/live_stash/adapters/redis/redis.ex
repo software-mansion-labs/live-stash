@@ -72,16 +72,18 @@ defmodule LiveStash.Adapters.Redis do
   def stash(socket) do
     context = socket.private.live_stash_context
 
-    keys = context.assigns
+    keys = context.stored_keys
     assigns_to_stash = Map.take(socket.assigns, keys)
     new_fingerprint = Common.hash_term(assigns_to_stash)
 
     id = get_redis_key(socket)
+    redis_exp = context.redis_exp
     ttl = context.ttl
+
     serialized_assigns = :erlang.term_to_binary(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
-      case command(["SET", id, serialized_assigns, "EX", to_string(ttl)]) do
+      case command(["SET", id, serialized_assigns, "EX", to_string(redis_exp)]) do
         {:ok, "OK"} ->
           Registry.new(id, ttl: ttl)
           |> Registry.insert!()
@@ -122,6 +124,9 @@ defmodule LiveStash.Adapters.Redis do
       {:ok, binary_state} when is_binary(binary_state) ->
         dbg(binary_state)
         recovered_state = :erlang.binary_to_term(binary_state)
+
+        Registry.new(id, ttl: socket.private.live_stash_context.ttl)
+        |> Registry.insert!()
 
         context = socket.private.live_stash_context
         fingerprint = Common.hash_term(recovered_state)

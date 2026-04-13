@@ -9,7 +9,7 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
   alias LiveStash.Adapters.Redis
   alias LiveStash.Utils
 
-  @cleanup_interval Application.compile_env(:live_stash, :ets_cleanup_interval, 1 * 60 * 1_000)
+  @refresh_interval Application.compile_env(:live_stash, :ttl_refresh_interval, 1 * 1_000)
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -22,7 +22,7 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
   end
 
   @impl true
-  def handle_info(:cleanup, state) do
+  def handle_info(:ttl_refresh, state) do
     Logger.debug("[LiveStash] Refreshing active states in Redis...")
 
     clean_expired_states!()
@@ -45,7 +45,7 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
   """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do
-    now = System.os_time(:second)
+    now = System.os_time(:millisecond)
 
     case Registry.get_batch!(now) do
       {candidates, continuation} ->
@@ -61,16 +61,19 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
       if Process.alive?(pid) do
         new_delete_at = now + ttl
         Registry.bump_delete_at!(id, new_delete_at)
+      else
+        Logger.debug("deleting for id #{id}")
+        Registry.delete_by_id!(id)
 
-        case Redis.command(["EXPIRE", id, to_string(ttl)]) do
+        case Redis.command(["DEL", id]) do
           {:ok, _} ->
             :ok
 
           {:error, reason} ->
-            Logger.error("[LiveStash] Failed to bump TTL for #{id} in Redis: #{inspect(reason)}")
+            Logger.error(
+              "[LiveStash] Failed to delete stash for #{id} in Redis: #{inspect(reason)}"
+            )
         end
-      else
-        Registry.delete_by_id!(id)
       end
     end)
 
@@ -83,5 +86,5 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
     end
   end
 
-  defp schedule_cleanup(), do: Process.send_after(self(), :cleanup, @cleanup_interval)
+  defp schedule_cleanup(), do: Process.send_after(self(), :ttl_refresh, @refresh_interval)
 end

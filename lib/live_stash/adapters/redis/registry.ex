@@ -11,13 +11,15 @@ defmodule LiveStash.Adapters.Redis.Registry do
 
   require Record
 
+  alias LiveStash.Utils
+
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_redis_registry)
   @batch_size Application.compile_env(:live_stash, :ets_cleanup_batch_size, 100)
 
-  Record.defrecord(:state, [:id, :pid, :delete_at, :ttl])
+  Record.defrecord(:registry, [:id, :pid, :delete_at, :ttl])
 
   @type t ::
-          record(:state,
+          record(:registry,
             id: term(),
             pid: pid(),
             delete_at: integer(),
@@ -49,10 +51,10 @@ defmodule LiveStash.Adapters.Redis.Registry do
   def new(id, opts) do
     ttl = Keyword.fetch!(opts, :ttl)
 
-    state(
+    registry(
       id: id,
       pid: self(),
-      delete_at: System.os_time(:second) + ttl,
+      delete_at: System.os_time(:millisecond) + ttl,
       ttl: ttl
     )
   end
@@ -67,13 +69,30 @@ defmodule LiveStash.Adapters.Redis.Registry do
   end
 
   @doc """
-  Puts a new tracking record or overwrites an existing one.
+  Creates a new registry entry if it doesn't exist. Allows update only to the process that owns the registry record (matching pid), otherwise raises an error.
   """
   @spec put!(id :: term(), opts :: Keyword.t()) :: :ok
   def put!(id, opts) do
-    id
-    |> new(opts)
-    |> insert!()
+    pid = self()
+    new_record = new(id, opts)
+
+    match_spec = [
+      {{:registry, id, pid, :_, :_}, [], [{new_record}]}
+    ]
+
+    if :ets.select_replace(@table_name, match_spec) == 0 do
+      if not :ets.insert_new(@table_name, new_record) do
+        msg =
+          Utils.reason_message(
+            "Registry entry with id #{inspect(id)} already exists for another process",
+            :conflict
+          )
+
+        raise RuntimeError, msg
+      end
+    end
+
+    :ok
   end
 
   @doc """
@@ -84,7 +103,7 @@ defmodule LiveStash.Adapters.Redis.Registry do
     @table_name
     |> :ets.lookup(id)
     |> case do
-      [{:state, ^id, pid, delete_at, ttl}] -> {:ok, pid, delete_at, ttl}
+      [{:registry, ^id, pid, delete_at, ttl}] -> {:ok, pid, delete_at, ttl}
       [] -> :not_found
     end
   end
@@ -106,7 +125,7 @@ defmodule LiveStash.Adapters.Redis.Registry do
     @table_name
     |> :ets.take(id)
     |> case do
-      [{:state, ^id, pid, delete_at, ttl}] -> {:ok, pid, delete_at, ttl}
+      [{:registry, ^id, pid, delete_at, ttl}] -> {:ok, pid, delete_at, ttl}
       [] -> :not_found
     end
   end
@@ -119,9 +138,9 @@ defmodule LiveStash.Adapters.Redis.Registry do
   def get_batch!(now) when is_integer(now) do
     spec = [
       {
-        # Pattern: {:state, id, pid, delete_at, ttl} (5 elements)
-        {:state, :"$1", :"$2", :"$3", :"$4"},
-        # Guard: delete_at < now
+        # Pattern: {:registry, id, pid, delete_at, ttl} (5 elements)
+        {:registry, :"$1", :"$2", :"$3", :"$4"},
+        # Guard
         [{:<, :"$3", now}],
         # Return: {id, pid, ttl}
         [{{:"$1", :"$2", :"$4"}}]
@@ -144,7 +163,6 @@ defmodule LiveStash.Adapters.Redis.Registry do
   """
   @spec bump_delete_at!(id :: term(), time :: integer()) :: :ok
   def bump_delete_at!(id, time) when is_integer(time) do
-    # W krotce rekordu {:state, id, pid, delete_at, ttl} element delete_at jest na 4. pozycji
     :ets.update_element(@table_name, id, {4, time})
     :ok
   end

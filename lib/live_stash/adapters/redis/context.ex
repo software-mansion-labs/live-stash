@@ -3,38 +3,41 @@ defmodule LiveStash.Adapters.Redis.Context do
   Holds the state and configuration for the Redis adapter.
 
   ## Fields
-  * `:assigns` - A list of assign keys to automatically stash on every update.
+  * `:stored_keys` - A list of assign keys to automatically stash on every update.
   * `:reconnected?` - A boolean indicating whether the LiveView socket has successfully reconnected vs. a fresh mount.
   * `:stash_fingerprint` - A binary string representing the fingerprint of the stashed state. This is used to determine if the state has changed and needs to be re-stashed.
   * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the Redis database.
   * `:secret` - A binary string used as part of the record id in the Redis for security purposes.
-  * `:ttl` - Time-to-live for the records kept in the Redis, specified in seconds.
+  * `:ttl` - Time-to-live for the records kept in the Redis, specified in milliseconds.
+  * `:redis_exp` - The expiration argument to use in Redis commands, specified in seconds. This is used to prevent dead entries in Redis when for example ETS crashes.
   """
 
   alias Phoenix.LiveView
   alias LiveStash.Adapters.Common
 
   @enforce_keys [
-    :assigns,
+    :stored_keys,
     :reconnected?,
     :id
   ]
 
   defstruct [
-    :assigns,
+    :stored_keys,
     :reconnected?,
     :id,
     stash_fingerprint: nil,
     secret: "live_stash",
-    ttl: 5 * 60 * 1000
+    ttl: 5 * 60 * 1000,
+    redis_exp: 86400
   ]
 
   @type t :: %__MODULE__{
-          assigns: [atom()],
+          stored_keys: [atom()],
           reconnected?: boolean(),
           stash_fingerprint: binary() | nil,
           secret: binary(),
           ttl: integer(),
+          redis_exp: integer(),
           id: binary()
         }
 
