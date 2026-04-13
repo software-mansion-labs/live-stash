@@ -36,7 +36,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
   @impl true
   def stash(socket) do
     context = socket.private.live_stash_context
-    keys = context.assigns
+    keys = context.stored_keys
     assigns_to_stash = Map.take(socket.assigns, keys)
     new_fingerprint = Common.hash_term(assigns_to_stash)
 
@@ -69,37 +69,31 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
-    case LiveView.get_connect_params(socket) do
-      %{"liveStash" => %{"stashedState" => stashed_state}}
-      when is_binary(stashed_state) ->
-        case Serializer.decode_token(
-               socket,
-               stashed_state,
-               get_settings(socket)
-             ) do
-          {:ok, recovered_state} ->
-            context = socket.private.live_stash_context
-            fingerprint = Common.hash_term(recovered_state)
-            updated_context = %{context | stash_fingerprint: fingerprint}
+    with %{"liveStash" => %{"stashedState" => stashed_state}} when is_binary(stashed_state) <-
+           LiveView.get_connect_params(socket),
+         {:ok, recovered_state} <-
+           Serializer.decode_token(socket, stashed_state, get_settings(socket)) do
+      context = socket.private.live_stash_context
+      fingerprint = Common.hash_term(recovered_state)
+      updated_context = %{context | stash_fingerprint: fingerprint}
 
-            socket
-            |> Component.assign(recovered_state)
-            |> LiveView.put_private(:live_stash_context, updated_context)
-            |> then(&{:recovered, &1})
+      socket
+      |> Component.assign(recovered_state)
+      |> LiveView.put_private(:live_stash_context, updated_context)
+      |> then(&{:recovered, &1})
+    else
+      {:error, reason} ->
+        msg =
+          Utils.reason_message(
+            "Failed to decode stashed state from token.",
+            reason
+          )
 
-          {:error, reason} ->
-            msg =
-              Utils.reason_message(
-                "Failed to decode stashed state from token.",
-                reason
-              )
+        Logger.warning(msg)
 
-            Logger.warning(msg)
-
-            socket
-            |> LiveView.push_event("live-stash:init-browser-memory", %{})
-            |> then(&{:error, &1})
-        end
+        socket
+        |> LiveView.push_event("live-stash:init-browser-memory", %{})
+        |> then(&{:error, &1})
 
       _ ->
         {:not_found, socket}

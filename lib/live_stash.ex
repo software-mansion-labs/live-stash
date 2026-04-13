@@ -17,7 +17,7 @@ defmodule LiveStash do
 
       defmodule MyAppWeb.CounterLive do
         use MyAppWeb, :live_view
-        use LiveStash
+        use LiveStash, stored_keys: [:count]
       end
 
   Stash assigns after state-changing events:
@@ -25,7 +25,7 @@ defmodule LiveStash do
       def handle_event("increment", _, socket) do
         socket
         |> assign(:count, socket.assigns.count + 1)
-        |> LiveStash.stash([:count])
+        |> LiveStash.stash()
         |> then(&{:noreply, &1})
       end
 
@@ -154,7 +154,7 @@ defmodule LiveStash do
   Stashes assigns from `socket.assigns` declared at the module level.
 
   ## Examples
-      use LiveStash, assigns: [:count, :username] # assigns are declared at the module level
+      use LiveStash, stored_keys: [:count, :username] # assigns are declared at the module level
 
       def handle_event("increment", _, socket) do
         socket

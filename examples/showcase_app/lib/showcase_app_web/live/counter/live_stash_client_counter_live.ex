@@ -4,7 +4,7 @@ defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
     adapter: LiveStash.Adapters.BrowserMemory,
     security_mode: :encrypt,
     ttl: 5 * 60 * 1000,
-    assigns: [:count]
+    stored_keys: [:count]
 
   def mount(_params, _session, socket) do
     socket

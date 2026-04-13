@@ -84,18 +84,14 @@ defmodule LiveStash.Adapters.ETS.State do
     ]
 
     if :ets.select_replace(@table_name, match_spec) == 0 do
-      case :ets.lookup(@table_name, id) do
-        [{:state, ^id, owner_pid, _delete_at, _ttl, _old_state}] when owner_pid != pid ->
-          msg =
-            Utils.reason_message(
-              "State with id #{inspect(id)} already exists for another process",
-              :conflict
-            )
+      if not :ets.insert_new(@table_name, new_record) do
+        msg =
+          Utils.reason_message(
+            "State with id #{inspect(id)} already exists for another process",
+            :conflict
+          )
 
-          raise RuntimeError, msg
-
-        [] ->
-          insert!(new_record)
+        raise RuntimeError, msg
       end
     end
 

@@ -16,7 +16,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
   describe "new/3" do
     test "returns default settings when no session_key is provided", %{socket: socket} do
       session = %{}
-      opts = [ttl: 1000, assigns: [:username]]
+      opts = [ttl: 1000, stored_keys: [:username]]
 
       context = Context.new(socket, session, opts)
 
@@ -29,7 +29,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
     test "fetches, hashes, and base64 encodes secret from session when session_key is provided",
          %{socket: socket} do
       session = %{"my_stash_key" => "super_secret_token"}
-      opts = [session_key: "my_stash_key", assigns: [:username]]
+      opts = [session_key: "my_stash_key", stored_keys: [:username]]
 
       context = Context.new(socket, session, opts)
 
@@ -43,7 +43,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
 
     test "raises ArgumentError when session_key is not found in session", %{socket: socket} do
       session = %{"other_key" => "value"}
-      opts = [session_key: "missing_key", assigns: [:username]]
+      opts = [session_key: "missing_key", stored_keys: [:username]]
 
       assert_raise ArgumentError, ~r/failed to return a valid secret/, fn ->
         Context.new(socket, session, opts)
@@ -52,7 +52,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
 
     test "raises ArgumentError when session_key returns a non-binary value", %{socket: socket} do
       session = %{"int_key" => 123}
-      opts = [session_key: "int_key", assigns: [:username]]
+      opts = [session_key: "int_key", stored_keys: [:username]]
 
       assert_raise ArgumentError, ~r/invalid type. Expected a binary string/, fn ->
         Context.new(socket, session, opts)
@@ -62,7 +62,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
     test "reraises a custom RuntimeError when LiveView.get_connect_params/1 fails" do
       broken_socket = %Socket{transport_pid: self()}
       session = %{}
-      opts = [assigns: [:username]]
+      opts = [stored_keys: [:username]]
 
       assert_raise RuntimeError, ~r/Failed to get connect params/, fn ->
         Context.new(broken_socket, session, opts)
@@ -72,7 +72,7 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
     test "sets reconnected? to true when _mounts is greater than 0", %{socket: socket} do
       socket = put_in(socket.private.connect_params, %{"_mounts" => 1})
       session = %{}
-      opts = [assigns: [:username]]
+      opts = [stored_keys: [:username]]
 
       context = Context.new(socket, session, opts)
 

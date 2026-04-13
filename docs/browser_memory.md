@@ -4,7 +4,7 @@
 
 In this mode, the stashed state is kept in the browser's memory. Each call to `stash/1` pushes the configured assigns to the client via `Phoenix.LiveView.push_event/3`, storing them in a JavaScript variable. Upon LiveView reconnection, the client automatically sends this state back to the server via connection parameters.
 
-The assigns you want to persist are declared once at the module level with `assigns: [...]`, and `stash/1` only sends the state to the client if those values have changed since the last stash.
+The assigns you want to persist are declared once at the module level with `stored_keys: [...]`, and `stash/1` only sends the state to the client if those values have changed since the last stash.
 
 ## When to use
 
@@ -30,7 +30,7 @@ The stash is always cleared after a LiveView using this mode is rendered for the
 Stashed data has a Time-To-Live (TTL) that is used to determine how long the data should be retained. The default TTL is 5 minutes. You can adjust this using the `:ttl` option. There is an external upper limit from Phoenix Token of 1 day (24 hours) for the maximum TTL.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, ttl: 60 * 1000, assigns: [:count]
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, ttl: 60 * 1000, stored_keys: [:count]
 ```
 
 ## Security
@@ -42,7 +42,7 @@ By default, LiveStash uses a hardcoded default secret (`"live_stash"`) to secure
 You can do this by providing a `:session_key`. LiveStash will extract the value from the connection session securely hash it (SHA-256) to use as the operational secret. If you provide the key and it is not present in the session, `Argument Error` will be raised.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, session_key: "user_token", assigns: [:count]
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, session_key: "user_token", stored_keys: [:count]
 ```
 
 ### Security mode
@@ -52,5 +52,5 @@ In browser mode, the secret defined in the configuration section is used as part
 Additionally, you can configure how the data is secured in client mode using the `:security_mode` option. It defaults to `:sign`, but can be set to `:encrypt` for sensitive payloads.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, assigns: [:count]
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, stored_keys: [:count]
 ```

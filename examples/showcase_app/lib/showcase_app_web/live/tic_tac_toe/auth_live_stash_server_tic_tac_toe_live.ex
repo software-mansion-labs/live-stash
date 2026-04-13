@@ -4,7 +4,7 @@ defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
     adapter: LiveStash.Adapters.ETS,
     ttl: 60 * 1000,
     session_key: "user_token",
-    assigns: [:board, :current_player, :winner, :winning_line]
+    stored_keys: [:board, :current_player, :winner, :winning_line]
 
   @winning_lines [
     [0, 1, 2],

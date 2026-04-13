@@ -3,7 +3,7 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
   use LiveStash,
     adapter: LiveStash.Adapters.ETS,
     ttl: 5 * 60 * 1000,
-    assigns: [:board, :current_player, :winner, :winning_line]
+    stored_keys: [:board, :current_player, :winner, :winning_line]
 
   @winning_lines [
     [0, 1, 2],

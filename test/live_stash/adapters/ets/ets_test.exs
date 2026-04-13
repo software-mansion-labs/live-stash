@@ -33,7 +33,7 @@ defmodule LiveStash.Adapters.ETSTest do
           live_temp: %{},
           connect_params: %{"liveStash" => %{"stashId" => stash_id}},
           live_stash_context: %ETS.Context{
-            assigns: [:username],
+            stored_keys: [:username],
             reconnected?: false,
             ttl: 86_400,
             secret: secret,
@@ -65,7 +65,7 @@ defmodule LiveStash.Adapters.ETSTest do
         State.state(id: ets_id, pid: self(), delete_at: delete_at, ttl: 1000, state: %{})
       )
 
-      initialized_socket = ETS.init_stash(socket, %{}, assigns: [:username])
+      initialized_socket = ETS.init_stash(socket, %{}, stored_keys: [:username])
 
       generated_id = initialized_socket.private.live_stash_context.id
 
@@ -98,7 +98,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
       socket = put_in(socket.private[:connect_params]["_mounts"], 1)
 
-      initialized_socket = ETS.init_stash(socket, %{}, assigns: [:username])
+      initialized_socket = ETS.init_stash(socket, %{}, stored_keys: [:username])
 
       id_after_init = initialized_socket.private.live_stash_context.id
       assert id_after_init == "test_uuid_1234"
@@ -169,7 +169,7 @@ defmodule LiveStash.Adapters.ETSTest do
       ets_id: ets_id
     } do
       context = socket.private.live_stash_context
-      updated_context = %{context | assigns: [:username, :missing_key]}
+      updated_context = %{context | stored_keys: [:username, :missing_key]}
       socket_configured = put_in(socket.private.live_stash_context, updated_context)
 
       assert %Socket{} = ETS.stash(socket_configured)

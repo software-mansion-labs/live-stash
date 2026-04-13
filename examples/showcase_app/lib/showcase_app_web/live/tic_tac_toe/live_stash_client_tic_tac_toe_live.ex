@@ -3,7 +3,7 @@ defmodule ShowcaseAppWeb.LiveStashClientTicTacToeLive do
   use LiveStash,
     adapter: LiveStash.Adapters.BrowserMemory,
     security_mode: :encrypt,
-    assigns: [:board, :current_player, :winner, :winning_line]
+    stored_keys: [:board, :current_player, :winner, :winning_line]
 
   @winning_lines [
     [0, 1, 2],

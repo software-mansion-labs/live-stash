@@ -61,20 +61,10 @@ defmodule LiveStash.Adapters.ETS do
     })
   end
 
-  defp get_ets_id(socket) do
-    id = socket.private.live_stash_context.id
-    secret = socket.private.live_stash_context.secret
-
-    raw_key = id <> secret
-    hashed_binary = :crypto.hash(:sha256, raw_key)
-
-    Base.encode64(hashed_binary, padding: false)
-  end
-
   @impl true
   def stash(socket) do
     context = socket.private.live_stash_context
-    keys = context.assigns
+    keys = context.stored_keys
     assigns_to_stash = Map.take(socket.assigns, keys)
     new_fingerprint = Common.hash_term(assigns_to_stash)
 
@@ -148,6 +138,16 @@ defmodule LiveStash.Adapters.ETS do
       Logger.error(err)
 
       socket
+  end
+
+  defp get_ets_id(socket) do
+    id = socket.private.live_stash_context.id
+    secret = socket.private.live_stash_context.secret
+
+    raw_key = id <> secret
+    hashed_binary = :crypto.hash(:sha256, raw_key)
+
+    Base.encode64(hashed_binary, padding: false)
   end
 
   defp get_opts(socket) do
