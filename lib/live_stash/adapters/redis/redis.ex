@@ -80,7 +80,7 @@ defmodule LiveStash.Adapters.Redis do
     ttl = context.ttl
     serialized_assigns = :erlang.term_to_binary(assigns_to_stash)
 
-    if new_fingerprint != context.fingerprint do
+    if new_fingerprint != context.stash_fingerprint do
       case command(["SET", id, serialized_assigns, "EX", to_string(ttl)]) do
         {:ok, "OK"} ->
           Registry.new(id, ttl: ttl)
@@ -116,9 +116,11 @@ defmodule LiveStash.Adapters.Redis do
 
     case command(["GET", id]) do
       {:ok, nil} ->
+        dbg(:notfound)
         {:not_found, socket}
 
       {:ok, binary_state} when is_binary(binary_state) ->
+        dbg(binary_state)
         recovered_state = :erlang.binary_to_term(binary_state)
 
         context = socket.private.live_stash_context

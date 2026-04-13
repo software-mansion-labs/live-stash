@@ -17,7 +17,7 @@ window.addEventListener('phx:live-stash:init-ets', (event) => {
 
 window.addEventListener('phx:live-stash:init-redis', (event) => {
   liveStash = {
-    redisStashId: event.detail.stashId,
+    stashId: event.detail.stashId,
   };
 });
 

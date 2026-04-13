@@ -7,7 +7,9 @@
 # General application configuration
 import Config
 
-config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis], redis: "redis://localhost:6379"
+config :live_stash,
+  adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis],
+  redis: "redis://localhost:6379"
 
 config :showcase_app, :scopes,
   user: [

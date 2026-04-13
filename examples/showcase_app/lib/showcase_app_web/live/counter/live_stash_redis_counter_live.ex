@@ -1,15 +1,15 @@
 defmodule ShowcaseAppWeb.LiveStashRedisCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.Redis
+  use LiveStash, adapter: LiveStash.Adapters.Redis, assigns: [:count], ttl: 3000
 
-  def mount(_params, _session, socket) do
+ def mount(_params, _session, socket) do
     socket
     |> LiveStash.recover_state()
     |> case do
         {:recovered, recovered_socket} ->
           recovered_socket
 
-        _ ->
+        {_, socket} ->
           assign(socket, count: 0)
     end
     |> then(&{:ok, &1})
@@ -81,13 +81,13 @@ defmodule ShowcaseAppWeb.LiveStashRedisCounterLive do
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
-    |> LiveStash.stash_assigns([:count])
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})  end
 
   def handle_event("decrement", _, socket) do
     socket
     |> assign(:count, socket.assigns.count - 1)
-    |> LiveStash.stash_assigns([:count])
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 
