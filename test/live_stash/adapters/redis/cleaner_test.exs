@@ -1,5 +1,6 @@
 defmodule LiveStash.Adapters.Redis.CleanerTest do
   use ExUnit.Case, async: false
+  import ExUnit.CaptureLog
 
   require LiveStash.Adapters.Redis.Registry
 
@@ -217,6 +218,46 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
       end
 
       assert LiveStash.TestRedisConn.snapshot().store["dead_batch"] == nil
+    end
+
+    test "logs Redis DEL errors and still removes dead registry entries" do
+      now = System.os_time(:millisecond)
+      past_time = now - 5000
+      id = "dead_with_del_error"
+
+      dead_pid =
+        spawn(fn ->
+          receive do
+            :stop -> :ok
+          end
+        end)
+
+      Registry.insert!(
+        Registry.registry(
+          id: id,
+          pid: dead_pid,
+          delete_at: past_time,
+          ttl: 1000
+        )
+      )
+
+      assert {:ok, "OK"} =
+               Redis.command(["SET", id, :erlang.term_to_binary(%{key: "value"}), "EX", "86400"])
+
+      Process.exit(dead_pid, :kill)
+      ref = Process.monitor(dead_pid)
+      assert_receive {:DOWN, ^ref, :process, ^dead_pid, _}, 1000
+
+      assert :ok = LiveStash.TestRedisConn.fail_next("DEL", :timeout)
+
+      log =
+        capture_log(fn ->
+          assert :ok = Cleaner.clean_expired_states!()
+        end)
+
+      assert log =~ "Failed to delete stash for #{id} in Redis"
+      assert Registry.get_by_id!(id) == :not_found
+      assert LiveStash.TestRedisConn.snapshot().store[id] != nil
     end
   end
 end

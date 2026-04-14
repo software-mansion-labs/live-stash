@@ -59,30 +59,25 @@ defmodule LiveStash.Adapters.RedisTest do
 
   describe "child_spec/1" do
     test "builds the supervisor tree with the configured Redix connection" do
-      original_env = Application.get_env(:live_stash, :redis)
       Application.put_env(:live_stash, :redis, host: "localhost", port: 6379)
 
-      try do
-        spec = Redis.child_spec([])
+      spec = Redis.child_spec([])
 
-        assert %{id: Redis, type: :supervisor} = spec
+      assert %{id: Redis, type: :supervisor} = spec
 
-        {Supervisor, :start_link, [children, [strategy: :one_for_one]]} = spec.start
+      {Supervisor, :start_link, [children, [strategy: :one_for_one]]} = spec.start
 
-        assert [
-                 {Redix, redix_args},
-                 {LiveStash.Adapters.Redis.Cleaner, []},
-                 {LiveStash.Adapters.Redis.Storage, []}
-               ] = children
+      assert [
+               {Redix, redix_args},
+               {LiveStash.Adapters.Redis.Cleaner, []},
+               {LiveStash.Adapters.Redis.Storage, []}
+             ] = children
 
-        assert Keyword.fetch!(redix_args, :name) == LiveStash.Adapters.Redis.Conn
-        assert Keyword.fetch!(redix_args, :sync_connect) == false
-        assert Keyword.fetch!(redix_args, :host) == "localhost"
-        assert Keyword.fetch!(redix_args, :port) == 6379
-        assert [strategy: :one_for_one] = [strategy: :one_for_one]
-      after
-        Application.put_env(:live_stash, :redis, original_env)
-      end
+      assert Keyword.fetch!(redix_args, :name) == LiveStash.Adapters.Redis.Conn
+      assert Keyword.fetch!(redix_args, :sync_connect) == false
+      assert Keyword.fetch!(redix_args, :host) == "localhost"
+      assert Keyword.fetch!(redix_args, :port) == 6379
+      assert [strategy: :one_for_one] = [strategy: :one_for_one]
     end
   end
 
@@ -214,6 +209,23 @@ defmodule LiveStash.Adapters.RedisTest do
       assert {:ok, saved_binary} = Redis.command(["GET", redis_id])
       assert :erlang.binary_to_term(saved_binary) == %{username: "tester"}
     end
+
+    test "logs and returns socket unchanged when Redis SET fails", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      assert :ok = LiveStash.TestRedisConn.fail_next("SET", :econnrefused)
+
+      log =
+        capture_log(fn ->
+          returned_socket = Redis.stash(socket)
+          assert returned_socket == socket
+        end)
+
+      assert log =~ "Failed to stash assigns"
+      assert Registry.get_by_id!(redis_id) == :not_found
+      assert LiveStash.TestRedisConn.snapshot().store[redis_id] == nil
+    end
   end
 
   describe "recover_state/1" do
@@ -244,6 +256,19 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert {:not_found, returned_socket} = Redis.recover_state(socket)
       assert returned_socket == socket
+    end
+
+    test "returns {:error, socket} and logs when Redis GET fails", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+      assert :ok = LiveStash.TestRedisConn.fail_next("GET", :timeout)
+
+      log =
+        capture_log(fn ->
+          assert {:error, returned_socket} = Redis.recover_state(socket)
+          assert returned_socket == socket
+        end)
+
+      assert log =~ "Failed to recover state"
     end
 
     test "rescues exceptions, logs error and returns {:error, socket}", %{socket: socket} do
@@ -302,6 +327,31 @@ defmodule LiveStash.Adapters.RedisTest do
         end)
 
       assert log =~ "Failed to reset stash"
+    end
+
+    test "logs DEL errors and still returns socket", %{socket: socket, redis_id: redis_id} do
+      socket = put_in(socket.private.live_stash_context.stash_fingerprint, "fingerprint")
+
+      Registry.insert!(
+        Registry.registry(
+          id: redis_id,
+          pid: self(),
+          delete_at: System.os_time(:millisecond) + 1000,
+          ttl: 1000
+        )
+      )
+
+      assert :ok = LiveStash.TestRedisConn.fail_next("DEL", :timeout)
+
+      log =
+        capture_log(fn ->
+          returned_socket = Redis.reset_stash(socket)
+          assert %Socket{} = returned_socket
+          assert returned_socket.private.live_stash_context.stash_fingerprint == nil
+        end)
+
+      assert log =~ "Failed to reset stash"
+      assert Registry.get_by_id!(redis_id) == :not_found
     end
   end
 
