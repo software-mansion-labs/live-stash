@@ -1,0 +1,49 @@
+const { test, expect } = require("@playwright/test");
+
+const routes = [
+  "/test/counter/live_stash_server",
+  "/test/counter/live_stash_client",
+  "/test/counter/live_stash_redis",
+];
+
+test.describe("ETS adapter - state recovery on cluster", () => {
+  test.use({ baseURL: "http://localhost:8080" });
+
+  routes.forEach((route) => {
+    test(`should not kill app when state is bad on ${route}`, async ({
+      page,
+    }) => {
+      await page.goto("/test/counter/live_stash_server");
+
+      const incrementBtn = page.getByLabel("Increment");
+      const counterValue = page.locator(".stat-value");
+
+      await page.waitForFunction(
+        () => window.liveSocket && window.liveSocket.isConnected(),
+      );
+
+      await expect(page.locator(".phx-connected").first()).toBeVisible();
+
+      await incrementBtn.click();
+      await expect(counterValue).toHaveText("1");
+
+      await incrementBtn.click();
+      await expect(counterValue).toHaveText("2");
+
+      await page.evaluate(() => window.liveSocket.disconnect());
+
+      await page.waitForFunction(
+        () => window.liveSocket && !window.liveSocket.isConnected(),
+      );
+
+      await page.evaluate(() => window.liveSocket.connect());
+
+      await page.waitForFunction(
+        () => window.liveSocket && window.liveSocket.isConnected(),
+      );
+
+      await expect(page.locator(".phx-connected").first()).toBeVisible();
+      await expect(counterValue).toHaveText("2");
+    });
+  });
+});
