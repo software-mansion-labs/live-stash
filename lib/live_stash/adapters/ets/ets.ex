@@ -78,15 +78,6 @@ defmodule LiveStash.Adapters.ETS do
     else
       socket
     end
-  rescue
-    e in KeyError ->
-      msg =
-        Utils.reason_message(
-          "Failed to stash assigns. Key #{inspect(e.key)} is missing from socket.assigns.",
-          :missing
-        )
-
-      reraise RuntimeError, msg, __STACKTRACE__
   end
 
   @impl true
