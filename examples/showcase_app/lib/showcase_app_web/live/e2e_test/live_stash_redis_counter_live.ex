@@ -1,6 +1,6 @@
-defmodule ShowcaseAppWeb.LiveStashRedisCounterLive do
+defmodule ShowcaseAppWeb.E2eTest.LiveStashRedisCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.Redis, stored_keys: [:count], ttl: 3000
+  use LiveStash, adapter: LiveStash.Adapters.Redis, stored_keys: [:count], ttl: 500
 
  def mount(_params, _session, socket) do
     socket
@@ -48,6 +48,14 @@ defmodule ShowcaseAppWeb.LiveStashRedisCounterLive do
             </button>
 
             <button
+              phx-click="add_zero"
+              class="btn btn-circle btn-lg btn-neutral text-xl"
+              aria-label="Add Zero"
+            >
+              0
+            </button>
+
+            <button
               phx-click="increment"
               class="btn btn-circle btn-lg btn-primary"
               aria-label="Increment"
@@ -76,6 +84,13 @@ defmodule ShowcaseAppWeb.LiveStashRedisCounterLive do
       <.socket_debugger />
     </div>
     """
+  end
+
+  def handle_event("add_zero", _, socket) do
+    socket
+    |> assign(:count, socket.assigns.count + 0)
+    |> LiveStash.stash()
+    |> then(&{:noreply, &1})
   end
 
   def handle_event("increment", _, socket) do

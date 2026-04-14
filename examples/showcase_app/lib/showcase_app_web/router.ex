@@ -26,16 +26,18 @@ defmodule ShowcaseAppWeb.Router do
     live "/tic-tac-toe/default", DefaultTicTacToeLive
     live "/tic-tac-toe/live_stash_server", LiveStashServerTicTacToeLive
     live "/tic-tac-toe/live_stash_client", LiveStashClientTicTacToeLive
+    live "/tic-tac-toe/live_stash_redis", LiveStashRedisTicTacToeLive
+
     live "/tic-tac-toe/comparison", ComparisonTicTacToeLive
 
     live "/counter", HomeCounterLive
     live "/counter/default", DefaultCounterLive
     live "/counter/live_stash_server", LiveStashServerCounterLive
     live "/counter/live_stash_client", LiveStashClientCounterLive
-    live "/counter/live_stash_redis", LiveStashRedisCounterLive
 
     live "/test/counter/live_stash_server", E2eTest.LiveStashServerCounterLive
     live "/test/counter/live_stash_client", E2eTest.LiveStashClientCounterLive
+    live "/test/counter/live_stash_redis", E2eTest.LiveStashRedisCounterLive
   end
 
   # Other scopes may use custom stacks.

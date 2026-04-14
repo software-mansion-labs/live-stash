@@ -1,4 +1,14 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   node_a:
     build: .
     hostname: node_a
@@ -14,6 +24,9 @@ services:
       - /workspace/examples/showcase_app/deps
       - /workspace/_build
       - /workspace/deps
+    depends_on:
+      redis:
+        condition: service_healthy
 
   node_b:
     build: .
@@ -30,6 +43,9 @@ services:
       - /workspace/examples/showcase_app/deps
       - /workspace/_build
       - /workspace/deps
+    depends_on:
+      redis:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine

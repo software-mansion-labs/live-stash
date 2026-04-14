@@ -83,17 +83,18 @@ defmodule LiveStash.Adapters.Redis do
     serialized_assigns = :erlang.term_to_binary(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
+      Registry.put!(id, ttl: ttl)
+
       case command(["SET", id, serialized_assigns, "EX", to_string(redis_exp)]) do
         {:ok, "OK"} ->
-          Registry.new(id, ttl: ttl)
-          |> Registry.insert!()
-
           new_context = %{context | stash_fingerprint: new_fingerprint}
 
           socket
           |> LiveView.put_private(:live_stash_context, new_context)
 
         {:error, error} ->
+          Registry.delete_by_id!(id)
+
           err = format_command_error_message("Failed to stash assigns", error)
           Logger.error(err)
           socket

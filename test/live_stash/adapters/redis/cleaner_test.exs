@@ -93,7 +93,6 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
 
       Process.exit(dead_pid, :kill)
       ref = Process.monitor(dead_pid)
-
       assert_receive {:DOWN, ^ref, :process, ^dead_pid, _}, 1000
 
       assert Cleaner.clean_expired_states!() == :ok
@@ -201,7 +200,6 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
 
       Process.exit(dead_pid, :kill)
       ref = Process.monitor(dead_pid)
-
       assert_receive {:DOWN, ^ref, :process, ^dead_pid, _}, 1000
 
       assert length(:ets.tab2list(@table_name)) == 151

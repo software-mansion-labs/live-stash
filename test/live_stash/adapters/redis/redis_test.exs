@@ -210,7 +210,23 @@ defmodule LiveStash.Adapters.RedisTest do
       assert :erlang.binary_to_term(saved_binary) == %{username: "tester"}
     end
 
-    test "logs and returns socket unchanged when Redis SET fails", %{
+    test "crashes the process if attempting to stash to a record owned by a different PID", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      Task.async(fn ->
+        Registry.put!(redis_id, ttl: 86_400)
+      end)
+      |> Task.await()
+
+      socket_with_new_state = put_in(socket.assigns.username, "current process")
+
+      assert_raise RuntimeError, ~r/already exists for another process/, fn ->
+        Redis.stash(socket_with_new_state)
+      end
+    end
+
+    test "logs and returns socket unchanged when Redis SET fails, clears the registry", %{
       socket: socket,
       redis_id: redis_id
     } do
@@ -247,6 +263,25 @@ defmodule LiveStash.Adapters.RedisTest do
       assert recovered_socket.assigns.__changed__ == %{player_level: true, theme: true}
       assert recovered_socket.assigns.player_id == 123
       assert recovered_socket.assigns.username == "tester"
+    end
+
+    test "takes ownership of the ETS record (updates PID) upon recovery", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+      opts = [ttl: 86_400]
+
+      Task.async(fn ->
+        Registry.put!(redis_id, opts)
+        Redis.command(["SET", redis_id, :erlang.term_to_binary(socket.assigns), "EX", "86400"])
+      end)
+      |> Task.await()
+
+      assert {:recovered, recovered_socket} = Redis.recover_state(socket)
+      assert recovered_socket.assigns.player_id == 123
+
+      assert Registry.put!(redis_id, opts) == :ok
     end
 
     test "returns {:not_found, socket} when there is no state in Redis for the given id", %{

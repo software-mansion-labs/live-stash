@@ -9,7 +9,7 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
   alias LiveStash.Adapters.Redis
   alias LiveStash.Utils
 
-  @refresh_interval Application.compile_env(:live_stash, :ttl_refresh_interval, 1 * 1_000)
+  @refresh_interval Application.compile_env(:live_stash, :redis_cleanup_interval, 1 * 60 * 1_000)
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
