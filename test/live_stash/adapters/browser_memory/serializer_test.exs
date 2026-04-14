@@ -49,7 +49,7 @@ defmodule LiveStash.Adapters.BrowserMemory.SerializerTest do
     end
 
     test "returns an error for expired tokens", %{socket: socket} do
-      opts = %{security_mode: :sign, secret: "my_secret", ttl: 1000}
+      opts = %{security_mode: :sign, secret: "my_secret", ttl: 1}
 
       token = Serializer.encode_token(socket, %{time_test: "data"}, opts)
 

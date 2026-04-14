@@ -31,7 +31,7 @@ Stashed data has a Time-To-Live (TTL) that is used to determine how long the dat
 
 **Default:** `300` seconds (5 minutes)
 
-````elixir
+```elixir
 use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, ttl: 60, stored_keys: [:count]
 ```
 
@@ -45,7 +45,7 @@ You can do this by providing a `:session_key`. LiveStash will extract the value 
 
 ```elixir
 use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, session_key: "user_token", stored_keys: [:count]
-````
+```
 
 ### Security mode
 
