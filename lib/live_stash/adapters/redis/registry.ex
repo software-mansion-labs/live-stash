@@ -118,19 +118,6 @@ defmodule LiveStash.Adapters.Redis.Registry do
   end
 
   @doc """
-  Pops the tracking record of a LiveView from the ETS table, returning it and deleting the record.
-  """
-  @spec pop_by_id!(id :: term()) :: {:ok, pid(), integer(), integer()} | :not_found
-  def pop_by_id!(id) do
-    @table_name
-    |> :ets.take(id)
-    |> case do
-      [{:registry, ^id, pid, delete_at, ttl}] -> {:ok, pid, delete_at, ttl}
-      [] -> :not_found
-    end
-  end
-
-  @doc """
   Gets a batch of state records from the ETS table.
   """
   @spec get_batch!(now :: integer()) ::

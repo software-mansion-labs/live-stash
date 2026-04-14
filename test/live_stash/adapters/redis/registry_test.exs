@@ -112,30 +112,6 @@ defmodule LiveStash.Adapters.Redis.RegistryTest do
     end
   end
 
-  describe "pop_by_id!/1" do
-    test "returns {:ok, pid, delete_at, ttl} and deletes the record when it exists" do
-      id = "pop_id_exists"
-      ttl = 5000
-
-      record = Registry.new(id, ttl: ttl)
-      Registry.insert!(record)
-
-      assert {:ok, pid, _delete_at, current_ttl} = Registry.get_by_id!(id)
-      assert pid == self()
-      assert current_ttl == ttl
-
-      assert {:ok, popped_pid, _popped_delete_at, popped_ttl} = Registry.pop_by_id!(id)
-
-      assert popped_pid == self()
-      assert popped_ttl == ttl
-      assert :not_found == Registry.get_by_id!(id)
-    end
-
-    test "returns :not_found when the record does not exist" do
-      assert :not_found == Registry.pop_by_id!("pop_id_missing")
-    end
-  end
-
   describe "bump_delete_at!/2" do
     test "updates delete_at time for existing record" do
       id = "bump_id"
