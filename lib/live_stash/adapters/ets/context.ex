@@ -42,6 +42,15 @@ defmodule LiveStash.Adapters.ETS.Context do
           id: binary()
         }
 
+  @allowed_keys [
+    :stored_keys,
+    :reconnected?,
+    :stash_fingerprint,
+    :secret,
+    :ttl,
+    :id
+  ]
+
   @doc """
   Builds context from socket, session and opts (e.g. in `on_mount` / `init_stash`).
   """
@@ -67,46 +76,7 @@ defmodule LiveStash.Adapters.ETS.Context do
 
   defp validate_attributes!(attrs) do
     Enum.each(attrs, fn attr ->
-      error_msg =
-        case attr do
-          {:ttl, ttl} when not is_integer(ttl) ->
-            "Invalid ttl: #{inspect(ttl)}. Expected an integer."
-
-          {:secret, secret} when not is_binary(secret) ->
-            "Invalid secret: #{inspect(secret)}. Expected a binary (string)."
-
-          {:stash_fingerprint, fp} when not (is_binary(fp) or is_nil(fp)) ->
-            "Invalid stash_fingerprint: #{inspect(fp)}. Expected a binary or nil."
-
-          {:reconnected?, reconnected} when not is_boolean(reconnected) ->
-            "Invalid reconnected?: #{inspect(reconnected)}. Expected a boolean."
-
-          {:id, id} when not is_binary(id) ->
-            "Invalid id: #{inspect(id)}. Expected a binary (string)."
-
-          {:stored_keys, keys} ->
-            if is_list(keys) and Enum.all?(keys, &is_atom/1) do
-              nil
-            else
-              "Invalid stored_keys: #{inspect(keys)}. Expected a list of atoms."
-            end
-
-          {unknown_key, _value}
-          when unknown_key not in [
-                 :stored_keys,
-                 :reconnected?,
-                 :stash_fingerprint,
-                 :secret,
-                 :ttl,
-                 :id
-               ] ->
-            "Unknown attribute passed: #{inspect(unknown_key)}"
-
-          _ ->
-            nil
-        end
-
-      if error_msg do
+      if error_msg = validate_attribute(attr) do
         msg = Utils.reason_message(error_msg, :invalid)
         raise ArgumentError, msg
       end
@@ -114,4 +84,38 @@ defmodule LiveStash.Adapters.ETS.Context do
 
     attrs
   end
+
+  defp validate_attribute({:ttl, ttl}) when not is_integer(ttl) do
+    "Invalid ttl: #{inspect(ttl)}. Expected an integer."
+  end
+
+  defp validate_attribute({:secret, secret}) when not is_binary(secret) do
+    "Invalid secret: #{inspect(secret)}. Expected a binary string."
+  end
+
+  defp validate_attribute({:stash_fingerprint, fp}) when not (is_binary(fp) or is_nil(fp)) do
+    "Invalid stash_fingerprint: #{inspect(fp)}. Expected a binary or nil."
+  end
+
+  defp validate_attribute({:reconnected?, reconnected}) when not is_boolean(reconnected) do
+    "Invalid reconnected?: #{inspect(reconnected)}. Expected a boolean."
+  end
+
+  defp validate_attribute({:id, id}) when not is_binary(id) do
+    "Invalid id: #{inspect(id)}. Expected a binary string."
+  end
+
+  defp validate_attribute({:stored_keys, keys}) do
+    if is_list(keys) and Enum.all?(keys, &is_atom/1) do
+      nil
+    else
+      "Invalid stored_keys: #{inspect(keys)}. Expected a list of atoms."
+    end
+  end
+
+  defp validate_attribute({unknown_key, _value}) when unknown_key not in @allowed_keys do
+    "Unknown attribute passed: #{inspect(unknown_key)}"
+  end
+
+  defp validate_attribute(_valid_attr), do: nil
 end
