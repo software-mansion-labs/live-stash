@@ -14,6 +14,7 @@ defmodule LiveStash.Adapters.ETS.Context do
   alias LiveStash.Adapters.ETS.NodeHint
   alias Phoenix.LiveView
   alias LiveStash.Adapters.Common
+  alias LiveStash.Utils
 
   @enforce_keys [
     :stored_keys,
@@ -56,10 +57,61 @@ defmodule LiveStash.Adapters.ETS.Context do
       attrs
       |> Keyword.put(:reconnected?, Common.reconnected?(connect_params))
       |> Keyword.put(:id, get_in(connect_params, ["liveStash", "stashId"]) || Uniq.UUID.uuid4())
+      |> validate_attributes!()
       |> then(&struct!(__MODULE__, &1))
 
     node_hint = NodeHint.get_node_hint(socket, connect_params, context.secret)
 
     %{context | node_hint: node_hint}
+  end
+
+  defp validate_attributes!(attrs) do
+    Enum.each(attrs, fn attr ->
+      error_msg =
+        case attr do
+          {:ttl, ttl} when not is_integer(ttl) ->
+            "Invalid ttl: #{inspect(ttl)}. Expected an integer."
+
+          {:secret, secret} when not is_binary(secret) ->
+            "Invalid secret: #{inspect(secret)}. Expected a binary (string)."
+
+          {:stash_fingerprint, fp} when not (is_binary(fp) or is_nil(fp)) ->
+            "Invalid stash_fingerprint: #{inspect(fp)}. Expected a binary or nil."
+
+          {:reconnected?, reconnected} when not is_boolean(reconnected) ->
+            "Invalid reconnected?: #{inspect(reconnected)}. Expected a boolean."
+
+          {:id, id} when not is_binary(id) ->
+            "Invalid id: #{inspect(id)}. Expected a binary (string)."
+
+          {:stored_keys, keys} ->
+            if is_list(keys) and Enum.all?(keys, &is_atom/1) do
+              nil
+            else
+              "Invalid stored_keys: #{inspect(keys)}. Expected a list of atoms."
+            end
+
+          {unknown_key, _value}
+          when unknown_key not in [
+                 :stored_keys,
+                 :reconnected?,
+                 :stash_fingerprint,
+                 :secret,
+                 :ttl,
+                 :id
+               ] ->
+            "Unknown attribute passed: #{inspect(unknown_key)}"
+
+          _ ->
+            nil
+        end
+
+      if error_msg do
+        msg = Utils.reason_message(error_msg, :invalid)
+        raise ArgumentError, msg
+      end
+    end)
+
+    attrs
   end
 end

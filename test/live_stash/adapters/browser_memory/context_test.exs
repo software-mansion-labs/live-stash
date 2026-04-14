@@ -78,5 +78,41 @@ defmodule LiveStash.Adapters.BrowserMemory.ContextTest do
 
       assert context.reconnected? == true
     end
+
+    test "raises ArgumentError for invalid security_mode", %{socket: socket} do
+      assert_raise ArgumentError, ~r/Invalid security_mode/, fn ->
+        Context.new(socket, %{}, stored_keys: [:username], security_mode: :invalid)
+      end
+    end
+
+    test "raises ArgumentError for invalid ttl type", %{socket: socket} do
+      assert_raise ArgumentError, ~r/Invalid ttl/, fn ->
+        Context.new(socket, %{}, stored_keys: [:username], ttl: "1000")
+      end
+    end
+
+    test "raises ArgumentError for invalid stored_keys type", %{socket: socket} do
+      assert_raise ArgumentError, ~r/Invalid stored_keys/, fn ->
+        Context.new(socket, %{}, stored_keys: ["username"])
+      end
+    end
+
+    test "raises ArgumentError for invalid secret type", %{socket: socket} do
+      assert_raise ArgumentError, ~r/Invalid secret/, fn ->
+        Context.new(socket, %{}, stored_keys: [:username], secret: 123)
+      end
+    end
+
+    test "raises ArgumentError for invalid stash_fingerprint type", %{socket: socket} do
+      assert_raise ArgumentError, ~r/Invalid stash_fingerprint/, fn ->
+        Context.new(socket, %{}, stored_keys: [:username], stash_fingerprint: 123)
+      end
+    end
+
+    test "raises ArgumentError for unknown attributes", %{socket: socket} do
+      assert_raise ArgumentError, ~r/Unknown attribute passed/, fn ->
+        Context.new(socket, %{}, stored_keys: [:username], unknown_attr: true)
+      end
+    end
   end
 end

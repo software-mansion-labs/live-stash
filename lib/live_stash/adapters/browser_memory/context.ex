@@ -14,6 +14,7 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
 
   alias Phoenix.LiveView
   alias LiveStash.Adapters.Common
+  alias LiveStash.Utils
 
   @enforce_keys [
     :stored_keys,
@@ -48,6 +49,57 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
     base_attrs
     |> Common.maybe_put_secret(session_key, session)
     |> Keyword.put(:reconnected?, Common.reconnected?(Common.get_connect_params(socket)))
+    |> validate_attributes!()
     |> then(&struct!(__MODULE__, &1))
+  end
+
+  defp validate_attributes!(attrs) do
+    Enum.each(attrs, fn attr ->
+      error_msg =
+        case attr do
+          {:security_mode, mode} when mode not in [:sign, :encrypt] ->
+            "Invalid security_mode: #{inspect(mode)}. Expected :sign or :encrypt."
+
+          {:ttl, ttl} when not is_integer(ttl) ->
+            "Invalid ttl: #{inspect(ttl)}. Expected an integer."
+
+          {:secret, secret} when not is_binary(secret) ->
+            "Invalid secret: #{inspect(secret)}. Expected a binary (string)."
+
+          {:stash_fingerprint, fp} when not (is_binary(fp) or is_nil(fp)) ->
+            "Invalid stash_fingerprint: #{inspect(fp)}. Expected a binary or nil."
+
+          {:reconnected?, reconnected} when not is_boolean(reconnected) ->
+            "Invalid reconnected?: #{inspect(reconnected)}. Expected a boolean."
+
+          {:stored_keys, keys} ->
+            if is_list(keys) and Enum.all?(keys, &is_atom/1) do
+              nil
+            else
+              "Invalid stored_keys: #{inspect(keys)}. Expected a list of atoms."
+            end
+
+          {unknown_key, _value}
+          when unknown_key not in [
+                 :stored_keys,
+                 :reconnected?,
+                 :stash_fingerprint,
+                 :secret,
+                 :ttl,
+                 :security_mode
+               ] ->
+            "Unknown attribute passed: #{inspect(unknown_key)}"
+
+          _ ->
+            nil
+        end
+
+      if error_msg do
+        msg = Utils.reason_message(error_msg, :invalid)
+        raise ArgumentError, msg
+      end
+    end)
+
+    attrs
   end
 end
