@@ -8,17 +8,18 @@ defmodule LiveStash.Adapters.ETS do
 
   @behaviour LiveStash.Adapter
 
+  require Logger
+
   alias Phoenix.Component
 
   alias LiveStash.Adapters.ETS.NodeHint
   alias LiveStash.Adapters.ETS.State
   alias LiveStash.Adapters.ETS.StateFinder
   alias LiveStash.Adapters.ETS.Context
+  alias LiveStash.Adapters.Common
   alias LiveStash.Utils
 
   alias Phoenix.LiveView
-
-  require Logger
 
   @doc false
   @impl true
@@ -60,36 +61,23 @@ defmodule LiveStash.Adapters.ETS do
     })
   end
 
-  defp get_ets_id(socket) do
-    id = socket.private.live_stash_context.id
-    secret = socket.private.live_stash_context.secret
-
-    raw_key = id <> secret
-    hashed_binary = :crypto.hash(:sha256, raw_key)
-
-    Base.encode64(hashed_binary, padding: false)
-  end
-
   @impl true
-  def stash_assigns(socket, keys) do
-    state =
-      Enum.reduce(keys, %{}, fn key, acc ->
-        value = Map.fetch!(socket.assigns, key)
-        Map.put(acc, key, value)
-      end)
+  def stash(socket) do
+    context = socket.private.live_stash_context
+    keys = context.stored_keys
+    assigns_to_stash = Map.take(socket.assigns, keys)
+    new_fingerprint = Common.hash_term(assigns_to_stash)
 
-    State.put!(get_ets_id(socket), state, get_opts(socket))
+    if new_fingerprint != context.stash_fingerprint do
+      State.put!(get_ets_id(socket), assigns_to_stash, get_opts(socket))
 
-    socket
-  rescue
-    e in KeyError ->
-      msg =
-        Utils.reason_message(
-          "Failed to stash assigns. Key #{inspect(e.key)} is missing from socket.assigns.",
-          :missing
-        )
+      new_context = %{context | stash_fingerprint: new_fingerprint}
 
-      reraise RuntimeError, msg, __STACKTRACE__
+      socket
+      |> LiveView.put_private(:live_stash_context, new_context)
+    else
+      socket
+    end
   end
 
   @impl true
@@ -103,7 +91,14 @@ defmodule LiveStash.Adapters.ETS do
         |> State.new(recovered_state, get_opts(socket))
         |> State.insert!()
 
-        {:recovered, Component.assign(socket, recovered_state)}
+        context = socket.private.live_stash_context
+        fingerprint = Common.hash_term(recovered_state)
+        updated_context = %{context | stash_fingerprint: fingerprint}
+
+        socket
+        |> Component.assign(recovered_state)
+        |> LiveView.put_private(:live_stash_context, updated_context)
+        |> then(&{:recovered, &1})
 
       :not_found ->
         {:not_found, socket}
@@ -120,17 +115,30 @@ defmodule LiveStash.Adapters.ETS do
 
   @impl true
   def reset_stash(socket) do
+    context = socket.private.live_stash_context
+    updated_context = %{context | stash_fingerprint: nil}
+
     socket
     |> get_ets_id()
     |> State.delete_by_id!()
 
-    socket
+    LiveView.put_private(socket, :live_stash_context, updated_context)
   rescue
     error ->
       err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
       Logger.error(err)
 
       socket
+  end
+
+  defp get_ets_id(socket) do
+    id = socket.private.live_stash_context.id
+    secret = socket.private.live_stash_context.secret
+
+    raw_key = id <> secret
+    hashed_binary = :crypto.hash(:sha256, raw_key)
+
+    Base.encode64(hashed_binary, padding: false)
   end
 
   defp get_opts(socket) do

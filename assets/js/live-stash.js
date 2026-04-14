@@ -1,24 +1,11 @@
 let liveStash = {};
 
 window.addEventListener('phx:live-stash:init-browser-memory', (_event) => {
-  liveStash = { stashedState: {} };
+  liveStash = { stashedState: null };
 });
 
 window.addEventListener('phx:live-stash:stash-state', (event) => {
-  if (!liveStash.stashedState) {
-    liveStash.stashedState = {};
-  }
-
-  liveStash.stashedState['assigns'] = liveStash.stashedState['assigns'] || {};
-
-  liveStash.stashedState['assigns'] = {
-    ...liveStash.stashedState['assigns'],
-    ...event.detail.assigns,
-  };
-
-  liveStash.stashedState['keys'] = event.detail.keys;
-
-  liveStash.stashedState['deleteAt'] = event.detail.deleteAt;
+  liveStash['stashedState'] = event.detail.assigns;
 });
 
 window.addEventListener('phx:live-stash:init-ets', (event) => {

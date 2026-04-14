@@ -2,6 +2,8 @@
 
 We are going to take a look at an example of a tic tac toe game that you can examine in full detail in LiveStash project subdirectory `/examples/showcase_app`. This particular example uses **browser memory** adapter with **encryption** and a **session key** set to guarantee extra safety.
 
+The state that should survive reconnects is declared up front with `stored_keys: [:board, :current_player, :winner, :winning_line]`, and `LiveStash.stash/1` only emits a new browser event when that configured subset changes.
+
 For a complete project example go to our [repository](https://github.com/software-mansion-labs/live-stash/blob/main/examples/showcase_app/README.md).
 
 ## Initialization
@@ -9,7 +11,11 @@ For a complete project example go to our [repository](https://github.com/softwar
 ```elixir
 defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, session_key: "user_token"
+  use LiveStash,
+    adapter: LiveStash.Adapters.BrowserMemory,
+    security_mode: :encrypt,
+    session_key: "user_token",
+    stored_keys: [:board, :current_player, :winner, :winning_line]
 ```
 
 Here, we define the LiveView module and inject the necessary dependencies. By calling use LiveStash, we configure how the state should be persisted. In this specific example, it is configured to use the browser memory adapter, meaning the game's state will be encrypted and stored securely on the user's browser (client-side) using the defined `session_key`.
@@ -73,7 +79,7 @@ The `render/1` function defines the user interface using HEEx templates and Tail
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 
@@ -84,7 +90,7 @@ The `render/1` function defines the user interface using HEEx templates and Tail
   defp start_new_game(socket) do
     socket
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
-    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash()
   end
 
   defp check_game_state(board) do
@@ -113,7 +119,7 @@ end
 
 This section handles the core game logic and user actions. The `handle_event/3` callbacks listen for the actions triggered from the UI. When a player makes a move, the board is updated, checked for a win or draw, and the turn shifts to the next player.
 
-Crucially, after updating the socket assigns, we pipe it into `stash_assigns([:board, :current_player, :winner, :winning_line])`. This tells LiveStash to take these specific variables and securely persist them so they aren't lost if the connection drops.
+Crucially, after updating the socket assigns, we pipe it into `stash()`. The assigns to persist are declared in `use LiveStash`, so LiveStash securely persists that configured state when the connection drops.
 
 ## State recovery
 

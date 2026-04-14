@@ -17,7 +17,7 @@ defmodule LiveStash do
 
       defmodule MyAppWeb.CounterLive do
         use MyAppWeb, :live_view
-        use LiveStash
+        use LiveStash, stored_keys: [:count]
       end
 
   Stash assigns after state-changing events:
@@ -25,7 +25,7 @@ defmodule LiveStash do
       def handle_event("increment", _, socket) do
         socket
         |> assign(:count, socket.assigns.count + 1)
-        |> LiveStash.stash_assigns([:count])
+        |> LiveStash.stash()
         |> then(&{:noreply, &1})
       end
 
@@ -151,33 +151,23 @@ defmodule LiveStash do
   end
 
   @doc """
-  Stashes the specified assigns from `socket.assigns`.
-
-  Every key must be an atom and should exist in `socket.assigns`.
-  Call this after assign updates to keep persisted state in sync.
+  Stashes assigns from `socket.assigns` declared at the module level.
 
   ## Examples
+      use LiveStash, stored_keys: [:count, :username] # assigns are declared at the module level
+
       def handle_event("increment", _, socket) do
         socket
         |> assign(:count, socket.assigns.count + 1)
-        |> LiveStash.stash_assigns([:count])
-        |> then(&{:noreply, &1})  end
+        |> LiveStash.stash()
+        |> then(&{:noreply, &1})
+      end
   """
-  @spec stash_assigns(socket :: Socket.t(), keys :: [atom()]) :: Socket.t()
-  def stash_assigns(socket, keys) when is_list(keys) do
+  @spec stash(socket :: Socket.t()) :: Socket.t()
+  def stash(socket) do
     socket
     |> get_adapter()
-    |> apply(:stash_assigns, [socket, keys])
-  end
-
-  def stash_assigns(_socket, _keys) do
-    msg =
-      Utils.reason_message(
-        "Keys must be a list of atoms",
-        :invalid
-      )
-
-    raise ArgumentError, msg
+    |> apply(:stash, [socket])
   end
 
   @doc """

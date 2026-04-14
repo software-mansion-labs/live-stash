@@ -55,24 +55,18 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       assert {:ok, %{key: "value"}} = State.get_by_id!(id)
     end
 
-    test "updates existing state record when id exists" do
+    test "replaces existing state map when id exists and is owned by the current process" do
       id = "existing_id"
-      opts = [ttl: 1000]
-      State.put!(id, %{key1: "value1"}, opts)
-      State.put!(id, %{key2: "value2"}, opts)
+
+      assert :ok = State.put!(id, %{key1: "value1", key2: "value2"}, ttl: 1000)
+
+      assert :ok = State.put!(id, %{key2: "new_value"}, ttl: 2000)
 
       assert {:ok, state} = State.get_by_id!(id)
-      assert state.key1 == "value1"
-      assert state.key2 == "value2"
-    end
+      assert state == %{key2: "new_value"}
 
-    test "overwrites existing key when updating" do
-      id = "update_id"
-      opts = [ttl: 1000]
-      State.put!(id, %{key: "value1"}, opts)
-      State.put!(id, %{key: "value2"}, opts)
-
-      assert {:ok, %{key: "value2"}} = State.get_by_id!(id)
+      [{:state, ^id, _pid, _delete_at, ttl, _state}] = :ets.lookup(@table_name, id)
+      assert ttl == 2000
     end
 
     test "raises exception if state is owned by a different process (PID mismatch)" do

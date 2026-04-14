@@ -22,13 +22,15 @@ defmodule LiveStash.Adapter do
   """
   @callback init_stash(socket :: Socket.t(), session :: Keyword.t(), opts :: Keyword.t()) ::
               Socket.t()
+
   @doc """
-  Persists selected assign keys for the given socket.
+  Persists declared assign keys for the given socket.
 
   The keys are atoms that reference entries in `socket.assigns`.
   Returns an updated socket.
   """
-  @callback stash_assigns(socket :: Socket.t(), keys :: [atom()]) :: Socket.t()
+  @callback stash(socket :: Socket.t()) :: Socket.t()
+
   @doc """
   Attempts to restore previously persisted state to the socket.
 

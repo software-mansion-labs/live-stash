@@ -1,6 +1,9 @@
 defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 5 * 60 * 1000
+  use LiveStash,
+    adapter: LiveStash.Adapters.ETS,
+    ttl: 5 * 60 * 1000,
+    stored_keys: [:board, :current_player, :winner, :winning_line]
 
   @winning_lines [
     [0, 1, 2],
@@ -96,7 +99,7 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
 
     socket
     |> assign(board: new_board, current_player: next_player, winner: winner, winning_line: winning_line)
-    |> LiveStash.stash_assigns([:board, :current_player, :winner, :winning_line])
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 
@@ -106,6 +109,7 @@ defmodule ShowcaseAppWeb.LiveStashServerTicTacToeLive do
 
   defp start_new_game(socket) do
     socket
+    |> LiveStash.reset_stash()
     |> assign(board: Map.new(0..8, fn i -> {i, nil} end), current_player: "X", winner: nil, winning_line: [])
   end
 

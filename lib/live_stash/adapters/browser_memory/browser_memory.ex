@@ -11,6 +11,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
   require Logger
 
   alias LiveStash.Utils
+  alias LiveStash.Adapters.Common
   alias LiveStash.Adapters.BrowserMemory.Serializer
   alias LiveStash.Adapters.BrowserMemory.Context
 
@@ -33,75 +34,49 @@ defmodule LiveStash.Adapters.BrowserMemory do
   end
 
   @impl true
-  def stash_assigns(socket, keys) do
+  def stash(socket) do
     context = socket.private.live_stash_context
+    keys = context.stored_keys
+    assigns_to_stash = Map.take(socket.assigns, keys)
+    new_fingerprint = Common.hash_term(assigns_to_stash)
 
-    updated_context = %{context | key_set: MapSet.union(context.key_set, MapSet.new(keys))}
+    if new_fingerprint != context.stash_fingerprint do
+      serialized_assigns =
+        Serializer.encode_token(socket, assigns_to_stash, get_settings(socket))
 
-    socket = LiveView.put_private(socket, :live_stash_context, updated_context)
+      payload = %{
+        "assigns" => serialized_assigns
+      }
 
-    settings = get_settings(socket)
+      new_context = %{context | stash_fingerprint: new_fingerprint}
 
-    serialized_assigns =
-      Enum.reduce(keys, %{}, fn key, acc ->
-        value = Map.fetch!(socket.assigns, key)
-
-        {serialized_key, serialized_value} =
-          Serializer.term_to_external(socket, key, value, settings)
-
-        Map.put(acc, serialized_key, serialized_value)
-      end)
-
-    payload = %{
-      "assigns" => serialized_assigns,
-      "keys" => Serializer.term_to_external(socket, keys, settings),
-      "deleteAt" => System.os_time(:millisecond) + settings.ttl
-    }
-
-    LiveView.push_event(socket, "live-stash:stash-state", payload)
-  rescue
-    e in KeyError ->
-      msg =
-        Utils.reason_message(
-          "Failed to stash assigns. Key #{inspect(e.key)} is missing from socket.assigns.",
-          :missing
-        )
-
-      reraise RuntimeError, msg, __STACKTRACE__
+      socket
+      |> LiveView.put_private(:live_stash_context, new_context)
+      |> LiveView.push_event("live-stash:stash-state", payload)
+    else
+      socket
+    end
   end
 
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
-    with params when is_map(params) <- LiveView.get_connect_params(socket),
-         {:ok, payload} <- get_stash_payload(params),
-         {:ok, stashed_state} <- get_state(payload),
-         {:ok, stashed_keys} <- get_keys(payload),
-         {:ok, delete_at} <- get_delete_at(payload),
-         true <- delete_at >= System.os_time(:millisecond),
-         {:ok, {recovered_state, key_set}} <-
-           Serializer.external_to_term(socket, stashed_state, stashed_keys, get_settings(socket)) do
+    with %{"liveStash" => %{"stashedState" => stashed_state}} when is_binary(stashed_state) <-
+           LiveView.get_connect_params(socket),
+         {:ok, recovered_state} <-
+           Serializer.decode_token(socket, stashed_state, get_settings(socket)) do
       context = socket.private.live_stash_context
+      fingerprint = Common.hash_term(recovered_state)
+      updated_context = %{context | stash_fingerprint: fingerprint}
 
       socket
       |> Component.assign(recovered_state)
-      |> LiveView.put_private(:live_stash_context, %{context | key_set: key_set})
+      |> LiveView.put_private(:live_stash_context, updated_context)
       |> then(&{:recovered, &1})
     else
-      false ->
-        msg =
-          Utils.reason_message(
-            "Could not recover stashed state due to expired stash.",
-            :expired
-          )
-
-        Logger.warning(msg)
-
-        {:error, socket}
-
       {:error, reason} ->
         msg =
           Utils.reason_message(
-            "Could not recover stashed state due to invalid connect params.",
+            "Failed to decode stashed state from token.",
             reason
           )
 
@@ -133,27 +108,12 @@ defmodule LiveStash.Adapters.BrowserMemory do
   @impl true
   def reset_stash(socket) do
     context = socket.private.live_stash_context
-    updated_context = %{context | key_set: MapSet.new()}
+    updated_context = %{context | stash_fingerprint: nil}
 
     socket
     |> LiveView.push_event("live-stash:init-browser-memory", %{})
     |> LiveView.put_private(:live_stash_context, updated_context)
   end
-
-  defp get_stash_payload(%{"liveStash" => %{"stashedState" => state}}) when state != %{} do
-    {:ok, state}
-  end
-
-  defp get_stash_payload(_), do: :not_found
-
-  defp get_delete_at(%{"deleteAt" => delete_at}) when is_integer(delete_at), do: {:ok, delete_at}
-  defp get_delete_at(_), do: {:error, :invalid}
-
-  defp get_state(%{"assigns" => assigns}) when is_map(assigns), do: {:ok, assigns}
-  defp get_state(_), do: {:error, :invalid}
-
-  defp get_keys(%{"keys" => keys}) when is_binary(keys), do: {:ok, keys}
-  defp get_keys(_), do: {:error, :invalid}
 
   defp get_settings(socket) do
     %{

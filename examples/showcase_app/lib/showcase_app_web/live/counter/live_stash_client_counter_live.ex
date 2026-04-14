@@ -1,6 +1,10 @@
 defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt
+  use LiveStash,
+    adapter: LiveStash.Adapters.BrowserMemory,
+    security_mode: :encrypt,
+    ttl: 5 * 60 * 1000,
+    stored_keys: [:count]
 
   def mount(_params, _session, socket) do
     socket
@@ -81,13 +85,13 @@ defmodule ShowcaseAppWeb.LiveStashClientCounterLive do
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
-    |> LiveStash.stash_assigns([:count])
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})  end
 
   def handle_event("decrement", _, socket) do
     socket
     |> assign(:count, socket.assigns.count - 1)
-    |> LiveStash.stash_assigns([:count])
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 

@@ -77,16 +77,14 @@ defmodule LiveStash.Adapters.ETS.State do
   @spec put!(id :: term(), state :: map(), opts :: Keyword.t()) :: :ok
   def put!(id, state, opts) do
     pid = self()
+    new_record = new(id, state, opts)
 
-    @table_name
-    |> :ets.lookup(id)
-    |> case do
-      [{:state, ^id, ^pid, _delete_at, _ttl, map_state}] ->
-        id
-        |> new(Map.merge(map_state, state), opts)
-        |> insert!()
+    match_spec = [
+      {{:state, id, pid, :_, :_, :_}, [], [{new_record}]}
+    ]
 
-      [{:state, ^id, _other_pid, _delete_at, _ttl, _map_state}] ->
+    if :ets.select_replace(@table_name, match_spec) == 0 do
+      if not :ets.insert_new(@table_name, new_record) do
         msg =
           Utils.reason_message(
             "State with id #{inspect(id)} already exists for another process",
@@ -94,11 +92,7 @@ defmodule LiveStash.Adapters.ETS.State do
           )
 
         raise RuntimeError, msg
-
-      [] ->
-        id
-        |> new(state, opts)
-        |> insert!()
+      end
     end
 
     :ok
