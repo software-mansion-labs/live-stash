@@ -28,7 +28,7 @@ defmodule LiveStash.Adapters.Redis.Context do
     stash_fingerprint: nil,
     secret: "live_stash",
     ttl: 5 * 60,
-    redis_exp: 86400
+    redis_exp: 86_400
   ]
 
   @type t :: %__MODULE__{

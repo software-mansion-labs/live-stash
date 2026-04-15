@@ -53,32 +53,34 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
   end
 
   defp do_clear!(candidates, continuation, now) do
-    Enum.each(candidates, fn {id, pid, ttl} ->
-      if Process.alive?(pid) do
-        new_delete_at = now + ttl
-        Registry.bump_delete_at!(id, new_delete_at)
-      else
-        Logger.debug("deleting for id #{id}")
-        Registry.delete_by_id!(id)
-
-        case Redis.command(["DEL", id]) do
-          {:ok, _} ->
-            :ok
-
-          {:error, reason} ->
-            Logger.error(
-              "[LiveStash] Failed to delete stash for #{id} in Redis: #{inspect(reason)}"
-            )
-        end
-      end
-    end)
+    Enum.each(candidates, &process_candidate(&1, now))
 
     case Registry.get_next_batch!(continuation) do
-      {candidates, next_continuation} ->
-        do_clear!(candidates, next_continuation, now)
+      {next_candidates, next_continuation} ->
+        do_clear!(next_candidates, next_continuation, now)
 
       :"$end_of_table" ->
         :ok
+    end
+  end
+
+  defp process_candidate({id, pid, ttl}, now) do
+    if Process.alive?(pid) do
+      Registry.bump_delete_at!(id, now + ttl)
+    else
+      delete_candidate!(id)
+    end
+  end
+
+  defp delete_candidate!(id) do
+    Registry.delete_by_id!(id)
+
+    case Redis.command(["DEL", id]) do
+      {:ok, _} ->
+        :ok
+
+      {:error, reason} ->
+        Logger.error("[LiveStash] Failed to delete stash for #{id} in Redis: #{inspect(reason)}")
     end
   end
 
