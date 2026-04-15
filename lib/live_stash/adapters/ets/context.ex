@@ -14,7 +14,6 @@ defmodule LiveStash.Adapters.ETS.Context do
   alias LiveStash.Adapters.ETS.NodeHint
   alias Phoenix.LiveView
   alias LiveStash.Adapters.Common
-  alias LiveStash.Utils
 
   @enforce_keys [
     :stored_keys,
@@ -66,56 +65,11 @@ defmodule LiveStash.Adapters.ETS.Context do
       attrs
       |> Keyword.put(:reconnected?, Common.reconnected?(connect_params))
       |> Keyword.put(:id, get_in(connect_params, ["liveStash", "stashId"]) || Uniq.UUID.uuid4())
-      |> validate_attributes!()
+      |> Common.validate_attributes!(@allowed_keys)
       |> then(&struct!(__MODULE__, &1))
 
     node_hint = NodeHint.get_node_hint(socket, connect_params, context.secret)
 
     %{context | node_hint: node_hint}
   end
-
-  defp validate_attributes!(attrs) do
-    Enum.each(attrs, fn attr ->
-      if error_msg = validate_attribute(attr) do
-        msg = Utils.reason_message(error_msg, :invalid)
-        raise ArgumentError, msg
-      end
-    end)
-
-    attrs
-  end
-
-  defp validate_attribute({:ttl, ttl}) when not is_integer(ttl) do
-    "Invalid ttl: #{inspect(ttl)}. Expected an integer."
-  end
-
-  defp validate_attribute({:secret, secret}) when not is_binary(secret) do
-    "Invalid secret: #{inspect(secret)}. Expected a binary string."
-  end
-
-  defp validate_attribute({:stash_fingerprint, fp}) when not (is_binary(fp) or is_nil(fp)) do
-    "Invalid stash_fingerprint: #{inspect(fp)}. Expected a binary or nil."
-  end
-
-  defp validate_attribute({:reconnected?, reconnected}) when not is_boolean(reconnected) do
-    "Invalid reconnected?: #{inspect(reconnected)}. Expected a boolean."
-  end
-
-  defp validate_attribute({:id, id}) when not is_binary(id) do
-    "Invalid id: #{inspect(id)}. Expected a binary string."
-  end
-
-  defp validate_attribute({:stored_keys, keys}) do
-    if is_list(keys) and Enum.all?(keys, &is_atom/1) do
-      nil
-    else
-      "Invalid stored_keys: #{inspect(keys)}. Expected a list of atoms."
-    end
-  end
-
-  defp validate_attribute({unknown_key, _value}) when unknown_key not in @allowed_keys do
-    "Unknown attribute passed: #{inspect(unknown_key)}"
-  end
-
-  defp validate_attribute(_valid_attr), do: nil
 end
