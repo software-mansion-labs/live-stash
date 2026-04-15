@@ -65,13 +65,13 @@ defmodule LiveStash.Adapters.CommonTest do
     ]
 
     test "returns attributes when all are valid and allowed" do
-      attrs = [ttl: 1000, stored_keys: [:username], secret: "sec", reconnected?: false]
+      attrs = [ttl: 1, stored_keys: [:username], secret: "sec", reconnected?: false]
       assert Common.validate_attributes!(attrs, @allowed_keys) == attrs
     end
 
     test "raises ArgumentError for invalid ttl type" do
       assert_raise ArgumentError, ~r/Invalid ttl/, fn ->
-        Common.validate_attributes!([ttl: "1000"], @allowed_keys)
+        Common.validate_attributes!([ttl: "1"], @allowed_keys)
       end
     end
 
