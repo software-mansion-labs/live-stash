@@ -8,7 +8,7 @@ defmodule LiveStash.Adapters.Redis.Context do
   * `:stash_fingerprint` - A binary string representing the fingerprint of the stashed state. This is used to determine if the state has changed and needs to be re-stashed.
   * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the Redis database.
   * `:secret` - A binary string used as part of the record id in the Redis for security purposes.
-  * `:ttl` - Time-to-live for the records kept in the Redis, specified in milliseconds.
+  * `:ttl` - Time-to-live for the records kept in the Redis, specified in seconds.
   * `:redis_exp` - The expiration argument to use in Redis commands, specified in seconds. This is used to prevent dead entries in Redis when for example ETS crashes.
   """
 
@@ -27,7 +27,7 @@ defmodule LiveStash.Adapters.Redis.Context do
     :id,
     stash_fingerprint: nil,
     secret: "live_stash",
-    ttl: 5 * 60 * 1000,
+    ttl: 5 * 60,
     redis_exp: 86400
   ]
 

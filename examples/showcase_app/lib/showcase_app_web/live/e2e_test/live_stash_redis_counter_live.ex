@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.E2eTest.LiveStashRedisCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.Redis, stored_keys: [:count], ttl: 500
+  use LiveStash, adapter: LiveStash.Adapters.Redis, stored_keys: [:count], ttl: 1
 
  def mount(_params, _session, socket) do
     socket

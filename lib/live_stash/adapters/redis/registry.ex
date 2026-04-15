@@ -54,7 +54,7 @@ defmodule LiveStash.Adapters.Redis.Registry do
     registry(
       id: id,
       pid: self(),
-      delete_at: System.os_time(:millisecond) + ttl,
+      delete_at: System.os_time(:second) + ttl,
       ttl: ttl
     )
   end

@@ -54,7 +54,7 @@ defmodule LiveStash.Adapters.RedisTest do
      secret: secret,
      stash_id: stash_id,
      redis_id: redis_id,
-     delete_at: System.os_time(:millisecond) + 86_400}
+     delete_at: System.os_time(:second) + 86_400}
   end
 
   describe "child_spec/1" do
@@ -88,9 +88,7 @@ defmodule LiveStash.Adapters.RedisTest do
       stash_id: stash_id,
       delete_at: delete_at
     } do
-      Registry.insert!(
-        Registry.registry(id: redis_id, pid: self(), delete_at: delete_at, ttl: 1000)
-      )
+      Registry.insert!(Registry.registry(id: redis_id, pid: self(), delete_at: delete_at, ttl: 1))
 
       binary_state = :erlang.term_to_binary(%{username: "stale"})
       assert {:ok, "OK"} = Redis.command(["SET", redis_id, binary_state, "EX", "86400"])
@@ -116,9 +114,7 @@ defmodule LiveStash.Adapters.RedisTest do
 
     test "uses existing stashId from connect_params and does not clear Redis when reconnected? is true",
          %{socket: socket, redis_id: redis_id, stash_id: stash_id, delete_at: delete_at} do
-      Registry.insert!(
-        Registry.registry(id: redis_id, pid: self(), delete_at: delete_at, ttl: 1000)
-      )
+      Registry.insert!(Registry.registry(id: redis_id, pid: self(), delete_at: delete_at, ttl: 1))
 
       binary_state = :erlang.term_to_binary(%{recovered: true})
       assert {:ok, "OK"} = Redis.command(["SET", redis_id, binary_state, "EX", "86400"])
@@ -338,8 +334,8 @@ defmodule LiveStash.Adapters.RedisTest do
         Registry.registry(
           id: redis_id,
           pid: self(),
-          delete_at: System.os_time(:millisecond) + 1000,
-          ttl: 1000
+          delete_at: System.os_time(:second) + 1,
+          ttl: 1
         )
       )
 
@@ -371,8 +367,8 @@ defmodule LiveStash.Adapters.RedisTest do
         Registry.registry(
           id: redis_id,
           pid: self(),
-          delete_at: System.os_time(:millisecond) + 1000,
-          ttl: 1000
+          delete_at: System.os_time(:second) + 1,
+          ttl: 1
         )
       )
 

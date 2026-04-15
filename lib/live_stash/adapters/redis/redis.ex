@@ -110,11 +110,9 @@ defmodule LiveStash.Adapters.Redis do
 
     case command(["GET", id]) do
       {:ok, nil} ->
-        dbg(:notfound)
         {:not_found, socket}
 
       {:ok, binary_state} when is_binary(binary_state) ->
-        dbg(binary_state)
         recovered_state = :erlang.binary_to_term(binary_state)
 
         Registry.new(id, ttl: socket.private.live_stash_context.ttl)

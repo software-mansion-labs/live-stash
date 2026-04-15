@@ -9,7 +9,7 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
   alias LiveStash.Adapters.Redis
   alias LiveStash.Utils
 
-  @refresh_interval Application.compile_env(:live_stash, :redis_cleanup_interval, 1 * 60 * 1_000)
+  @cleanup_interval Application.compile_env(:live_stash, :redis_cleanup_interval, 1 * 60 * 1_000)
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -23,12 +23,8 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
 
   @impl true
   def handle_info(:ttl_refresh, state) do
-    Logger.debug("[LiveStash] Refreshing active states in Redis...")
-
     clean_expired_states!()
     schedule_cleanup()
-
-    Logger.debug("[LiveStash] Active states refreshed")
 
     {:noreply, state}
   rescue
@@ -45,7 +41,7 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
   """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do
-    now = System.os_time(:millisecond)
+    now = System.os_time(:second)
 
     case Registry.get_batch!(now) do
       {candidates, continuation} ->
@@ -86,5 +82,5 @@ defmodule LiveStash.Adapters.Redis.Cleaner do
     end
   end
 
-  defp schedule_cleanup(), do: Process.send_after(self(), :ttl_refresh, @refresh_interval)
+  defp schedule_cleanup(), do: Process.send_after(self(), :ttl_refresh, @cleanup_interval)
 end

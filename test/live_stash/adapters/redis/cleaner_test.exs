@@ -26,15 +26,15 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
 
   describe "clean_expired_states!/0" do
     test "does not clear records that are not expired" do
-      now = System.os_time(:millisecond)
-      future_time = now + 5000
+      now = System.os_time(:second)
+      future_time = now + 5
 
       future_record =
         Registry.registry(
           id: "future_id",
           pid: self(),
           delete_at: future_time,
-          ttl: 1000
+          ttl: 1
         )
 
       Registry.insert!(future_record)
@@ -44,9 +44,9 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
     end
 
     test "bumps delete_at time for records with alive processes" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
-      ttl = 1000
+      now = System.os_time(:second)
+      past_time = now - 5
+      ttl = 1
 
       expired_record =
         Registry.registry(
@@ -67,8 +67,8 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
     end
 
     test "deletes expired records with dead processes" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
+      now = System.os_time(:second)
+      past_time = now - 5
       id = "dead_expired"
 
       dead_pid =
@@ -83,7 +83,7 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
           id: id,
           pid: dead_pid,
           delete_at: past_time,
-          ttl: 1000
+          ttl: 1
         )
 
       Registry.insert!(registry_record)
@@ -101,9 +101,9 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
     end
 
     test "handles mixed alive and dead processes" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
-      ttl = 1000
+      now = System.os_time(:second)
+      past_time = now - 5
+      ttl = 1
 
       dead_pid =
         spawn(fn ->
@@ -157,9 +157,9 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
     end
 
     test "handles continuation batches" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
-      ttl = 1000
+      now = System.os_time(:second)
+      past_time = now - 5
+      ttl = 1
 
       records =
         for i <- 1..150 do
@@ -219,8 +219,8 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
     end
 
     test "logs Redis DEL errors and still removes dead registry entries" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
+      now = System.os_time(:second)
+      past_time = now - 5
       id = "dead_with_del_error"
 
       dead_pid =
@@ -235,7 +235,7 @@ defmodule LiveStash.Adapters.Redis.CleanerTest do
           id: id,
           pid: dead_pid,
           delete_at: past_time,
-          ttl: 1000
+          ttl: 1
         )
       )
 
