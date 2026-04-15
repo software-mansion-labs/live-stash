@@ -11,7 +11,6 @@ defmodule LiveStash.Adapters.BrowserMemory do
   require Logger
 
   alias LiveStash.Utils
-  alias LiveStash.Adapters.Common
   alias LiveStash.Adapters.BrowserMemory.Serializer
   alias LiveStash.Adapters.BrowserMemory.Context
 
@@ -38,7 +37,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
     context = socket.private.live_stash_context
     keys = context.stored_keys
     assigns_to_stash = Map.take(socket.assigns, keys)
-    new_fingerprint = Common.hash_term(assigns_to_stash)
+    new_fingerprint = Utils.hash_term(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
       serialized_assigns =
@@ -65,7 +64,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
          {:ok, recovered_state} <-
            Serializer.decode_token(socket, stashed_state, get_settings(socket)) do
       context = socket.private.live_stash_context
-      fingerprint = Common.hash_term(recovered_state)
+      fingerprint = Utils.hash_term(recovered_state)
       updated_context = %{context | stash_fingerprint: fingerprint}
 
       socket
