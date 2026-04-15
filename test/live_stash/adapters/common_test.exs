@@ -4,18 +4,6 @@ defmodule LiveStash.Adapters.CommonTest do
   alias LiveStash.Adapters.Common
   alias Phoenix.LiveView.Socket
 
-  describe "hash_term/1" do
-    test "returns a deterministic sha256 hash binary" do
-      term = %{my: "state", nested: [1, 2, 3]}
-      hash1 = Common.hash_term(term)
-      hash2 = Common.hash_term(term)
-
-      assert is_binary(hash1)
-      assert hash1 == hash2
-      assert hash1 != Common.hash_term(%{other: "state"})
-    end
-  end
-
   describe "reconnected?/1" do
     test "returns true when _mounts is strictly greater than 0" do
       assert Common.reconnected?(%{"_mounts" => 1}) == true
@@ -61,6 +49,65 @@ defmodule LiveStash.Adapters.CommonTest do
 
       assert_raise RuntimeError, ~r/Failed to get connect params/, fn ->
         Common.get_connect_params(socket)
+      end
+    end
+  end
+
+  describe "validate_attributes!/2" do
+    @allowed_keys [
+      :stored_keys,
+      :reconnected?,
+      :stash_fingerprint,
+      :secret,
+      :ttl,
+      :id,
+      :security_mode
+    ]
+
+    test "returns attributes when all are valid and allowed" do
+      attrs = [ttl: 1, stored_keys: [:username], secret: "sec", reconnected?: false]
+      assert Common.validate_attributes!(attrs, @allowed_keys) == attrs
+    end
+
+    test "raises ArgumentError for invalid ttl type" do
+      assert_raise ArgumentError, ~r/Invalid ttl/, fn ->
+        Common.validate_attributes!([ttl: "1"], @allowed_keys)
+      end
+    end
+
+    test "raises ArgumentError for invalid stored_keys type" do
+      assert_raise ArgumentError, ~r/Invalid stored_keys/, fn ->
+        Common.validate_attributes!([stored_keys: ["username"]], @allowed_keys)
+      end
+    end
+
+    test "raises ArgumentError for invalid secret type" do
+      assert_raise ArgumentError, ~r/Invalid secret/, fn ->
+        Common.validate_attributes!([secret: 123], @allowed_keys)
+      end
+    end
+
+    test "raises ArgumentError for invalid stash_fingerprint type" do
+      assert_raise ArgumentError, ~r/Invalid stash_fingerprint/, fn ->
+        Common.validate_attributes!([stash_fingerprint: 123], @allowed_keys)
+      end
+    end
+
+    test "raises ArgumentError for invalid id type" do
+      assert_raise ArgumentError, ~r/Invalid id/, fn ->
+        Common.validate_attributes!([id: 123], @allowed_keys)
+      end
+    end
+
+    test "raises ArgumentError for invalid security_mode type" do
+      assert_raise ArgumentError, ~r/Invalid security_mode/, fn ->
+        Common.validate_attributes!([security_mode: :unknown], @allowed_keys)
+      end
+    end
+
+    test "raises ArgumentError for unknown attributes" do
+      assert_raise ArgumentError, ~r/Unknown attribute passed/, fn ->
+        Common.validate_attributes!([unknown_attr: true], @allowed_keys)
       end
     end
   end

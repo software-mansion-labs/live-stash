@@ -41,6 +41,15 @@ defmodule LiveStash.Adapters.ETS.Context do
           id: binary()
         }
 
+  @allowed_keys [
+    :stored_keys,
+    :reconnected?,
+    :stash_fingerprint,
+    :secret,
+    :ttl,
+    :id
+  ]
+
   @doc """
   Builds context from socket, session and opts (e.g. in `on_mount` / `init_stash`).
   """
@@ -56,6 +65,7 @@ defmodule LiveStash.Adapters.ETS.Context do
       attrs
       |> Keyword.put(:reconnected?, Common.reconnected?(connect_params))
       |> Keyword.put(:id, get_in(connect_params, ["liveStash", "stashId"]) || Uniq.UUID.uuid4())
+      |> Common.validate_attributes!(@allowed_keys)
       |> then(&struct!(__MODULE__, &1))
 
     node_hint = NodeHint.get_node_hint(socket, connect_params, context.secret)

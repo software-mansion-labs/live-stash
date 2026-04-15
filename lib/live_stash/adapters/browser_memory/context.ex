@@ -38,6 +38,15 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
           ttl: integer()
         }
 
+  @allowed_keys [
+    :stored_keys,
+    :reconnected?,
+    :stash_fingerprint,
+    :secret,
+    :ttl,
+    :security_mode
+  ]
+
   @doc """
   Builds context from socket, session and opts (e.g. in `on_mount` / `init_stash`).
   """
@@ -47,7 +56,11 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
 
     base_attrs
     |> Common.maybe_put_secret(session_key, session)
-    |> Keyword.put(:reconnected?, Common.reconnected?(Common.get_connect_params(socket)))
+    |> Keyword.put(
+      :reconnected?,
+      Common.reconnected?(Common.get_connect_params(socket))
+    )
+    |> Common.validate_attributes!(@allowed_keys)
     |> then(&struct!(__MODULE__, &1))
   end
 end

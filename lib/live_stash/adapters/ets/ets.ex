@@ -16,7 +16,6 @@ defmodule LiveStash.Adapters.ETS do
   alias LiveStash.Adapters.ETS.State
   alias LiveStash.Adapters.ETS.StateFinder
   alias LiveStash.Adapters.ETS.Context
-  alias LiveStash.Adapters.Common
   alias LiveStash.Utils
 
   alias Phoenix.LiveView
@@ -61,7 +60,7 @@ defmodule LiveStash.Adapters.ETS do
     context = socket.private.live_stash_context
     keys = context.stored_keys
     assigns_to_stash = Map.take(socket.assigns, keys)
-    new_fingerprint = Common.hash_term(assigns_to_stash)
+    new_fingerprint = Utils.hash_term(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
       State.put!(get_ets_id(socket), assigns_to_stash, get_opts(socket))
@@ -87,7 +86,7 @@ defmodule LiveStash.Adapters.ETS do
         |> State.insert!()
 
         context = socket.private.live_stash_context
-        fingerprint = Common.hash_term(recovered_state)
+        fingerprint = Utils.hash_term(recovered_state)
         updated_context = %{context | stash_fingerprint: fingerprint}
 
         socket

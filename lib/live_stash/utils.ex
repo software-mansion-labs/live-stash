@@ -15,4 +15,9 @@ defmodule LiveStash.Utils do
   def reason_message(message, reason) do
     "[LiveStash] #{message}, reason: #{inspect(reason)}"
   end
+
+  @spec hash_term(term :: term()) :: binary()
+  def hash_term(term) do
+    :crypto.hash(:sha256, :erlang.term_to_binary(term))
+  end
 end
