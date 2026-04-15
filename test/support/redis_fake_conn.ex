@@ -34,7 +34,11 @@ defmodule LiveStash.TestRedisConn do
         :ok
 
       pid ->
-        :gen_statem.stop(pid)
+        try do
+          :gen_statem.stop(pid)
+        catch
+          :exit, _reason -> :ok
+        end
     end
   end
 
