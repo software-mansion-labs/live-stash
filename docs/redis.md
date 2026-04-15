@@ -105,7 +105,7 @@ Defines how LiveStash connects to Redis. The value is read from `config :live_st
 - a `{uri, extra_opts}` tuple
 - a keyword list of Redix options
 
-This is consistent with the Redix API, the library that LiveStash uses under the hood to interact with Redis.
+This is consistent with the [Redix API](https://github.com/whatyouhide/redix), the library that LiveStash uses under the hood to interact with Redis.
 
 Example:
 
