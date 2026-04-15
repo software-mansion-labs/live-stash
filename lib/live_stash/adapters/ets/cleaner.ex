@@ -41,7 +41,7 @@ defmodule LiveStash.Adapters.ETS.Cleaner do
   """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do
-    now = System.os_time(:millisecond)
+    now = System.os_time(:second)
 
     case State.get_batch!(now) do
       {candidates, continuation} ->

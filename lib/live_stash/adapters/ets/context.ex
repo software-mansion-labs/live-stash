@@ -7,7 +7,7 @@ defmodule LiveStash.Adapters.ETS.Context do
   * `:stash_fingerprint` - A binary string representing the fingerprint of the stashed state. This is used to determine if the state has changed and needs to be re-stashed.
   * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the ETS table.
   * `:secret` - A binary string used as part of the record id in the ETS for security purposes.
-  * `:ttl` - Time-to-live for the records kept in the ETS table, specified in milliseconds.
+  * `:ttl` - Time-to-live for the records kept in the ETS table, specified in seconds.
   * `:node_hint` - Information about the Elixir node that currently holds stashed state in the ETS. This is used to optimize state retrieval in a distributed deployment.
   """
 
@@ -27,7 +27,7 @@ defmodule LiveStash.Adapters.ETS.Context do
     :id,
     stash_fingerprint: nil,
     secret: "live_stash",
-    ttl: 5 * 60 * 1000,
+    ttl: 5 * 60,
     node_hint: nil
   ]
 

@@ -7,7 +7,7 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
   * `:reconnected?` - A boolean indicating whether the LiveView socket has successfully reconnected vs. a fresh mount.
   * `:stash_fingerprint` - A binary string representing the fingerprint of the stashed state. This is used to determine if the state has changed and needs to be re-stashed.
   * `:secret` - A binary string used as the cryptographic secret for signing or encrypting the data sent to the browser.
-  * `:ttl` - Time-to-live for the stored browser data in milliseconds.
+  * `:ttl` - Time-to-live for the stored browser data in seconds.
   * `:security_mode` - Defines the security approach applied to the client-side data (`:sign` to prevent tampering, or `:encrypt` to hide contents). Defaults to `:sign`.
   * `:key_set` - A `MapSet` used internally to track which keys are currently stored in the browser's memory, ensuring accurate synchronization and cleanup.
   """
@@ -25,7 +25,7 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
     :reconnected?,
     stash_fingerprint: nil,
     secret: "live_stash",
-    ttl: 5 * 60 * 1000,
+    ttl: 5 * 60,
     security_mode: :sign
   ]
 
