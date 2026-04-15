@@ -49,10 +49,7 @@ defmodule LiveStash.Adapters.ETSTest do
       |> Base.encode64(padding: false)
 
     {:ok,
-     socket: socket,
-     secret: secret,
-     ets_id: ets_id,
-     delete_at: System.os_time(:millisecond) + 86_400}
+     socket: socket, secret: secret, ets_id: ets_id, delete_at: System.os_time(:second) + 86_400}
   end
 
   describe "init_stash/3" do
@@ -62,7 +59,7 @@ defmodule LiveStash.Adapters.ETSTest do
       delete_at: delete_at
     } do
       State.insert!(
-        State.state(id: ets_id, pid: self(), delete_at: delete_at, ttl: 1000, state: %{})
+        State.state(id: ets_id, pid: self(), delete_at: delete_at, ttl: 1, state: %{})
       )
 
       initialized_socket = ETS.init_stash(socket, %{}, stored_keys: [:username])
@@ -91,7 +88,7 @@ defmodule LiveStash.Adapters.ETSTest do
           id: ets_id,
           pid: self(),
           delete_at: delete_at,
-          ttl: 1000,
+          ttl: 1,
           state: %{recovered: true}
         )
       )

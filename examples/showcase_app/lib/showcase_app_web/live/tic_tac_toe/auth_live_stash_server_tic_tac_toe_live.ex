@@ -2,7 +2,7 @@ defmodule ShowcaseAppWeb.Auth.LiveStashServerTicTacToeLive do
   use ShowcaseAppWeb, :live_view
   use LiveStash,
     adapter: LiveStash.Adapters.ETS,
-    ttl: 60 * 1000,
+    ttl: 60,
     session_key: "user_token",
     stored_keys: [:board, :current_player, :winner, :winning_line]
 

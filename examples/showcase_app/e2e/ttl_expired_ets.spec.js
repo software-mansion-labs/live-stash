@@ -29,7 +29,7 @@ test.describe("ETS adapter - TTL expiration", () => {
       () => window.liveSocket && !window.liveSocket.isConnected(),
     );
 
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
     await page.evaluate(() => window.liveSocket.connect());
 
