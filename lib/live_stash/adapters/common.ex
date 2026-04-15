@@ -58,10 +58,10 @@ defmodule LiveStash.Adapters.Common do
   def validate_attributes!(attrs, allowed_keys) do
     Enum.each(attrs, fn {key, _value} = attr ->
       error_msg =
-        if key not in allowed_keys do
-          "Unknown attribute passed: #{inspect(key)}"
-        else
+        if key in allowed_keys do
           validate_attribute(attr)
+        else
+          "Unknown attribute passed: #{inspect(key)}"
         end
 
       if error_msg do
