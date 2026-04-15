@@ -6,14 +6,12 @@ const routes = [
   "/test/counter/live_stash_redis",
 ];
 
-test.describe("ETS adapter - TTL expiration", () => {
+test.describe("ETS, BrowserMemory, and Redis adapters - TTL expiration", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {
-    test(`should not kill app when state is bad on ${route}`, async ({
-      page,
-    }) => {
-      await page.goto("/test/counter/live_stash_server");
+    test(`should not recover expired state on ${route}`, async ({ page }) => {
+      await page.goto(route);
 
       const incrementBtn = page.getByLabel("Increment");
       const counterValue = page.locator(".stat-value");

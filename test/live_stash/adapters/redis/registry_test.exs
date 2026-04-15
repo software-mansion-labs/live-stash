@@ -5,7 +5,7 @@ defmodule LiveStash.Adapters.Redis.RegistryTest do
 
   alias LiveStash.Adapters.Redis.Registry
 
-  @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_redis_registry)
+  @table_name Application.compile_env(:live_stash, :redis_table_name, :live_stash_redis_registry)
 
   setup do
     if :ets.whereis(@table_name) != :undefined do

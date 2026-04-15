@@ -2,7 +2,7 @@ defmodule ShowcaseAppWeb.LiveStashRedisTicTacToeLive do
   use ShowcaseAppWeb, :live_view
   use LiveStash,
     adapter: LiveStash.Adapters.Redis,
-    ttl: 5 * 60 * 1000,
+    ttl: 5 * 60,
     stored_keys: [:board, :current_player, :winner, :winning_line]
 
   @winning_lines [

@@ -6,14 +6,12 @@ const routes = [
   "/test/counter/live_stash_redis",
 ];
 
-test.describe("ETS adapter - state recovery on cluster", () => {
+test.describe("ETS, BrowserMemory, and Redis adapters - state recovery on cluster", () => {
   test.use({ baseURL: "http://localhost:8080" });
 
   routes.forEach((route) => {
-    test(`should not kill app when state is bad on ${route}`, async ({
-      page,
-    }) => {
-      await page.goto("/test/counter/live_stash_server");
+    test(`should recover state in cluster on ${route}`, async ({ page }) => {
+      await page.goto(route);
 
       const incrementBtn = page.getByLabel("Increment");
       const counterValue = page.locator(".stat-value");

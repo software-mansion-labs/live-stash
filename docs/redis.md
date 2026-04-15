@@ -52,10 +52,13 @@ Redis entries use a separate expiration value to avoid leaving dead payloads beh
 
 **Default Redis expiration:** `86_400` seconds (24 hours)
 
-To override this, add the following to your `config/config.exs`:
+To override this, pass `redis_exp:` in your `use LiveStash` options:
 
 ```elixir
-config :live_stash, adapters: [LiveStash.Adapters.Redis], redis_exp: 60_000
+use LiveStash,
+  adapter: LiveStash.Adapters.Redis,
+  redis_exp: 60_000,
+  stored_keys: [:count]
 ```
 
 ### Cleanup interval

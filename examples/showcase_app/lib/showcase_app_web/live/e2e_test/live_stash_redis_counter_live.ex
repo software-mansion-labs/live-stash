@@ -97,7 +97,8 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashRedisCounterLive do
     socket
     |> assign(:count, socket.assigns.count + 1)
     |> LiveStash.stash()
-    |> then(&{:noreply, &1})  end
+    |> then(&{:noreply, &1})
+  end
 
   def handle_event("decrement", _, socket) do
     socket

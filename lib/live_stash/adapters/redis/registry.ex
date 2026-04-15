@@ -30,7 +30,7 @@ defmodule LiveStash.Adapters.Redis.Registry do
 
   @doc """
   Creates the ETS table for tracking the LiveViews.
-  Table name is configurable via the `:ets_table_name` config.
+  Table name is configurable via the `:redis_table_name` config.
   """
   @spec create_table!() :: :ets.table()
   def create_table!() do

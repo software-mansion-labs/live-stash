@@ -26,8 +26,8 @@ defmodule LiveStash.Adapters.Redis do
 
     children = [
       {Redix, redix_args},
-      {LiveStash.Adapters.Redis.Cleaner, opts},
-      {LiveStash.Adapters.Redis.Storage, opts}
+      {LiveStash.Adapters.Redis.Storage, opts},
+      {LiveStash.Adapters.Redis.Cleaner, opts}
     ]
 
     %{
@@ -115,7 +115,7 @@ defmodule LiveStash.Adapters.Redis do
         {:not_found, socket}
 
       {:ok, binary_state} when is_binary(binary_state) ->
-        recovered_state = :erlang.binary_to_term(binary_state)
+        recovered_state = :erlang.binary_to_term(binary_state, [:safe])
 
         Registry.new(id, ttl: socket.private.live_stash_context.ttl)
         |> Registry.insert!()
@@ -136,7 +136,7 @@ defmodule LiveStash.Adapters.Redis do
     end
   rescue
     error ->
-      err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
+      err = Utils.exception_message("Failed to recover state", error, __STACKTRACE__)
       Logger.error(err)
       {:error, socket}
   end

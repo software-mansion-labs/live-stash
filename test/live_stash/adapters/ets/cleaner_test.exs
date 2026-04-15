@@ -6,7 +6,7 @@ defmodule LiveStash.Server.CleanerTest do
   alias LiveStash.Adapters.ETS.Cleaner
   alias LiveStash.Adapters.ETS.State
 
-  @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
+  @table_name Application.compile_env(:live_stash, :redis_table_name, :live_stash_server_storage)
 
   setup do
     if :ets.whereis(@table_name) != :undefined do

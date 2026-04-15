@@ -10,7 +10,7 @@ defmodule LiveStash.Adapters.RedisTest do
 
   require LiveStash.Adapters.Redis.Registry
 
-  @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_redis_registry)
+  @table_name Application.compile_env(:live_stash, :redis_table_name, :live_stash_redis_registry)
 
   setup do
     if :ets.whereis(@table_name) != :undefined do
@@ -69,8 +69,8 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert [
                {Redix, redix_args},
-               {LiveStash.Adapters.Redis.Cleaner, []},
-               {LiveStash.Adapters.Redis.Storage, []}
+               {LiveStash.Adapters.Redis.Storage, []},
+               {LiveStash.Adapters.Redis.Cleaner, []}
              ] = children
 
       assert Keyword.fetch!(redix_args, :name) == LiveStash.Adapters.Redis.Conn
@@ -311,12 +311,31 @@ defmodule LiveStash.Adapters.RedisTest do
           assert {:error, _socket} = Redis.recover_state(broken_socket)
         end)
 
-      assert log =~ "Could not recover state"
+      assert log =~ "Failed to recover state"
     end
 
     test "returns :new and socket when reconnected? is false", %{socket: socket} do
       assert {:new, returned_socket} = Redis.recover_state(socket)
       assert returned_socket == socket
+    end
+
+    test "returns {:error, socket} and logs when payload contains unsafe/unknown atoms", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
+      malicious_binary = <<131, 118, 0, 31, "non_existent_malicious_atom_999">>
+
+      assert {:ok, "OK"} = Redis.command(["SET", redis_id, malicious_binary, "EX", "86400"])
+
+      log =
+        capture_log(fn ->
+          assert {:error, returned_socket} = Redis.recover_state(socket)
+          assert returned_socket == socket
+        end)
+
+      assert log =~ "Failed to recover state"
     end
   end
 

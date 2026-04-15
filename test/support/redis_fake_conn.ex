@@ -34,12 +34,7 @@ defmodule LiveStash.TestRedisConn do
         :ok
 
       pid ->
-        ref = Process.monitor(pid)
-        Process.exit(pid, :kill)
-
-        receive do
-          {:DOWN, ^ref, :process, ^pid, _reason} -> :ok
-        end
+        :gen_statem.stop(pid)
     end
   end
 
