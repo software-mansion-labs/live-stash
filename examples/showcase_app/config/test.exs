@@ -1,7 +1,12 @@
 import Config
 
 
-config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory], ets_cleanup_interval: 100
+config :live_stash,
+  adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis],
+  redis: System.get_env("LIVE_STASH_REDIS_URL", "redis://localhost:6379"),
+  ets_cleanup_interval: 100,
+  redis_cleanup_interval: 100
+
 
 # Only in tests, remove the complexity from the password hashing algorithm
 config :bcrypt_elixir, :log_rounds, 1
