@@ -12,7 +12,6 @@ defmodule LiveStash.Adapters.Redis do
   alias Phoenix.LiveView
   alias LiveStash.Adapters.Redis.Context
   alias LiveStash.Utils
-  alias LiveStash.Adapters.Common
   alias LiveStash.Adapters.Redis.Registry
 
   require Logger
@@ -77,7 +76,7 @@ defmodule LiveStash.Adapters.Redis do
 
     keys = context.stored_keys
     assigns_to_stash = Map.take(socket.assigns, keys)
-    new_fingerprint = Common.hash_term(assigns_to_stash)
+    new_fingerprint = Utils.hash_term(assigns_to_stash)
 
     id = get_redis_key(socket)
     redis_exp = context.redis_exp
@@ -122,7 +121,7 @@ defmodule LiveStash.Adapters.Redis do
         |> Registry.insert!()
 
         context = socket.private.live_stash_context
-        fingerprint = Common.hash_term(recovered_state)
+        fingerprint = Utils.hash_term(recovered_state)
         updated_context = %{context | stash_fingerprint: fingerprint}
 
         socket

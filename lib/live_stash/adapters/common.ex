@@ -105,5 +105,9 @@ defmodule LiveStash.Adapters.Common do
     "Invalid id: #{inspect(id)}. Expected a binary string."
   end
 
+  defp validate_attribute({:redis_exp, exp}) when not is_integer(exp) do
+    "Invalid redis_exp: #{inspect(exp)}. Expected an integer."
+  end
+
   defp validate_attribute(_valid_attr), do: nil
 end
