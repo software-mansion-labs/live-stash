@@ -20,15 +20,15 @@ defmodule LiveStash.Server.CleanerTest do
 
   describe "clean_expired_states!/0" do
     test "does not clear records that are not expired" do
-      now = System.os_time(:millisecond)
-      future_time = now + 5000
+      now = System.os_time(:second)
+      future_time = now + 5
 
       future_record =
         State.state(
           id: "future_id",
           pid: self(),
           delete_at: future_time,
-          ttl: 1000,
+          ttl: 1,
           state: %{key: "value"}
         )
 
@@ -39,9 +39,9 @@ defmodule LiveStash.Server.CleanerTest do
     end
 
     test "bumps delete_at time for records with alive processes" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
-      ttl = 1000
+      now = System.os_time(:second)
+      past_time = now - 5
+      ttl = 1
 
       expired_record =
         State.state(
@@ -63,8 +63,8 @@ defmodule LiveStash.Server.CleanerTest do
     end
 
     test "deletes expired records with dead processes" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
+      now = System.os_time(:second)
+      past_time = now - 5
 
       dead_pid =
         spawn(fn ->
@@ -78,7 +78,7 @@ defmodule LiveStash.Server.CleanerTest do
           id: "dead_expired",
           pid: dead_pid,
           delete_at: past_time,
-          ttl: 1000,
+          ttl: 1,
           state: %{key: "value"}
         )
 
@@ -93,9 +93,9 @@ defmodule LiveStash.Server.CleanerTest do
     end
 
     test "handles mixed alive and dead processes" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
-      ttl = 1000
+      now = System.os_time(:second)
+      past_time = now - 5
+      ttl = 1
 
       dead_pid =
         spawn(fn ->
@@ -140,9 +140,9 @@ defmodule LiveStash.Server.CleanerTest do
     end
 
     test "handles continuation batches" do
-      now = System.os_time(:millisecond)
-      past_time = now - 5000
-      ttl = 1000
+      now = System.os_time(:second)
+      past_time = now - 5
+      ttl = 1
 
       records =
         for i <- 1..150 do

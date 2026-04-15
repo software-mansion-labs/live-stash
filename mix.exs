@@ -52,6 +52,7 @@ defmodule LiveStash.MixProject do
     [
       main: "welcome",
       extras: [
+        "CHANGELOG.md",
         "docs/welcome.md",
         "docs/browser_memory.md",
         "docs/ets.md",
@@ -74,8 +75,11 @@ defmodule LiveStash.MixProject do
   defp package do
     [
       licenses: ["Apache-2.0"],
-      links: %{github: "https://github.com/software-mansion-labs/live-stash"},
-      files: ~w(assets lib mix.exs LICENSE README.md)
+      links: %{
+        "GitHub" => "https://github.com/software-mansion-labs/live-stash",
+        "Changelog" => "https://hexdocs.pm/live_stash/changelog.html"
+      },
+      files: ~w(assets lib mix.exs LICENSE README.md CHANGELOG.md)
     ]
   end
 
