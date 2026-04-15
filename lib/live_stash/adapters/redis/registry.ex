@@ -13,8 +13,8 @@ defmodule LiveStash.Adapters.Redis.Registry do
 
   alias LiveStash.Utils
 
-  @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_redis_registry)
-  @batch_size Application.compile_env(:live_stash, :ets_cleanup_batch_size, 100)
+  @table_name Application.compile_env(:live_stash, :redis_table_name, :live_stash_redis_registry)
+  @batch_size Application.compile_env(:live_stash, :redis_cleanup_batch_size, 100)
 
   Record.defrecord(:registry, [:id, :pid, :delete_at, :ttl])
 

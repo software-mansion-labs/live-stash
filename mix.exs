@@ -56,6 +56,7 @@ defmodule LiveStash.MixProject do
         "docs/welcome.md",
         "docs/browser_memory.md",
         "docs/ets.md",
+        "docs/redis.md",
         "docs/adapters.md",
         "docs/example.md"
       ],
@@ -63,6 +64,7 @@ defmodule LiveStash.MixProject do
         Adapters: [
           "docs/browser_memory.md",
           "docs/ets.md",
+          "docs/redis.md",
           "docs/adapters.md"
         ]
       ],

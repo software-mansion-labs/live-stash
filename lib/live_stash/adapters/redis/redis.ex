@@ -1,6 +1,9 @@
 defmodule LiveStash.Adapters.Redis do
   @moduledoc """
   A server-side stash that persists data in Redis.
+
+  See the [Redis Adapter Guide](redis.html) for usage and configuration details
+  (source: `docs/redis.md`).
   """
 
   @behaviour LiveStash.Adapter
