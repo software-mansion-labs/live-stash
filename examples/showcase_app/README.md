@@ -7,16 +7,13 @@ This projects features a few examples where you can see LiveStash in action:
 ### Counter
 
 - Counter Default - no state recovery
-- Counter Client - Browser memory adapter for LiveStash state recovery
-- Counter Server - ETS adapter for LiveStash state recovery
+- Counter LiveStash - current default adapter for LiveStash state recovery
 
 ### Tic Tac Toe
 
 - Tic Tac Toe Default - no state recovery
-- Tic Tac Toe Client - Browser memory adapter for LiveStash state recovery
-- Tic Tac Toe Server - ETS adapter for LiveStash state recovery
-- Auth Tic Tac Toe Client - Browser memory adapter for LiveStash state recovery with authentication
-- Auth Tic Tac Toe Server - ETS adapter for LiveStash state recovery with authentication
+- Tic Tac Toe LiveStash - current default adapter for LiveStash state recovery
+- Auth Tic Tac Toe LiveStash - current default adapter for LiveStash state recovery with authentication
 
 ## Getting started
 
