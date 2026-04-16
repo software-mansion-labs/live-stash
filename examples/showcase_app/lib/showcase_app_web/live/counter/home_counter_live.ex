@@ -21,19 +21,11 @@ defmodule ShowcaseAppWeb.HomeCounterLive do
           </.feature_card>
 
           <.feature_card
-            title="LiveStash Server"
-            navigate={~p"/counter/live_stash_server"}
-            button_text="View Server Counter"
+            title="LiveStash Default Adapter"
+            navigate={~p"/counter/live_stash_default"}
+            button_text="View Default Adapter Counter"
           >
-            A counter using LiveStash server mode that persists state across page refreshes.
-          </.feature_card>
-
-          <.feature_card
-            title="LiveStash Client"
-            navigate={~p"/counter/live_stash_client"}
-            button_text="View Client Counter"
-          >
-            A counter using LiveStash client mode that persists state in the browser.
+            A counter using LiveStash default adapter.
           </.feature_card>
         </div>
       </div>

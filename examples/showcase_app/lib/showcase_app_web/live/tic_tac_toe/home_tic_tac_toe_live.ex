@@ -28,22 +28,6 @@ defmodule ShowcaseAppWeb.HomeTicTacToeLive do
             A Tic Tac Toe game using LiveStash server mode that persists state across page refreshes.
           </.feature_card>
 
-               <.feature_card
-            title="LiveStash Server Auth"
-            navigate={~p"/auth/tic-tac-toe/live_stash_server"}
-            button_text="View Server Tic Tac Toe"
-          >
-            A Tic Tac Toe game using LiveStash server mode with authentication.
-          </.feature_card>
-
-          <.feature_card
-            title="LiveStash Client"
-            navigate={~p"/tic-tac-toe/live_stash_client"}
-            button_text="View Client Tic Tac Toe"
-          >
-            A Tic Tac Toe game using LiveStash client mode that persists state in the browser.
-          </.feature_card>
-
           <.feature_card
             title="LiveStash Client Auth"
             navigate={~p"/auth/tic-tac-toe/live_stash_client"}
