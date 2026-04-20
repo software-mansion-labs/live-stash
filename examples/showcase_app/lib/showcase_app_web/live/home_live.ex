@@ -10,40 +10,30 @@ defmodule ShowcaseAppWeb.HomeLive do
             Let's see what LiveStash can do!
           </h1>
           <p class="text-xl text-gray-400">
-            Select a category below to test different ways of managing state and validation in Phoenix LiveView.
+            See examples below to test different ways of managing state and validation in Phoenix LiveView.
           </p>
         </div>
-
-        <div class="flex flex-col gap-6 w-full max-w-md mx-auto">
-
+        <div class="flex flex-col sm:flex-row gap-6 justify-center w-full">
           <.link
             navigate={~p"/tic-tac-toe/comparison"}
-            class="w-full btn bg-black hover:bg-gray-900 text-white border-2 border-[#4e2a8e] shadow-[0_0_15px_rgba(78,42,142,0.4)] hover:shadow-[0_0_25px_rgba(78,42,142,0.6)] h-auto py-6 rounded-2xl text-xl hover:scale-105 transition-all"
+            class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all font-bold"
           >
-            <div class="flex flex-col items-center gap-3">
-              <span class="font-bold">LiveStash Effect</span>
-            </div>
+            LiveStash Effect
           </.link>
 
-          <div class="flex flex-col sm:flex-row gap-6 justify-center w-full">
-            <.link
-              navigate={~p"/tic-tac-toe"}
-              class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all"
-            >
-              <div class="flex flex-col items-center gap-3">
-                <span class="font-bold">Tic tac toe</span>
-              </div>
-            </.link>
+          <.link
+            navigate={~p"/counter/live_stash_default"}
+            class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all font-bold"
+          >
+            ETS adapter
+          </.link>
 
-            <.link
-              navigate={~p"/counter"}
-              class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all"
-            >
-              <div class="flex flex-col items-center gap-3">
-                <span class="font-bold">Counters</span>
-              </div>
-            </.link>
-          </div>
+          <.link
+            navigate={~p"/auth/tic-tac-toe/live_stash_client"}
+            class="flex-1 btn bg-[#4e2a8e] hover:bg-[#3a1f6a] text-white border-none h-auto py-6 rounded-2xl text-lg shadow-xl hover:scale-105 transition-all font-bold"
+          >
+            BrowserMemory adapter
+          </.link>
         </div>
       </div>
     </div>

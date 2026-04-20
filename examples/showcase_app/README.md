@@ -4,6 +4,10 @@ This projects features a few examples where you can see LiveStash in action:
 
 ## Content description
 
+### Comparison
+
+Side-by-side view with default Tic Tac Toe and LiveStash ETS Tic Tac Toe
+
 ### Counter
 
 - Counter Default - no state recovery
@@ -12,7 +16,6 @@ This projects features a few examples where you can see LiveStash in action:
 ### Tic Tac Toe
 
 - Tic Tac Toe Default - no state recovery
-- Tic Tac Toe LiveStash - current default adapter for LiveStash state recovery
 - Auth Tic Tac Toe LiveStash - current default adapter for LiveStash state recovery with authentication
 
 ## Getting started
