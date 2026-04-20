@@ -4,6 +4,18 @@ defmodule LiveStash.Adapters.Common do
   alias Phoenix.LiveView
   alias LiveStash.Utils
 
+  def ensure_stored_keys!(attrs) do
+    unless Keyword.has_key?(attrs, :stored_keys) do
+      msg =
+        LiveStash.Utils.reason_message(
+          "Missing required option: :stored_keys. You must define which assigns to persist. Example: use LiveStash, stored_keys: [:count]",
+          :invalid
+        )
+
+      raise ArgumentError, msg
+    end
+  end
+
   def get_connect_params(socket) do
     try do
       LiveView.get_connect_params(socket)
@@ -26,10 +38,10 @@ defmodule LiveStash.Adapters.Common do
   def maybe_put_secret(attrs, nil, _session), do: attrs
 
   def maybe_put_secret(attrs, session_key, session) do
-    Keyword.put(attrs, :secret, fetch_secret(session_key, session))
+    Keyword.put(attrs, :secret, fetch_secret!(session_key, session))
   end
 
-  defp fetch_secret(session_key, session) do
+  defp fetch_secret!(session_key, session) do
     secret =
       try do
         Map.fetch!(session, session_key)
