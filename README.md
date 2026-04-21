@@ -15,22 +15,35 @@ Adding LiveStash to your existing LiveView is very simple.
 
 ```elixir
 defmodule ShowcaseAppWeb.CounterLive do
-  use LiveStash
+  use LiveStash, stored_keys: [:count, :user_id]
 ```
 
-2. Decide which part of your LiveView state you want to stash.
+2. Update your assigns. By default, LiveStash auto-stashes after each render (`auto_stash: true`), and only writes when the configured `stored_keys` values change.
 
 ```elixir
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
     |> assign(:user_id, 123)
-    |> LiveStash.stash_assigns([:count, :user_id]) # pass the list of assigns that you want to stash
     |> then(&{:noreply, &1})
   end
 ```
 
-2. Call `recover_state(socket)` in your `mount/3` function call. It will automatically restored assigns to your socket.
+You can opt out and stash manually when you want explicit control:
+
+```elixir
+use LiveStash, stored_keys: [:count, :user_id], auto_stash: false
+
+def handle_event("increment", _, socket) do
+  socket
+  |> assign(:count, socket.assigns.count + 1)
+  |> assign(:user_id, 123)
+  |> LiveStash.stash()
+  |> then(&{:noreply, &1})
+end
+```
+
+3. Call `recover_state(socket)` in your `mount/3` function call. It will automatically restore assigns to your socket.
 
 ```elixir
   def mount(_params, _session, socket) do
@@ -80,7 +93,7 @@ You can control where the stashed data is kept by passing appropriate adapter mo
 - **Browser memory** - The data is saved in the client browser.
 
 ```elixir
-use LiveStash, adapters: LiveStash.Adapters.ETS
+use LiveStash, adapter: LiveStash.Adapters.ETS, stored_keys: [:count, :user_id]
 ```
 
 Remember to define adapters you would like to activate in your `config.exs` file.

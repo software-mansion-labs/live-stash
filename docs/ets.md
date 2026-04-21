@@ -6,6 +6,8 @@ In this mode, the stashed state is securely stored in an ETS table on the Elixir
 
 The assigns you want to persist are declared once at the module level with `stored_keys: [...]`, and `stash/1` only replaces the stash in ETS record when those values have changed since the last stash.
 
+LiveStash auto-stashes after each render by default (`auto_stash: true`). Set `auto_stash: false` if you prefer to call `LiveStash.stash/1` manually.
+
 ## When to use
 
 Choose the ETS mode when:

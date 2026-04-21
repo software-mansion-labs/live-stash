@@ -15,7 +15,8 @@ defmodule ShowcaseAppWeb.Auth.LiveStashClientTicTacToeLive do
     adapter: LiveStash.Adapters.BrowserMemory,
     security_mode: :encrypt,
     session_key: "user_token",
-    stored_keys: [:board, :current_player, :winner, :winning_line]
+    stored_keys: [:board, :current_player, :winner, :winning_line],
+    auto_stash: false
 ```
 
 Here, we define the LiveView module and inject the necessary dependencies. By calling use LiveStash, we configure how the state should be persisted. In this specific example, it is configured to use the browser memory adapter, meaning the game's state will be encrypted and stored securely on the user's browser (client-side) using the defined `session_key`.
@@ -119,7 +120,9 @@ end
 
 This section handles the core game logic and user actions. The `handle_event/3` callbacks listen for the actions triggered from the UI. When a player makes a move, the board is updated, checked for a win or draw, and the turn shifts to the next player.
 
-Crucially, after updating the socket assigns, we pipe it into `stash()`. The assigns to persist are declared in `use LiveStash`, so LiveStash securely persists that configured state when the connection drops.
+This example intentionally uses manual stashing by setting `auto_stash: false`. After updating the socket assigns, we pipe it into `stash()`. The assigns to persist are declared in `use LiveStash`, so LiveStash securely persists that configured state when the connection drops.
+
+If you keep the default `auto_stash: true`, you can remove these explicit `LiveStash.stash/1` calls.
 
 ## State recovery
 
