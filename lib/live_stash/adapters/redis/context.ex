@@ -9,7 +9,6 @@ defmodule LiveStash.Adapters.Redis.Context do
   * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the Redis database.
   * `:secret` - A binary string used as part of the record id in the Redis for security purposes.
   * `:ttl` - Time-to-live for the records kept in the Redis, specified in seconds.
-  * `:redis_exp` - The expiration argument to use in Redis commands, specified in seconds. This is used to prevent dead entries in Redis when for example ETS crashes.
   """
 
   alias Phoenix.LiveView
@@ -27,8 +26,7 @@ defmodule LiveStash.Adapters.Redis.Context do
     :id,
     stash_fingerprint: nil,
     secret: "live_stash",
-    ttl: 5 * 60,
-    redis_exp: 86_400
+    ttl: 5 * 60
   ]
 
   @type t :: %__MODULE__{
@@ -37,7 +35,6 @@ defmodule LiveStash.Adapters.Redis.Context do
           stash_fingerprint: binary() | nil,
           secret: binary(),
           ttl: integer(),
-          redis_exp: integer(),
           id: binary()
         }
 
@@ -47,8 +44,7 @@ defmodule LiveStash.Adapters.Redis.Context do
     :stash_fingerprint,
     :secret,
     :ttl,
-    :id,
-    :redis_exp
+    :id
   ]
 
   @doc """
