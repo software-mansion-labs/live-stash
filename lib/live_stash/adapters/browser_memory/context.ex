@@ -54,6 +54,8 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
   def new(socket, session, opts) do
     {session_key, base_attrs} = Keyword.pop(opts, :session_key)
 
+    Common.ensure_stored_keys!(base_attrs)
+
     base_attrs
     |> Common.maybe_put_secret(session_key, session)
     |> Keyword.put(

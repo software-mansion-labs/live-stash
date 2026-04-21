@@ -61,6 +61,8 @@ defmodule LiveStash.Adapters.ETS.Context do
 
     connect_params = Common.get_connect_params(socket) || %{}
 
+    Common.ensure_stored_keys!(base_attrs)
+
     context =
       attrs
       |> Keyword.put(:reconnected?, Common.reconnected?(connect_params))

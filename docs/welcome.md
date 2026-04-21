@@ -16,9 +16,23 @@ defmodule ShowcaseAppWeb.CounterLive do
   use LiveStash, stored_keys: [:count, :user_id]
 ```
 
-2. Update your assigns and call `LiveStash.stash/1`. The assigns you declared in the previous step will be persisted. LiveStash avoids redundant stash writes when the values have not changed.
+2. Update your assigns. By default, LiveStash auto-stashes after each render (`auto_stash: true`). LiveStash avoids redundant stash writes when the values have not changed.
 
 ```elixir
+  def handle_event("increment", _, socket) do
+    socket
+    |> assign(:count, socket.assigns.count + 1)
+    |> assign(:user_id, 123)
+    |> then(&{:noreply, &1})
+  end
+```
+
+If you want explicit control, disable auto mode and call `LiveStash.stash/1` manually:
+
+```elixir
+defmodule ShowcaseAppWeb.CounterLive do
+  use LiveStash, stored_keys: [:count, :user_id], auto_stash: false
+
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
@@ -26,6 +40,7 @@ defmodule ShowcaseAppWeb.CounterLive do
     |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
+end
 ```
 
 3. Call `recover_state(socket)` in your `mount/3` function call. It will automatically restore assigns to your socket.
