@@ -145,8 +145,10 @@ defmodule LiveStash do
       raise ArgumentError, msg
     end
 
+    {auto_stash?, opts} = Keyword.pop(opts, :auto_stash, true)
+
     socket =
-      if Keyword.get(opts, :auto_stash, true) do
+      if auto_stash? do
         Phoenix.LiveView.attach_hook(
           socket,
           :live_stash_auto_stash,
