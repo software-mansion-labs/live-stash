@@ -13,24 +13,26 @@ Adding LiveStash to your existing LiveView is very simple.
 1. Add `use LiveStash` to your module. It registers LiveStash's `on_mount` hook, which initializes stash support for the socket.
    See [`LiveStash.__using__/1`](https://hexdocs.pm/live_stash/LiveStash.html#__using__/1).
 
+The assigns you want to persist are declared once at the module level with `stored_keys: [...]`.
+
 ```elixir
 defmodule ShowcaseAppWeb.CounterLive do
-  use LiveStash
+  use LiveStash, stored_keys: [:count, :user_id]
 ```
 
-2. Decide which part of your LiveView state you want to stash.
+2. Update your assigns and call `LiveStash.stash/1`. The assigns you declared in the previous step will be persisted. LiveStash avoids redundant stash writes when the values have not changed.
 
 ```elixir
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
     |> assign(:user_id, 123)
-    |> LiveStash.stash_assigns([:count, :user_id]) # pass the list of assigns that you want to stash
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 ```
 
-2. Call `recover_state(socket)` in your `mount/3` function call. It will automatically restored assigns to your socket.
+3. Call `recover_state(socket)` in your `mount/3` function call. It will automatically restore assigns to your socket.
 
 ```elixir
   def mount(_params, _session, socket) do
@@ -56,7 +58,7 @@ Add `live_stash` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:live_stash, "~> 0.1.0"}
+    {:live_stash, "~> 0.2.0"}
   ]
 end
 ```
@@ -80,7 +82,7 @@ You can control where the stashed data is kept by passing appropriate adapter mo
 - **Browser memory** - The data is saved in the client browser.
 
 ```elixir
-use LiveStash, adapters: LiveStash.Adapters.ETS
+use LiveStash, adapter: LiveStash.Adapters.ETS, stored_keys: [:count, :user_id]
 ```
 
 Remember to define adapters you would like to activate in your `config.exs` file.

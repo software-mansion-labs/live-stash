@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.ETS, ttl: 60, stored_keys: [:count]
+  use LiveStash, stored_keys: [:count]
 
 
   def mount(_params, _session, socket) do

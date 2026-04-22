@@ -25,15 +25,11 @@ defmodule ShowcaseAppWeb.Router do
     live "/tic-tac-toe", HomeTicTacToeLive
     live "/tic-tac-toe/default", DefaultTicTacToeLive
     live "/tic-tac-toe/live_stash_server", LiveStashServerTicTacToeLive
-    live "/tic-tac-toe/live_stash_client", LiveStashClientTicTacToeLive
     live "/tic-tac-toe/live_stash_redis", LiveStashRedisTicTacToeLive
 
     live "/tic-tac-toe/comparison", ComparisonTicTacToeLive
 
-    live "/counter", HomeCounterLive
-    live "/counter/default", DefaultCounterLive
-    live "/counter/live_stash_server", LiveStashServerCounterLive
-    live "/counter/live_stash_client", LiveStashClientCounterLive
+    live "/counter/live_stash_default", LiveStashServerCounterLive
 
     live "/test/counter/live_stash_server", E2eTest.LiveStashServerCounterLive
     live "/test/counter/live_stash_client", E2eTest.LiveStashClientCounterLive
@@ -71,7 +67,6 @@ defmodule ShowcaseAppWeb.Router do
       on_mount: [{ShowcaseAppWeb.UserAuth, :require_authenticated}] do
 
       live "/auth/tic-tac-toe/live_stash_client", Auth.LiveStashClientTicTacToeLive
-      live "/auth/tic-tac-toe/live_stash_server", Auth.LiveStashServerTicTacToeLive
 
       live "/users/settings", UserLive.Settings, :edit
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email

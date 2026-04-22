@@ -54,7 +54,7 @@ Add `live_stash` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:live_stash, "~> 0.1.0"}
+    {:live_stash, "~> 0.2.0"}
   ]
 end
 ```

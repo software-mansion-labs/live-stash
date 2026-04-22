@@ -16,7 +16,7 @@ defmodule ShowcaseAppWeb.ComparisonTicTacToeLive do
               LiveStash Version
             </div>
             <iframe
-              src="/tic-tac-toe/live_stash_client?embed=true"
+              src="/tic-tac-toe/live_stash_server?embed=true"
               class="w-full h-full border-none"
               title="LiveStash Tic Tac Toe">
             </iframe>
