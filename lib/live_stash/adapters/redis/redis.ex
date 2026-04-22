@@ -84,12 +84,6 @@ defmodule LiveStash.Adapters.Redis do
     Redix.command(@conn_name, cmd)
   end
 
-  defp eval_script(script, keys, args) do
-    num_keys = length(keys)
-    cmd = ["EVAL", script, to_string(num_keys)] ++ keys ++ args
-    command(cmd)
-  end
-
   @impl true
   def init_stash(socket, session, opts) do
     context = Context.new(socket, session, opts)
@@ -103,9 +97,9 @@ defmodule LiveStash.Adapters.Redis do
     keep_alive_interval = div(ttl, 2)
     Process.send_after(self(), :live_stash_keep_alive, keep_alive_interval)
 
-    socket = attach_keep_alive_hook(socket)
-
-    LiveView.push_event(socket, "live-stash:init-redis", %{
+    socket
+    |> attach_keep_alive_hook()
+    |> LiveView.push_event("live-stash:init-redis", %{
       stashId: context.id
     })
   end
@@ -129,9 +123,13 @@ defmodule LiveStash.Adapters.Redis do
           LiveView.put_private(socket, :live_stash_context, new_context)
 
         {:error, %Redix.Error{message: "Ownership mismatch"}} ->
-          err = "Stash already exists for another process"
-          Logger.error("[LiveStash] #{err}")
-          raise RuntimeError, err
+          msg =
+            Utils.reason_message(
+              "Failed to stash assigns - stash already exists for another process",
+              :conflict
+            )
+
+          raise RuntimeError, msg
 
         {:error, error} ->
           err = format_command_error_message("Failed to stash assigns", error)
@@ -212,6 +210,12 @@ defmodule LiveStash.Adapters.Redis do
       socket
   end
 
+  defp eval_script(script, keys, args) do
+    num_keys = length(keys)
+    cmd = ["EVAL", script, to_string(num_keys)] ++ keys ++ args
+    command(cmd)
+  end
+
   defp attach_keep_alive_hook(socket) do
     LiveView.attach_hook(socket, :live_stash_keep_alive, :handle_info, fn
       :live_stash_keep_alive, current_socket ->
@@ -234,7 +238,8 @@ defmodule LiveStash.Adapters.Redis do
           :ok
 
         {:error, error} ->
-          Logger.error("[LiveStash] Failed to refresh Redis TTL: #{inspect(error)}")
+          err = format_command_error_message("Failed to reset stash", error)
+          Logger.error(err)
       end
     end)
 
