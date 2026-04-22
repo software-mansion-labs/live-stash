@@ -83,12 +83,51 @@ defmodule LiveStash.TestRedisConn do
     {{:error, reason}, %{state | failures: updated_failures}}
   end
 
-  defp handle_command(["SET", key, value, "EX", _exp], %{store: store} = state) do
-    {"OK", %{state | store: Map.put(store, key, value)}}
+  defp handle_command(
+         ["EVAL", _script, "1", key, owner_id, payload, _ttl],
+         %{store: store} = state
+       ) do
+    existing_owner = get_in(store, [key, "owner_id"])
+
+    if not is_nil(existing_owner) and existing_owner != owner_id do
+      {{:error, %Redix.Error{message: "Ownership mismatch"}}, state}
+    else
+      new_hash = %{"owner_id" => owner_id, "payload" => payload}
+      updated_store = Map.update(store, key, new_hash, &Map.merge(&1, new_hash))
+
+      {"OK", %{state | store: updated_store}}
+    end
   end
 
-  defp handle_command(["GET", key], %{store: store} = state) do
-    {Map.get(store, key), state}
+  defp handle_command(["EVAL", _script, "1", key, new_owner_id], %{store: store} = state) do
+    payload = get_in(store, [key, "payload"])
+
+    if is_nil(payload) do
+      {nil, state}
+    else
+      updated_store = Map.update!(store, key, &Map.put(&1, "owner_id", new_owner_id))
+      {payload, %{state | store: updated_store}}
+    end
+  end
+
+  defp handle_command(["HSET", key, field1, val1, field2, val2], %{store: store} = state) do
+    new_hash = %{field1 => val1, field2 => val2}
+    updated_store = Map.update(store, key, new_hash, &Map.merge(&1, new_hash))
+    {"OK", %{state | store: updated_store}}
+  end
+
+  defp handle_command(["HSET", key, field, val], %{store: store} = state) do
+    new_hash = %{field => val}
+    updated_store = Map.update(store, key, new_hash, &Map.merge(&1, new_hash))
+    {"OK", %{state | store: updated_store}}
+  end
+
+  defp handle_command(["HGET", key, field], %{store: store} = state) do
+    {get_in(store, [key, field]), state}
+  end
+
+  defp handle_command(["PEXPIRE", _key, _ttl], state) do
+    {1, state}
   end
 
   defp handle_command(["DEL", key], %{store: store} = state) do
