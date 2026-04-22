@@ -94,8 +94,7 @@ defmodule LiveStash.Adapters.Redis do
     end
 
     ttl = context.ttl
-    keep_alive_interval = div(ttl, 2)
-    Process.send_after(self(), :live_stash_keep_alive, keep_alive_interval)
+    send_keep_alive(ttl)
 
     socket
     |> attach_keep_alive_hook()
@@ -243,9 +242,13 @@ defmodule LiveStash.Adapters.Redis do
       end
     end)
 
+    send_keep_alive(ttl)
+    socket
+  end
+
+  defp send_keep_alive(ttl) do
     keep_alive_interval = div(ttl, 2)
-    timer_ref = Process.send_after(self(), :live_stash_keep_alive, keep_alive_interval)
-    LiveView.put_private(socket, :live_stash_timer, timer_ref)
+    Process.send_after(self(), :live_stash_keep_alive, keep_alive_interval)
   end
 
   defp get_redis_key(socket) do
