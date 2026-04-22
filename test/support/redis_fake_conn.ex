@@ -126,7 +126,7 @@ defmodule LiveStash.TestRedisConn do
     {get_in(store, [key, field]), state}
   end
 
-  defp handle_command(["PEXPIRE", _key, _ttl], state) do
+  defp handle_command(["EXPIRE", _key, _ttl], state) do
     {1, state}
   end
 

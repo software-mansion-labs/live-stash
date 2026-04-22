@@ -44,7 +44,7 @@ defmodule LiveStash.Adapters.RedisTest do
   end
 
   describe "child_spec/1" do
-    test "builds the supervisor tree with the configured Redix connection and no ETS cleaners" do
+    test "builds the supervisor tree with the configured Redix connection" do
       Application.put_env(:live_stash, :redis, host: "localhost", port: 6379)
 
       spec = Redis.child_spec([])
@@ -135,6 +135,20 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert {:ok, owner} = Redis.command(["HGET", redis_id, "owner_id"])
       assert owner == inspect(self())
+    end
+
+    test "stashes only the intersection of configured keys and present socket assigns", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      context = socket.private.live_stash_context
+      updated_context = %{context | stored_keys: [:username, :missing_key]}
+      socket_configured = put_in(socket.private.live_stash_context, updated_context)
+
+      assert %Socket{} = Redis.stash(socket_configured)
+
+      assert {:ok, saved_binary} = Redis.command(["HGET", redis_id, "payload"])
+      assert :erlang.binary_to_term(saved_binary) == %{username: "tester"}
     end
 
     test "does not update Redis when only untracked assigns change - fingerprint remains the same",
@@ -285,6 +299,18 @@ defmodule LiveStash.Adapters.RedisTest do
       assert {:new, returned_socket} = Redis.recover_state(socket)
       assert returned_socket == socket
     end
+
+    test "rescues exceptions, logs error and returns {:error, socket}", %{socket: socket} do
+      socket_ready = put_in(socket.private.live_stash_context.reconnected?, true)
+      broken_socket = put_in(socket_ready.private.live_stash_context.secret, nil)
+
+      log =
+        capture_log(fn ->
+          assert {:error, _socket} = Redis.recover_state(broken_socket)
+        end)
+
+      assert log =~ "Could not recover state"
+    end
   end
 
   describe "reset_stash/1" do
@@ -315,6 +341,17 @@ defmodule LiveStash.Adapters.RedisTest do
           returned_socket = Redis.reset_stash(socket)
           assert %Socket{} = returned_socket
           assert returned_socket.private.live_stash_context.stash_fingerprint == "fingerprint"
+        end)
+
+      assert log =~ "Failed to reset stash"
+    end
+
+    test "rescues exceptions, logs error and returns socket unchanged", %{socket: socket} do
+      broken_socket = put_in(socket.private.live_stash_context, nil)
+
+      log =
+        capture_log(fn ->
+          assert %Socket{} = Redis.reset_stash(broken_socket)
         end)
 
       assert log =~ "Failed to reset stash"
