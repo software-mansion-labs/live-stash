@@ -136,7 +136,7 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
     end
 
     test "returns an empty list when no expired records exist" do
-      assert State.expired_records(System.os_time(:second)) == []
+      assert Enum.to_list(State.expired_records(System.os_time(:second))) == []
     end
   end
 end

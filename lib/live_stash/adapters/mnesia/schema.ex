@@ -3,6 +3,8 @@ defmodule LiveStash.Adapters.Mnesia.Schema do
 
   use Amnesia
 
+  alias LiveStash.Utils
+
   defdatabase LiveStash.Adapters.Mnesia.Database do
     deftable State, [:id, :pid, :delete_at, :ttl, :state] do
       @type t :: %State{
@@ -93,7 +95,7 @@ defmodule LiveStash.Adapters.Mnesia.Schema do
                 :ok
 
               %__MODULE__{} ->
-                Amnesia.abort(:conflict)
+                {:error, :conflict}
             end
           end
 
@@ -101,12 +103,18 @@ defmodule LiveStash.Adapters.Mnesia.Schema do
           :ok ->
             :ok
 
-          {:aborted, :conflict} ->
-            msg = "State with id #{inspect(id)} already exists for another process"
+          {:error, :conflict} ->
+            msg =
+              Utils.reason_message(
+                "State with id #{inspect(id)} already exists for another process",
+                :conflict
+              )
+
             raise RuntimeError, msg
 
-          {:aborted, reason} ->
-            raise RuntimeError, "Mnesia transaction aborted: #{inspect(reason)}"
+          other ->
+            msg = Utils.reason_message("Mnesia transaction aborted", "#{inspect(other)}")
+            raise RuntimeError, msg
         end
       end
 

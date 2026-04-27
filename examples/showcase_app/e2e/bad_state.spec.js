@@ -3,6 +3,7 @@ const { test, expect } = require("@playwright/test");
 const routes = [
   "/test/counter/live_stash_server",
   "/test/counter/live_stash_client",
+  "/test/counter/live_stash_mnesia",
 ];
 
 test.describe("ETS & Browser memory adapters - state recovery with bad state", () => {

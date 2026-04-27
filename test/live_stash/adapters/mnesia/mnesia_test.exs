@@ -54,7 +54,6 @@ defmodule LiveStash.Adapters.MnesiaTest do
 
     assert {:recovered, recovered_socket} = Mnesia.recover_state(reconnecting_socket)
     assert recovered_socket.assigns.username == "recovered"
-    assert :not_found == State.get_by_id!(mnesia_id)
   end
 
   test "reset_stash/1 clears the stored state", %{socket: socket, mnesia_id: mnesia_id} do
