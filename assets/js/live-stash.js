@@ -15,6 +15,12 @@ window.addEventListener('phx:live-stash:init-ets', (event) => {
   };
 });
 
+window.addEventListener('phx:live-stash:init-mnesia', (event) => {
+  liveStash = {
+    stashId: event.detail.stashId,
+  };
+});
+
 export default function initLiveStash(params) {
   return () => {
     return {
