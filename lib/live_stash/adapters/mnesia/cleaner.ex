@@ -41,28 +41,16 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do
     now = System.os_time(:second)
-    current_node = node()
 
     Amnesia.transaction do
       State.expired_records(now)
       |> Stream.chunk_every(@batch_size)
       |> Enum.each(fn batch ->
         Enum.each(batch, fn {id, pid, ttl} ->
-          record_node = node(pid)
-
-          cond do
-            record_node == current_node ->
-              if Process.alive?(pid) do
-                State.bump_delete_at!(id, now + ttl)
-              else
-                State.delete_by_id!(id)
-              end
-
-            record_node not in Node.list() ->
-              State.delete_by_id!(id)
-
-            true ->
-              :ok
+          if Process.alive?(pid) do
+            State.bump_delete_at!(id, now + ttl)
+          else
+            State.delete_by_id!(id)
           end
         end)
       end)

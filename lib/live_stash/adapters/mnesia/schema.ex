@@ -132,7 +132,7 @@ defmodule LiveStash.Adapters.Mnesia.Schema do
 
       def expired_records(now) when is_integer(now) do
         stream!()
-        |> Stream.filter(fn record -> record.delete_at < now end)
+        |> Stream.filter(fn record -> record.delete_at < now and node(record.pid) == node() end)
         |> Stream.map(fn record -> {record.id, record.pid, record.ttl} end)
       end
 
