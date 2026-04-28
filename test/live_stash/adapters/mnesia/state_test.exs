@@ -1,26 +1,16 @@
 defmodule LiveStash.Adapters.Mnesia.StateTest do
   use ExUnit.Case, async: false
 
-  alias LiveStash.Adapters.Mnesia.Database.State
+  alias LiveStash.Adapters.Mnesia.State
+
+  setup_all do
+    State.setup_cluster_state!()
+    on_exit(fn -> Memento.stop() end)
+    :ok
+  end
 
   setup do
-    State.create_table!()
-
-    for id <- [
-          "test_id",
-          "new_id",
-          "existing_id",
-          "get_id",
-          "non_existent_id",
-          "delete_id",
-          "pop_id_exists",
-          "pop_id_missing",
-          "bump_id",
-          "expired_1",
-          "expired_2"
-        ] do
-      State.delete_by_id!(id)
-    end
+    Memento.Table.clear(LiveStash.Adapters.Mnesia.State)
 
     :ok
   end

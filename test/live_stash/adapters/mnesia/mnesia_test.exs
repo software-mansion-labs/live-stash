@@ -3,12 +3,16 @@ defmodule LiveStash.Adapters.MnesiaTest do
 
   alias LiveStash.Adapters.Mnesia
   alias LiveStash.Adapters.Mnesia.Context
-  alias LiveStash.Adapters.Mnesia.Database.State
+  alias LiveStash.Adapters.Mnesia.State
   alias LiveStash.Fakes
 
-  setup do
-    State.create_table!()
+  setup_all do
+    State.setup_cluster_state!()
+    on_exit(fn -> Memento.stop() end)
+    :ok
+  end
 
+  setup do
     socket =
       Fakes.socket(
         assigns: %{
@@ -34,7 +38,7 @@ defmodule LiveStash.Adapters.MnesiaTest do
       :crypto.hash(:sha256, "test_uuid_1234" <> "live_stash")
       |> Base.encode64(padding: false)
 
-    State.delete_by_id!(mnesia_id)
+    Memento.Table.clear(LiveStash.Adapters.Mnesia.State)
 
     {:ok, socket: socket, mnesia_id: mnesia_id}
   end

@@ -11,7 +11,7 @@ defmodule LiveStash.Adapters.Mnesia do
   require Logger
 
   alias LiveStash.Adapters.Mnesia.Context
-  alias LiveStash.Adapters.Mnesia.Database.State
+  alias LiveStash.Adapters.Mnesia.State
   alias LiveStash.Utils
 
   alias Phoenix.Component
@@ -42,8 +42,6 @@ defmodule LiveStash.Adapters.Mnesia do
     context = Context.new(socket, session, opts)
 
     socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
-
-    State.ensure_cluster_copies!([node() | Node.list()])
 
     if not context.reconnected? do
       get_mnesia_id(socket)

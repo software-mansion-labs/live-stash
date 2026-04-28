@@ -2,20 +2,16 @@ defmodule LiveStash.Server.MnesiaCleanerTest do
   use ExUnit.Case, async: false
 
   alias LiveStash.Adapters.Mnesia.Cleaner
-  alias LiveStash.Adapters.Mnesia.Database.State
+  alias LiveStash.Adapters.Mnesia.State
+
+  setup_all do
+    State.setup_cluster_state!()
+    on_exit(fn -> Memento.stop() end)
+    :ok
+  end
 
   setup do
-    State.create_table!()
-
-    for id <- [
-          "future_id",
-          "alive_expired",
-          "dead_expired",
-          "alive_mixed",
-          "dead_mixed"
-        ] do
-      State.delete_by_id!(id)
-    end
+    Memento.Table.clear(LiveStash.Adapters.Mnesia.State)
 
     :ok
   end
