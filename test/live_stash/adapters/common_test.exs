@@ -61,8 +61,7 @@ defmodule LiveStash.Adapters.CommonTest do
       :secret,
       :ttl,
       :id,
-      :security_mode,
-      :redis_exp
+      :security_mode
     ]
 
     test "returns attributes when all are valid and allowed" do
@@ -109,12 +108,6 @@ defmodule LiveStash.Adapters.CommonTest do
     test "raises ArgumentError for unknown attributes" do
       assert_raise ArgumentError, ~r/Unknown attribute passed/, fn ->
         Common.validate_attributes!([unknown_attr: true], @allowed_keys)
-      end
-    end
-
-    test "raises ArgumentError for invalid redis_exp type" do
-      assert_raise ArgumentError, ~r/Invalid redis_exp/, fn ->
-        Common.validate_attributes!([redis_exp: "1"], @allowed_keys)
       end
     end
   end

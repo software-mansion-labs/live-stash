@@ -77,6 +77,17 @@ defmodule LiveStash.Adapters.Redis do
 
       config_opts when is_list(config_opts) ->
         Keyword.merge(config_opts, @conn_options)
+
+      invalid ->
+        msg =
+          Utils.reason_message(
+            "Invalid :live_stash, :redis configuration: #{inspect(invalid)}. " <>
+              "Expected one of: a Redis URI string, a {uri, options} tuple, " <>
+              "or a keyword list of Redix options.",
+            :invalid
+          )
+
+        raise ArgumentError, msg
     end
   end
 
@@ -200,7 +211,14 @@ defmodule LiveStash.Adapters.Redis do
       {:error, error} ->
         err = format_command_error_message("Failed to reset stash", error)
         Logger.error(err)
-        socket
+
+        normalized_args =
+          Enum.map(args, fn
+            arg when is_integer(arg) -> Integer.to_string(arg)
+            arg -> arg
+          end)
+
+        cmd = ["EVAL", script, to_string(num_keys)] ++ keys ++ normalized_args
     end
   rescue
     error ->
@@ -237,7 +255,9 @@ defmodule LiveStash.Adapters.Redis do
           :ok
 
         {:error, error} ->
-          err = format_command_error_message("Failed to reset stash", error)
+          err =
+            format_command_error_message("Failed to refresh stash for key #{redis_key}", error)
+
           Logger.error(err)
       end
     end)
@@ -247,7 +267,7 @@ defmodule LiveStash.Adapters.Redis do
   end
 
   defp send_keep_alive(ttl) do
-    keep_alive_interval = div(ttl, 2)
+    keep_alive_interval = max(div(ttl * 1_000, 2), 1_000)
     Process.send_after(self(), :live_stash_keep_alive, keep_alive_interval)
   end
 

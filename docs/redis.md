@@ -6,10 +6,6 @@ In this mode, the stashed state is securely stored in Redis on the server. Inste
 
 The assigns you want to persist are declared once at the module level with `stored_keys: [...]`, and `stash/1` only rewrites the Redis entry when those values change.
 
-> #### Note {: .note}
->
-> Redis adapter still uses ETS as a registry to track stash delete time and their owning processes for cleanup and race condition control purposes. Importantly, ETS records are lightweight metadata.
-
 ## When to use
 
 Choose the Redis mode when:
@@ -36,67 +32,6 @@ State can also be cleared manually by calling `LiveStash.reset_stash/1`.
 
 ## Configuration
 
-### Expiration (TTL)
-
-Stashed data in Redis mode has a Time-To-Live (TTL) to prevent stale state from persisting indefinitely. You can adjust this using the `:ttl` option. to ensure that stale entries are eventually removed even if the local registry crashes before cleanup runs.
-
-**Default TTL:** `300` seconds (5 minutes)
-
-```elixir
-use LiveStash, adapter: LiveStash.Adapters.Redis, ttl: 60, stored_keys: [:count]
-```
-
-### Redis entry expiration
-
-Redis entries use a separate expiration value to avoid leaving dead payloads behind if the local registry crashes before cleanup runs.
-
-**Default Redis expiration:** `86_400` seconds (24 hours)
-
-To override this, pass `redis_exp:` in your `use LiveStash` options:
-
-```elixir
-use LiveStash,
-  adapter: LiveStash.Adapters.Redis,
-  redis_exp: 60_000,
-  stored_keys: [:count]
-```
-
-### Cleanup interval
-
-Determines how often the background task runs to remove expired local registry records and refresh active Redis expirations.
-
-**Default:** `60_000` ms (1 minute)
-
-To override this, add the following to your `config/config.exs`:
-
-```elixir
-config :live_stash, adapters: [LiveStash.Adapters.Redis], redis_cleanup_interval: 60_000
-```
-
-### ETS table name
-
-Defines the name of the ETS table created by LiveStash to hold the stash registry. You might want to change this if you need to avoid naming collisions with other libraries in your application.
-
-Default: `:live_stash_redis_registry`
-
-To override this, add the following to your `config/config.exs`:
-
-```elixir
-config :live_stash, adapters: [LiveStash.Adapters.Redis], redis_table_name: :my_custom_table_name
-```
-
-### Cleanup batch size
-
-Specifies how many expired records the cleanup task will delete in a single batch. Limiting the batch size prevents the cleanup process from blocking the ETS table or the Erlang scheduler for too long during heavy loads.
-
-Default: `100`
-
-To override this, add the following to your `config/config.exs`:
-
-```elixir
-config :live_stash, adapters: [LiveStash.Adapters.Redis], redis_cleanup_batch_size: 100
-```
-
 ### Redis connection
 
 Defines how LiveStash connects to Redis. The value is read from `config :live_stash, :redis` and can be:
@@ -119,7 +54,7 @@ config :live_stash,
 
 By default, LiveStash uses a hardcoded default secret (`"live_stash"`) to secure your data. For production environments, it is highly recommended to tie the stash to a specific user session to prevent tampering or data leakage.
 
-You can do this by providing a `:session_key`. LiveStash will extract the value from the connection session, securely hash it (SHA-256), and use it as the operational secret. If you provide the key and it is not present in the session, `Argument Error` will be raised.
+You can do this by providing a `:session_key`. LiveStash will extract the value from the connection session, securely hash it (SHA-256), and use it as the operational secret. If you provide the key and it is not present in the session, `ArgumentError` will be raised.
 
 In Redis mode, this operational secret is used as part of the Redis key for your stashed state.
 
