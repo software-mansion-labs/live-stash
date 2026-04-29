@@ -107,7 +107,7 @@ defmodule Mix.Tasks.E2e do
   end
 
   defp run_playwright do
-    System.cmd("sh", ["-c", "npx playwright test --project=firefox --workers=1"],
+    System.cmd("sh", ["-c", "npx playwright test --project=chromium --workers=1"],
       cd: @app_dir,
       into: IO.stream(:stdio, :line)
     )
