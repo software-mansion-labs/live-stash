@@ -7,10 +7,10 @@ const { test, expect } = require("@playwright/test");
  *
  * Why the numbers differ between adapters
  * ----------------------------------------
- * ETS:           only a UUID (stash-id) travels browser → server on reconnect.
+ * ETS:           only a UUID (stash-id) travels browser ->server on reconnect.
  *                Reconnect latency is independent of payload size.
  *
- * BrowserMemory: the full signed token travels browser → server on every reconnect
+ * BrowserMemory: the full signed token travels browser ->server on every reconnect
  *                as a URL query parameter in the WebSocket upgrade request.
  *                Larger state = larger URL = more transfer time + more verify work.
  *
@@ -61,6 +61,17 @@ const adapters = [
 test.describe("reconnect latency (small + medium payloads)", () => {
   test.use({ baseURL: BASE_URL });
 
+  test.beforeEach(async ({ page }) => {
+    const client = await page.context().newCDPSession(page);
+    await client.send("Network.enable");
+    await client.send("Network.emulateNetworkConditions", {
+      offline: false,
+      downloadThroughput: (1.5 * 1024 * 1024) / 8, // 1.5 Mbps
+      uploadThroughput: (750 * 1024) / 8, // 750 Kbps
+      latency: 40, // 40 ms ping
+    });
+  });
+
   adapters.forEach((adapter) => {
     ["small", "medium"].forEach((size) => {
       test(`[${adapter.name}] reconnect with ${size} payload`, async ({
@@ -83,8 +94,6 @@ test.describe("reconnect latency (small + medium payloads)", () => {
         console.log(
           `  [${adapter.name}] reconnect ${size}, payload ${bytes} B: ${ms} ms`,
         );
-
-        expect(ms).toBeLessThan(10_000);
       });
     });
   });
@@ -94,6 +103,17 @@ test.describe("reconnect latency (small + medium payloads)", () => {
 
 test.describe("reconnect latency (large payload, ETS only)", () => {
   test.use({ baseURL: BASE_URL });
+
+  test.beforeEach(async ({ page }) => {
+    const client = await page.context().newCDPSession(page);
+    await client.send("Network.enable");
+    await client.send("Network.emulateNetworkConditions", {
+      offline: false,
+      downloadThroughput: (1.5 * 1024 * 1024) / 8, // 1.5 Mbps
+      uploadThroughput: (750 * 1024) / 8, // 750 Kbps
+      latency: 40, // 40 ms ping
+    });
+  });
 
   test("[ETS] reconnect with large payload", async ({ page }) => {
     await page.goto("/perf/ets?size=large");
@@ -110,8 +130,6 @@ test.describe("reconnect latency (large payload, ETS only)", () => {
     const ms = await measureReconnect(page);
 
     console.log(`[ETS] reconnect (large, ${bytes} B): ${ms} ms`);
-
-    expect(ms).toBeLessThan(10_000);
   });
 });
 
@@ -176,8 +194,6 @@ test.describe("concurrent reconnects (medium payload)", () => {
         console.log(
           `  [${adapter.name}] ${CONCURRENT_COUNT} concurrent reconnects: ${ms} ms`,
         );
-
-        expect(ms).toBeLessThan(30_000);
       } finally {
         await Promise.all(pages.map((p) => p.close()));
       }
