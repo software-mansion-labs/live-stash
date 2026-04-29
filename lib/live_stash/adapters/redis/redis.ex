@@ -212,13 +212,7 @@ defmodule LiveStash.Adapters.Redis do
         err = format_command_error_message("Failed to reset stash", error)
         Logger.error(err)
 
-        normalized_args =
-          Enum.map(args, fn
-            arg when is_integer(arg) -> Integer.to_string(arg)
-            arg -> arg
-          end)
-
-        cmd = ["EVAL", script, to_string(num_keys)] ++ keys ++ normalized_args
+        socket
     end
   rescue
     error ->
@@ -229,7 +223,15 @@ defmodule LiveStash.Adapters.Redis do
 
   defp eval_script(script, keys, args) do
     num_keys = length(keys)
-    cmd = ["EVAL", script, to_string(num_keys)] ++ keys ++ args
+
+    normalized_args =
+      Enum.map(args, fn
+        arg when is_integer(arg) -> Integer.to_string(arg)
+        arg -> arg
+      end)
+
+    cmd = ["EVAL", script, to_string(num_keys)] ++ keys ++ normalized_args
+
     command(cmd)
   end
 
