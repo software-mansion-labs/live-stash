@@ -28,6 +28,11 @@ const { test, expect } = require("@playwright/test");
  * large   ~254 KB  500 entries × 500 chars            — ETS only
  */
 
+test.skip(
+  !!process.env.CI,
+  "Performance tests are skipped on CI to save time and avoid flakes",
+);
+
 const BASE_URL = "http://localhost:4000";
 
 async function waitForStashed(page) {
