@@ -60,7 +60,7 @@ jobs:
 
       - name: Install Playwright Browsers
         working-directory: ./examples/showcase_app
-        run: npx playwright install --with-deps firefox
+        run: npx playwright install --with-deps chromium
 
       - name: Pre-compile Showcase App for Test
         working-directory: ./examples/showcase_app
