@@ -3,9 +3,10 @@ const { test, expect } = require("@playwright/test");
 const routes = [
   "/test/counter/live_stash_server",
   "/test/counter/live_stash_client",
+  "/test/counter/live_stash_redis",
 ];
 
-test.describe("ETS & Browser memory adapters- not reconnected", () => {
+test.describe("ETS, Browser memory, & Redis adapters - not reconnected", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {

@@ -2,11 +2,11 @@ const { test, expect } = require("@playwright/test");
 
 const routes = [
   "/test/counter/live_stash_server",
-  "/test/counter/live_stash_client",
   "/test/counter/live_stash_redis",
+  "/test/counter/live_stash_client",
 ];
 
-test.describe("ETS, Browser memory, & Redis adapters - state recovery after reconnect", () => {
+test.describe("ETS, Browser memory, & Redis adapters - bumps ttl", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {
@@ -27,6 +27,8 @@ test.describe("ETS, Browser memory, & Redis adapters - state recovery after reco
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");
 
+      await page.waitForTimeout(500);
+
       await incrementBtn.click();
       await expect(counterValue).toHaveText("2");
 
@@ -35,6 +37,8 @@ test.describe("ETS, Browser memory, & Redis adapters - state recovery after reco
       await page.waitForFunction(
         () => window.liveSocket && !window.liveSocket.isConnected(),
       );
+
+      await page.waitForTimeout(600);
 
       await page.evaluate(() => window.liveSocket.connect());
 
