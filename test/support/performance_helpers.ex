@@ -10,7 +10,7 @@ defmodule LiveStash.PerformanceHelpers do
 
   def large_map(key_count) do
     Map.new(1..key_count, fn i ->
-      {String.to_atom("perf_key_#{i}"), String.duplicate("v", 200)}
+      {"perf_key_#{i}", String.duplicate("v", 200)}
     end)
   end
 end

@@ -33,7 +33,6 @@ defmodule ShowcaseAppWeb.Perf.BrowserMemoryPerformanceLive do
   def render(assigns) do
     ~H"""
     <div id="perf"
-         phx-hook=".PerfMetrics"
          data-adapter="browser_memory"
          data-status={to_string(@status)}
          data-stashed={to_string(@stashed)}

@@ -96,7 +96,7 @@ defmodule LiveStash.AdapterPerformanceSuite do
         end
 
         test "stash a map with 5 000 keys" do
-          socket = build_stash_socket("perf_large_map_stash", large_map(5_000))
+          socket = build_stash_socket("perf_large_map_stash", %{data: large_map(5_000)})
 
           {ms, _} = measure_ms(fn -> adapter_stash(socket) end)
 
@@ -105,7 +105,7 @@ defmodule LiveStash.AdapterPerformanceSuite do
 
         test "recover a map with 5 000 keys" do
           id = "perf_large_map_recover"
-          recovery_data = pre_insert_state(id, large_map(5_000))
+          recovery_data = pre_insert_state(id, %{data: large_map(5_000)})
           socket = build_recovery_socket(id, %{}, recovery_data)
 
           {ms, {status, _}} = measure_ms(fn -> adapter_recover(socket) end)
