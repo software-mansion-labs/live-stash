@@ -5,7 +5,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
     attributes: [:id, :pid, :delete_at, :ttl, :state],
     type: :set
 
-  require Logger
   alias LiveStash.Utils
 
   @type t :: %__MODULE__{
@@ -92,7 +91,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
         msg = Utils.reason_message("Mnesia transaction aborted", reason)
         raise RuntimeError, msg
 
-      _other ->
+      {:ok, _result} ->
         :ok
     end
   end
@@ -117,9 +116,15 @@ defmodule LiveStash.Adapters.Mnesia.State do
   def expired_records(now) when is_integer(now) do
     Memento.transaction!(fn ->
       Memento.Query.select(__MODULE__, {:<, :delete_at, now})
-      |> Enum.filter(fn record -> node(record.pid) == node() end)
+      |> Enum.filter(&locally_owned_or_from_disconnected_node?/1)
       |> Enum.map(fn record -> {record.id, record.pid, record.ttl} end)
     end)
+  end
+
+  defp locally_owned_or_from_disconnected_node?(%__MODULE__{pid: pid}) do
+    owner_node = node(pid)
+
+    owner_node == node() or owner_node not in Node.list()
   end
 
   def bump_delete_at!(id, time) when is_integer(time) do

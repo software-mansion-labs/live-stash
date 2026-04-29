@@ -6,11 +6,11 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashMnesiaCounterLive do
     socket
     |> LiveStash.recover_state()
     |> case do
-        {:recovered, recovered_socket} ->
-          recovered_socket
+      {:recovered, recovered_socket} ->
+        recovered_socket
 
-        {_, socket} ->
-           assign(socket, count: 0)
+      {_, socket} ->
+        assign(socket, count: 0)
     end
     |> then(&{:ok, &1})
   end
@@ -97,7 +97,8 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashMnesiaCounterLive do
     socket
     |> assign(:count, socket.assigns.count + 1)
     |> LiveStash.stash()
-    |> then(&{:noreply, &1})  end
+    |> then(&{:noreply, &1})
+  end
 
   def handle_event("decrement", _, socket) do
     socket

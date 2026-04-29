@@ -3,7 +3,7 @@
 ## Description
 
 The Mnesia adapter stores LiveView state on the server using Mnesia through
-the Amnesia wrapper. It uses Mnesia replication to make state recovery easier, and redeploys possible. State is stashed into native Mnesia table copies, recovered from the local copy on reconnect, and cleared
+the [memento](https://github.com/sheharyarn/memento) wrapper. It uses Mnesia replication to make state recovery easier, and redeploys possible. State is stashed into native Mnesia table copies, recovered from the local copy on reconnect, and cleared
 when you reset the stash.
 
 ## Replication

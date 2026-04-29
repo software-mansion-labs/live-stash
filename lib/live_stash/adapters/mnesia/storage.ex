@@ -15,6 +15,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   @impl true
   def init(_opts) do
     State.setup_cluster_state!()
+    {:ok, _node} = :mnesia.subscribe(:system)
+
     {:ok, %{}}
   end
 
@@ -41,6 +43,11 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
       Memento.Table.create_copy(LiveStash.Adapters.Mnesia.State, node(), :ram_copies)
     end)
 
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(_message, state) do
     {:noreply, state}
   end
 end
