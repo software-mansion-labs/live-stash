@@ -2,7 +2,7 @@
 
 ## Description
 
-LiveStash uses an adapter-based architecture to manage the storage and retrieval of LiveView state. While it comes with built-in adapters for Browser Memory and ETS, the system is designed to be fully extensible.
+LiveStash uses an adapter-based architecture to manage the storage and retrieval of LiveView state. While it comes with built-in adapters for Browser Memory, ETS, and Mnesia, the system is designed to be fully extensible.
 
 By implementing the `LiveStash.Adapter` behaviour, the community can create and plug in custom adapters to store state in alternative persistence options.
 

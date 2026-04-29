@@ -89,6 +89,10 @@ defmodule LiveStash.Adapters.Common do
     "Invalid stash_fingerprint: #{inspect(fp)}. Expected a binary or nil."
   end
 
+  defp validate_attribute({:replication, replication}) when not is_boolean(replication) do
+    "Invalid replication: #{inspect(replication)}. Expected a boolean."
+  end
+
   defp validate_attribute({:reconnected?, reconnected}) when not is_boolean(reconnected) do
     "Invalid reconnected?: #{inspect(reconnected)}. Expected a boolean."
   end
