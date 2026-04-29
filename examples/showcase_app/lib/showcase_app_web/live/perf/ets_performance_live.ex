@@ -43,7 +43,7 @@ defmodule ShowcaseAppWeb.Perf.ETSPerformanceLive do
   end
 
   # small  — fits both adapters; comparable baseline
-  # medium — fits both adapters (~2 KB); shows BrowserMemory token-transfer overhead. ~2 KB of raw data (after :erlang.binary_to_term) → ~3.6 KB in memory.
+  # medium — fits both adapters (~2 KB); shows BrowserMemory token-transfer overhead. ~2 KB of raw data (after :erlang.binary_to_term) ->~3.6 KB in memory.
   # large  — ETS only; only a UUID travels on reconnect so payload size doesn't matter
   defp generate_payload("small"), do: %{count: 1}
   defp generate_payload("large"), do: Map.new(1..500, fn i -> {"key_#{i}", String.duplicate("x", 500)} end)

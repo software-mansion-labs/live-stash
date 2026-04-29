@@ -46,10 +46,10 @@ defmodule ShowcaseAppWeb.Perf.BrowserMemoryPerformanceLive do
     """
   end
 
-  # BrowserMemory state travels in the WebSocket upgrade URL (via LiveSocket params).
+  # BrowserMemory state travels in the WebSocket upgrade URL via LiveSocket params.
   # The signed token is URL-encoded in the HTTP request line, so payload size is
   # bounded by the server's max request-line length (Bandit default: ~10 KB).
-  # ~2 KB of raw data → ~3 KB token.
+  # ~2 KB of raw data -> ~3 KB token.
   # Larger payloads will cause "Request URI is too long" errors.
   defp generate_payload("small"), do: %{count: 1}
   defp generate_payload(_medium), do: Map.new(1..30, fn i -> {"k#{i}", String.duplicate("x", 60)} end)
