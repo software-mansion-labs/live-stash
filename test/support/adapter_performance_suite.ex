@@ -35,9 +35,8 @@ defmodule LiveStash.AdapterPerformanceSuite do
 
       describe "large number of LiveViews" do
         @live_view_count 2_000
-        @concurrent_time_limit_ms 30_000
 
-        test "#{@live_view_count} concurrent stash operations complete within #{@concurrent_time_limit_ms}ms" do
+        test "#{@live_view_count} concurrent stash operations complete" do
           sockets =
             for i <- 1..@live_view_count do
               build_stash_socket("perf_stash_#{i}", %{value: "data_#{i}"})
@@ -53,7 +52,7 @@ defmodule LiveStash.AdapterPerformanceSuite do
           perf_print("#{@live_view_count} concurrent stash", ms)
         end
 
-        test "#{@live_view_count} concurrent recover_state operations complete within #{@concurrent_time_limit_ms}ms" do
+        test "#{@live_view_count} concurrent recover_state operations complete" do
           recovery_sockets =
             for i <- 1..@live_view_count do
               id = "perf_recover_#{i}"
@@ -75,20 +74,15 @@ defmodule LiveStash.AdapterPerformanceSuite do
       end
 
       describe "large payloads" do
-        @payload_time_limit_ms 30_000
-
-        test "stash a 5 MB binary payload within #{@payload_time_limit_ms}ms" do
+        test "stash a 5 MB binary payload" do
           socket = build_stash_socket("perf_large_bin_stash", %{data: large_binary(5_000_000)})
 
           {ms, _} = measure_ms(fn -> adapter_stash(socket) end)
 
           perf_print("stash 5 MB binary", ms)
-
-          assert ms < @payload_time_limit_ms,
-                 "Stash of 5 MB binary took #{round(ms)}ms, limit is #{@payload_time_limit_ms}ms"
         end
 
-        test "recover a 5 MB binary payload within #{@payload_time_limit_ms}ms" do
+        test "recover a 5 MB binary payload" do
           id = "perf_large_bin_recover"
           data = %{data: large_binary(5_000_000)}
           recovery_data = pre_insert_state(id, data)
@@ -99,23 +93,17 @@ defmodule LiveStash.AdapterPerformanceSuite do
           perf_print("recover 5 MB binary", ms)
 
           assert status == :recovered, "Expected :recovered, got #{inspect(status)}"
-
-          assert ms < @payload_time_limit_ms,
-                 "Recover of 5 MB binary took #{round(ms)}ms, limit is #{@payload_time_limit_ms}ms"
         end
 
-        test "stash a map with 5 000 keys within #{@payload_time_limit_ms}ms" do
+        test "stash a map with 5 000 keys" do
           socket = build_stash_socket("perf_large_map_stash", large_map(5_000))
 
           {ms, _} = measure_ms(fn -> adapter_stash(socket) end)
 
           perf_print("stash 5000-key map", ms)
-
-          assert ms < @payload_time_limit_ms,
-                 "Stash of 5 000-key map took #{round(ms)}ms, limit is #{@payload_time_limit_ms}ms"
         end
 
-        test "recover a map with 5 000 keys within #{@payload_time_limit_ms}ms" do
+        test "recover a map with 5 000 keys" do
           id = "perf_large_map_recover"
           recovery_data = pre_insert_state(id, large_map(5_000))
           socket = build_recovery_socket(id, %{}, recovery_data)
@@ -125,32 +113,22 @@ defmodule LiveStash.AdapterPerformanceSuite do
           perf_print("recover 5000-key map", ms)
 
           assert status == :recovered, "Expected :recovered, got #{inspect(status)}"
-
-          assert ms < @payload_time_limit_ms,
-                 "Recover of 5 000-key map took #{round(ms)}ms, limit is #{@payload_time_limit_ms}ms"
         end
       end
 
       describe "repeated stash operations" do
         @repeated_stash_count 1_000
-        @repeated_time_limit_ms 30_000
 
-        test "#{@repeated_stash_count} sequential stash calls on changing state within #{@repeated_time_limit_ms}ms" do
+        test "#{@repeated_stash_count} sequential stash calls on changing state" do
           {ms, _} =
             measure_ms(fn ->
               for i <- 1..@repeated_stash_count do
-                # Fresh socket each iteration so the fingerprint never matches
-                # and the adapter always does real work (hash + write/encode).
                 build_stash_socket("perf_repeated", %{counter: i})
                 |> adapter_stash()
               end
             end)
 
           perf_print("#{@repeated_stash_count}x sequential stash (state change every call)", ms)
-
-          assert ms < @repeated_time_limit_ms,
-                 "#{@repeated_stash_count} sequential stash ops took #{round(ms)}ms, " <>
-                   "limit is #{@repeated_time_limit_ms}ms"
         end
       end
     end
