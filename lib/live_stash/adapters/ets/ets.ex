@@ -64,11 +64,13 @@ defmodule LiveStash.Adapters.ETS do
   def stash(socket) do
     context = socket.private.live_stash_context
     keys = context.stored_keys
-    assigns_to_stash = Map.take(socket.assigns, keys)
-    new_fingerprint = Utils.hash_term(assigns_to_stash)
+    root_assigns = Map.take(socket.assigns, keys)
+    components = LiveStash.get_components_buffer(socket)
+    blob = %{root: root_assigns, components: components}
+    new_fingerprint = Utils.hash_term(blob)
 
     if new_fingerprint != context.stash_fingerprint do
-      State.put!(get_ets_id(socket), assigns_to_stash, get_opts(socket))
+      State.put!(get_ets_id(socket), blob, get_opts(socket))
 
       new_context = %{context | stash_fingerprint: new_fingerprint}
 
@@ -85,19 +87,24 @@ defmodule LiveStash.Adapters.ETS do
     node_hint = socket.private.live_stash_context.node_hint
 
     case StateFinder.get_from_cluster(id, node_hint) do
-      {:ok, recovered_state} ->
+      {:ok, %{root: root_state, components: components_state} = blob} ->
         id
-        |> State.new(recovered_state, get_opts(socket))
+        |> State.new(blob, get_opts(socket))
         |> State.insert!()
 
+        LiveStash.put_recovered_components(components_state)
+
         context = socket.private.live_stash_context
-        fingerprint = Utils.hash_term(recovered_state)
+        fingerprint = Utils.hash_term(blob)
         updated_context = %{context | stash_fingerprint: fingerprint}
 
         socket
-        |> Component.assign(recovered_state)
+        |> Component.assign(root_state)
         |> LiveView.put_private(:live_stash_context, updated_context)
         |> then(&{:recovered, &1})
+
+      {:ok, _legacy} ->
+        {:not_found, socket}
 
       :not_found ->
         {:not_found, socket}
