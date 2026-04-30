@@ -132,10 +132,10 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
         security_mode: context.security_mode
       }
 
-      assert {:ok, recovered_assigns} =
+      assert {:ok, decoded_blob} =
                Serializer.decode_token(socket, payload["assigns"], settings)
 
-      assert recovered_assigns == %{username: "tester"}
+      assert decoded_blob == %{root: %{username: "tester"}, components: %{}}
     end
   end
 
@@ -150,7 +150,12 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
         security_mode: :sign
       }
 
-      stashed_state = Serializer.encode_token(socket, %{player_id: 999}, settings)
+      stashed_state =
+        Serializer.encode_token(
+          socket,
+          %{root: %{player_id: 999}, components: %{}},
+          settings
+        )
 
       params = %{
         "liveStash" => %{
