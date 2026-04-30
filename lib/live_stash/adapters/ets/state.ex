@@ -80,7 +80,7 @@ defmodule LiveStash.Adapters.ETS.State do
     new_record = new(id, state, opts)
 
     match_spec = [
-      {{:state, id, pid, :_, :_, :_}, [], [{new_record}]}
+      {{:state, id, pid, :_, :_, :_}, [], [{:const, new_record}]}
     ]
 
     if :ets.select_replace(@table_name, match_spec) == 0 do

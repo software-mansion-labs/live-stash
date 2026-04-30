@@ -1,3 +1,23 @@
+defmodule MojKomponent do
+  use Phoenix.LiveComponent
+
+  def mount(socket) do
+    IO.inspect(socket, label: "🚀 socket W MOUNT", limit: :infinity, printable_limit: :infinity, structs: false)
+    {:ok, socket}
+  end
+
+  def render(assigns) do
+          ~H"""
+      <div>live component</div>
+      """
+  end
+
+  def update(assigns, socket) do
+    IO.inspect(assigns, label: "📦 ASSIGNS W UPDATE")
+    {:ok, assign(socket, assigns)}
+  end
+end
+
 defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
   use ShowcaseAppWeb, :live_view
   use LiveStash, stored_keys: [:count]
@@ -19,6 +39,7 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
   def render(assigns) do
     ~H"""
     <div class="flex py-10 items-center justify-center p-4">
+    <.live_component module={MojKomponent} id="moj-komponent" />
       <div class="card bg-base-100 shadow-xl w-full max-w-md">
         <.return_link />
 

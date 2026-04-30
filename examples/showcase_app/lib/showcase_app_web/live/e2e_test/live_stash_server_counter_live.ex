@@ -17,7 +17,7 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashServerCounterLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-200 flex items-center justify-center p-4">
+    <div class="min-h-screen bg-base-200 flex flex-col items-center justify-center p-4">
       <div class="card bg-base-100 shadow-xl w-full max-w-md">
         <.return_link />
 
@@ -74,6 +74,9 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashServerCounterLive do
           </div>
         </div>
       </div>
+
+      <.live_component module={ShowcaseAppWeb.E2eTest.CounterComponent} id="server-counter-component" />
+
       <button
         phx-click="reset_stash"
         class="btn btn-sm bg-base-300 border border-neutral-600 text-neutral-400 hover:bg-neutral-700/30 fixed bottom-6 right-48 z-50 shadow-2xl font-mono text-xs rounded-full px-4 transition-colors"

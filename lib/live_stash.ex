@@ -114,9 +114,67 @@ defmodule LiveStash do
   lifecycle.
   """
   def on_mount(opts, _params, session, socket) do
-    socket = init_stash(socket, session, opts)
+    socket =
+      socket
+      |> init_stash(session, opts)
+      |> attach_component_stash_hook()
 
     {:cont, socket}
+  end
+
+  @doc false
+  # Attaches a handle_info hook that receives stash messages from
+  # LiveStash-aware components rendered under this LiveView. The hook updates
+  # the in-memory components buffer in socket.private and triggers an adapter
+  # stash so the merged blob (root assigns + components map) is persisted.
+  def attach_component_stash_hook(socket) do
+    LiveView.attach_hook(
+      socket,
+      :live_stash_component_stash,
+      :handle_info,
+      &handle_component_stash/2
+    )
+  end
+
+  defp handle_component_stash(
+         {:live_stash_component_stash, key, assigns_to_stash},
+         socket
+       ) do
+    buffer = socket.private[:live_stash_components_buffer] || %{}
+    new_buffer = Map.put(buffer, key, assigns_to_stash)
+
+    socket =
+      socket
+      |> LiveView.put_private(:live_stash_components_buffer, new_buffer)
+      |> stash()
+
+    {:halt, socket}
+  end
+
+  defp handle_component_stash(_msg, socket), do: {:cont, socket}
+
+  @doc """
+  Populates the process dictionary with recovered component state.
+
+  Called by adapters during `recover_state/1` so that LiveStash-aware
+  `Phoenix.LiveComponent`s can read their slice on first `update/2` (see
+  `LiveStash.Component`). The map is keyed by `{component_module, id}`.
+  """
+  @spec put_recovered_components(map()) :: :ok
+  def put_recovered_components(components_map) when is_map(components_map) do
+    Process.put(:live_stash_components, components_map)
+    :ok
+  end
+
+  @doc """
+  Returns the components buffer accumulated from component stash messages.
+
+  Adapters use this during `stash/1` to merge component state into the blob
+  alongside the LiveView's own stored assigns.
+  """
+  @spec get_components_buffer(Socket.t()) :: map()
+  def get_components_buffer(socket) do
+    socket.private[:live_stash_components_buffer] || %{}
   end
 
   @doc """

@@ -36,15 +36,17 @@ defmodule LiveStash.Adapters.BrowserMemory do
   def stash(socket) do
     context = socket.private.live_stash_context
     keys = context.stored_keys
-    assigns_to_stash = Map.take(socket.assigns, keys)
-    new_fingerprint = Utils.hash_term(assigns_to_stash)
+    root_assigns = Map.take(socket.assigns, keys)
+    components = LiveStash.get_components_buffer(socket)
+    blob = %{root: root_assigns, components: components}
+    new_fingerprint = Utils.hash_term(blob)
 
     if new_fingerprint != context.stash_fingerprint do
-      serialized_assigns =
-        Serializer.encode_token(socket, assigns_to_stash, get_settings(socket))
+      serialized_blob =
+        Serializer.encode_token(socket, blob, get_settings(socket))
 
       payload = %{
-        "assigns" => serialized_assigns
+        "assigns" => serialized_blob
       }
 
       new_context = %{context | stash_fingerprint: new_fingerprint}
@@ -61,15 +63,18 @@ defmodule LiveStash.Adapters.BrowserMemory do
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
     with %{"liveStash" => %{"stashedState" => stashed_state}} when is_binary(stashed_state) <-
            LiveView.get_connect_params(socket),
-         {:ok, recovered_state} <-
+         {:ok, %{root: root_state, components: components_state} = blob} <-
            Serializer.decode_token(socket, stashed_state, get_settings(socket)) do
+      LiveStash.put_recovered_components(components_state)
+
       context = socket.private.live_stash_context
-      fingerprint = Utils.hash_term(recovered_state)
+      fingerprint = Utils.hash_term(blob)
       updated_context = %{context | stash_fingerprint: fingerprint}
 
       socket
-      |> Component.assign(recovered_state)
+      |> Component.assign(root_state)
       |> LiveView.put_private(:live_stash_context, updated_context)
+      |> LiveView.put_private(:live_stash_components_buffer, components_state)
       |> then(&{:recovered, &1})
     else
       {:error, reason} ->
@@ -112,6 +117,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
     socket
     |> LiveView.push_event("live-stash:init-browser-memory", %{})
     |> LiveView.put_private(:live_stash_context, updated_context)
+    |> LiveView.put_private(:live_stash_components_buffer, %{})
   end
 
   defp get_settings(socket) do

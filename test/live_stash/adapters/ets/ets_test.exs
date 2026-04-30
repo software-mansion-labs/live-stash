@@ -122,7 +122,7 @@ defmodule LiveStash.Adapters.ETSTest do
       assert %Socket{} = returned_socket
 
       assert {:ok, saved_state} = StateFinder.get_from_cluster(ets_id, Node.self())
-      assert saved_state == %{username: "tester"}
+      assert saved_state == %{root: %{username: "tester"}, components: %{}}
     end
 
     test "does not update ETS when only untracked assigns change - fingerprint remains the same",
@@ -144,7 +144,9 @@ defmodule LiveStash.Adapters.ETSTest do
       [record_after] = :ets.lookup(@table_name, ets_id)
 
       assert record_before == record_after
-      assert {:ok, %{username: "tester"}} = StateFinder.get_from_cluster(ets_id, Node.self())
+
+      assert {:ok, %{root: %{username: "tester"}, components: %{}}} =
+               StateFinder.get_from_cluster(ets_id, Node.self())
     end
 
     test "updates state when stashed assigns fingerprint changes", %{
@@ -158,7 +160,7 @@ defmodule LiveStash.Adapters.ETSTest do
       ETS.stash(updated_socket)
 
       assert {:ok, saved_state} = StateFinder.get_from_cluster(ets_id, Node.self())
-      assert saved_state == %{username: "tester-2"}
+      assert saved_state == %{root: %{username: "tester-2"}, components: %{}}
     end
 
     test "stashes only the intersection of configured keys and present socket assigns", %{
@@ -173,7 +175,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
       assert {:ok, saved_state} = StateFinder.get_from_cluster(ets_id, Node.self())
 
-      assert saved_state == %{username: "tester"}
+      assert saved_state == %{root: %{username: "tester"}, components: %{}}
     end
 
     test "crashes the process if attempting to stash to a record owned by a different PID", %{
@@ -200,7 +202,7 @@ defmodule LiveStash.Adapters.ETSTest do
     } do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
-      state_to_recover = %{player_level: 42, theme: "dark"}
+      state_to_recover = %{root: %{player_level: 42, theme: "dark"}, components: %{}}
 
       State.insert!(State.new(ets_id, state_to_recover, ttl: 86_400))
 
@@ -221,14 +223,14 @@ defmodule LiveStash.Adapters.ETSTest do
       opts = [ttl: 86_400]
 
       Task.async(fn ->
-        State.put!(ets_id, %{player_level: 10}, opts)
+        State.put!(ets_id, %{root: %{player_level: 10}, components: %{}}, opts)
       end)
       |> Task.await()
 
       assert {:recovered, recovered_socket} = ETS.recover_state(socket)
       assert recovered_socket.assigns.player_level == 10
 
-      assert State.put!(ets_id, %{player_level: 11}, opts) == :ok
+      assert State.put!(ets_id, %{root: %{player_level: 11}, components: %{}}, opts) == :ok
     end
 
     test "returns :not_found when there is no state in ETS for the given id", %{socket: socket} do
