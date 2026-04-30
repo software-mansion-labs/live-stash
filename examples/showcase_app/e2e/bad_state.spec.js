@@ -17,6 +17,9 @@ test.describe("ETS & Browser memory adapters - state recovery with bad state", (
       const incrementBtn = page.getByLabel("Increment");
       const counterValue = page.locator(".stat-value");
 
+      const componentIncrementBtn = page.getByLabel("Component Plus");
+      const componentCounterValue = page.getByTestId("component-count");
+
       await page.waitForFunction(
         () => window.liveSocket && window.liveSocket.isConnected(),
       );
@@ -51,6 +54,9 @@ test.describe("ETS & Browser memory adapters - state recovery with bad state", (
 
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");
+
+      await componentIncrementBtn.click();
+      await expect(componentCounterValue).toHaveText("1");
     });
   });
 });

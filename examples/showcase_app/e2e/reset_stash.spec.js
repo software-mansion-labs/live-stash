@@ -18,6 +18,9 @@ test.describe("ETS & Browser memory adapters - reset stash", () => {
       const resetStashBtn = page.getByLabel("Reset Stash");
       const counterValue = page.locator(".stat-value");
 
+      const componentIncrementBtn = page.getByLabel("Component Plus");
+      const componentCounterValue = page.getByTestId("component-count");
+
       await page.waitForFunction(
         () => window.liveSocket && window.liveSocket.isConnected(),
       );
@@ -29,6 +32,12 @@ test.describe("ETS & Browser memory adapters - reset stash", () => {
 
       await incrementBtn.click();
       await expect(counterValue).toHaveText("2");
+
+      await componentIncrementBtn.click();
+      await expect(componentCounterValue).toHaveText("1");
+
+      await componentIncrementBtn.click();
+      await expect(componentCounterValue).toHaveText("2");
 
       await resetStashBtn.click();
       await expect(counterValue).toHaveText("0");
@@ -48,6 +57,7 @@ test.describe("ETS & Browser memory adapters - reset stash", () => {
       await expect(page.locator(".phx-connected").first()).toBeVisible();
 
       await expect(counterValue).toHaveText("0");
+      await expect(componentCounterValue).toHaveText("0");
     });
   });
 });

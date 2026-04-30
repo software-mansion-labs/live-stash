@@ -74,6 +74,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
       socket
       |> Component.assign(root_state)
       |> LiveView.put_private(:live_stash_context, updated_context)
+      |> LiveView.put_private(:live_stash_components_buffer, components_state)
       |> then(&{:recovered, &1})
     else
       {:error, reason} ->
@@ -116,6 +117,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
     socket
     |> LiveView.push_event("live-stash:init-browser-memory", %{})
     |> LiveView.put_private(:live_stash_context, updated_context)
+    |> LiveView.put_private(:live_stash_components_buffer, %{})
   end
 
   defp get_settings(socket) do

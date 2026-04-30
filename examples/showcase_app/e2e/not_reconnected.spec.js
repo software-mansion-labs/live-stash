@@ -17,6 +17,9 @@ test.describe("ETS & Browser memory adapters- not reconnected", () => {
       const incrementBtn = page.getByLabel("Increment");
       const counterValue = page.locator(".stat-value");
 
+      const componentIncrementBtn = page.getByLabel("Component Plus");
+      const componentCounterValue = page.getByTestId("component-count");
+
       await page.waitForFunction(
         () => window.liveSocket && window.liveSocket.isConnected(),
       );
@@ -26,6 +29,12 @@ test.describe("ETS & Browser memory adapters- not reconnected", () => {
 
       await incrementBtn.click();
       await expect(counterValue).toHaveText("2");
+
+      await componentIncrementBtn.click();
+      await expect(componentCounterValue).toHaveText("1");
+
+      await componentIncrementBtn.click();
+      await expect(componentCounterValue).toHaveText("2");
 
       await page.goto("/");
       await page.goto(route);
@@ -45,6 +54,7 @@ test.describe("ETS & Browser memory adapters- not reconnected", () => {
       await expect(page.locator(".phx-connected").first()).toBeVisible();
 
       await expect(counterValue).toHaveText("0");
+      await expect(componentCounterValue).toHaveText("0");
     });
   });
 });

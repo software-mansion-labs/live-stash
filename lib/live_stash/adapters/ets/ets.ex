@@ -101,6 +101,7 @@ defmodule LiveStash.Adapters.ETS do
         socket
         |> Component.assign(root_state)
         |> LiveView.put_private(:live_stash_context, updated_context)
+        |> LiveView.put_private(:live_stash_components_buffer, components_state)
         |> then(&{:recovered, &1})
 
       {:ok, _legacy} ->
@@ -128,7 +129,9 @@ defmodule LiveStash.Adapters.ETS do
     |> get_ets_id()
     |> State.delete_by_id!()
 
-    LiveView.put_private(socket, :live_stash_context, updated_context)
+    socket
+    |> LiveView.put_private(:live_stash_context, updated_context)
+    |> LiveView.put_private(:live_stash_components_buffer, %{})
   rescue
     error ->
       err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
