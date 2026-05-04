@@ -17,14 +17,14 @@ const { test, expect } = require("@playwright/test");
  * BrowserMemory URL size constraint
  * ----------------------------------
  * The token lives in the WebSocket upgrade URL, so it is bounded by the server's
- * max request-line length (Bandit default: ~10 KB).  A ~2 KB raw payload produces
- * a ~3 KB encoded token.
+ * max request-line length (Bandit default: ~10 KB, Nginx default: ~8 KB).  A ~4 KB raw payload produces
+ * a ~6 KB encoded token.
  * Larger payloads cause "Request URI is too long" — an architectural constraint.
  *
  * Payload sizes
  * -------------
  * small   ~15 B    %{count: 1}                        — shared
- * medium  ~2 KB    30 string entries × 60 chars each  — shared
+ * medium  ~4 KB    60 string entries × 60 chars each  — shared
  * large   ~254 KB  500 entries × 500 chars            — ETS only
  */
 
