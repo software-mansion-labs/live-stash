@@ -44,20 +44,19 @@ defmodule LiveStash.Adapters.RedisTest do
   end
 
   describe "child_spec/1" do
-    test "builds the supervisor tree with the configured Redix connection" do
+    test "builds the child spec using Redix directly with keyword list config" do
       Application.put_env(:live_stash, :redis, host: "localhost", port: 6379)
 
       spec = Redis.child_spec([])
 
-      assert %{id: Redis, type: :supervisor} = spec
-      {Supervisor, :start_link, [children, [strategy: :one_for_one]]} = spec.start
+      assert %{id: Redis} = spec
 
-      assert [{Redix, redix_args}] = children
+      assert {Redix, :start_link, [opts]} = spec.start
 
-      assert Keyword.fetch!(redix_args, :name) == LiveStash.Adapters.Redis.Conn
-      assert Keyword.fetch!(redix_args, :sync_connect) == false
-      assert Keyword.fetch!(redix_args, :host) == "localhost"
-      assert Keyword.fetch!(redix_args, :port) == 6379
+      assert Keyword.fetch!(opts, :name) == LiveStash.Adapters.Redis.Conn
+      assert Keyword.fetch!(opts, :sync_connect) == false
+      assert Keyword.fetch!(opts, :host) == "localhost"
+      assert Keyword.fetch!(opts, :port) == 6379
     end
   end
 
