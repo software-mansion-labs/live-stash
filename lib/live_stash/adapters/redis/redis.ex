@@ -54,14 +54,9 @@ defmodule LiveStash.Adapters.Redis do
   def child_spec(_opts \\ []) do
     redix_args = build_redix_args()
 
-    children = [
-      {Redix, redix_args}
-    ]
-
     %{
       id: __MODULE__,
-      start: {Supervisor, :start_link, [children, [strategy: :one_for_one]]},
-      type: :supervisor
+      start: {Redix, :start_link, [redix_args]}
     }
   end
 
