@@ -2,6 +2,7 @@ defmodule ShowcaseAppWeb.LiveStashServerCounterLive do
   use ShowcaseAppWeb, :live_view
   use LiveStash, stored_keys: [:count]
 
+
   def mount(_params, _session, socket) do
     socket
     |> LiveStash.recover_state()
