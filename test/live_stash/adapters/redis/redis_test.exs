@@ -342,7 +342,7 @@ defmodule LiveStash.Adapters.RedisTest do
           assert returned_socket.private.live_stash_context.stash_fingerprint == "fingerprint"
         end)
 
-      assert log =~ "Failed to reset stash"
+      assert log =~ "Failed to delete stash"
     end
 
     test "rescues exceptions, logs error and returns socket unchanged", %{socket: socket} do
