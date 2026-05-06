@@ -6,7 +6,7 @@ In this mode, the stashed state is kept in the browser's memory. Each call to `s
 
 The assigns you want to persist are declared once at the module level with `stored_keys: [...]`, and `stash/1` only sends the state to the client if those values have changed since the last stash.
 
-LiveStash auto-stashes after each render by default (`auto_stash: true`). Set `auto_stash: false` if you prefer to call `LiveStash.stash/1` manually.
+LiveStash requires you to call `LiveStash.stash/1` manually by default (`auto_stash: false`). Set `auto_stash: true` if you prefer to auto-stash after each render.
 
 ## When to use
 

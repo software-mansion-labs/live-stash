@@ -145,7 +145,7 @@ defmodule LiveStash do
       raise ArgumentError, msg
     end
 
-    {auto_stash?, opts} = Keyword.pop(opts, :auto_stash, true)
+    {auto_stash?, opts} = Keyword.pop(opts, :auto_stash, false)
 
     socket =
       if auto_stash? do
