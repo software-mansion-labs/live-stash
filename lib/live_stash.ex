@@ -145,6 +145,22 @@ defmodule LiveStash do
       raise ArgumentError, msg
     end
 
+    {auto_stash?, opts} = Keyword.pop(opts, :auto_stash, false)
+
+    socket =
+      if auto_stash? do
+        Phoenix.LiveView.attach_hook(
+          socket,
+          :live_stash_auto_stash,
+          :after_render,
+          fn hook_socket ->
+            stash(hook_socket)
+          end
+        )
+      else
+        socket
+      end
+
     socket
     |> LiveView.put_private(:live_stash_adapter, adapter)
     |> adapter.init_stash(session, opts)

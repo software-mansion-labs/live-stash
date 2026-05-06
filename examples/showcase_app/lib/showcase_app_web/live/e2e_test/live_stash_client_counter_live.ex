@@ -93,20 +93,17 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashClientCounterLive do
   def handle_event("add_zero", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 0)
-    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
-    |> LiveStash.stash()
     |> then(&{:noreply, &1})  end
 
   def handle_event("decrement", _, socket) do
     socket
     |> assign(:count, socket.assigns.count - 1)
-    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 
