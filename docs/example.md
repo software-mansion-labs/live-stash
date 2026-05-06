@@ -4,7 +4,7 @@ We are going to take a look at an example of a tic tac toe game that you can exa
 
 The state that should survive reconnects is declared up front with `stored_keys: [:board, :current_player, :winner, :winning_line]`, and `LiveStash.stash/1` only emits a new browser event when that configured subset changes.
 
-For a complete project example go to our [repository](https://github.com/software-mansion-labs/live-stash/blob/main/examples/showcase_app/README.md).
+For a complete project example go to our [repository](https://github.com/software-mansion-labs/live-stash/blob/v0.2.0/examples/showcase_app/README.md).
 
 ## Initialization
 

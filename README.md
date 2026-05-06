@@ -13,6 +13,8 @@ Adding LiveStash to your existing LiveView is very simple.
 1. Add `use LiveStash` to your module. It registers LiveStash's `on_mount` hook, which initializes stash support for the socket.
    See [`LiveStash.__using__/1`](https://hexdocs.pm/live_stash/LiveStash.html#__using__/1).
 
+The assigns you want to persist are declared once at the module level with `stored_keys: [...]`.
+
 ```elixir
 defmodule ShowcaseAppWeb.CounterLive do
   use LiveStash, stored_keys: [:count, :user_id]
@@ -69,7 +71,7 @@ Add `live_stash` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:live_stash, "~> 0.1.0"}
+    {:live_stash, "~> 0.2.0"}
   ]
 end
 ```

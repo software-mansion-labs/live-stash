@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0 (2026-04-22)
+
+### Breaking Changes
+
+- **Declarative assigns API:** Removed `stash_assigns/2` in favor of `stash/1`. Assigns that should be persisted must now be declared in the `use` macro options in [#75](https://github.com/software-mansion-labs/live-stash/pull/75)
+- **TTL unit update:** Changed TTL configuration to use seconds, which may require updating existing TTL values to preserve previous behavior in [#80](https://github.com/software-mansion-labs/live-stash/pull/80)
+
+### Core Architecture & Features
+
+- **Context attributes validation:** Added validation for context attributes to improve API correctness and fail fast on invalid input in [#82](https://github.com/software-mansion-labs/live-stash/pull/82)
+
+### Documentation & Maintenance
+
+- **README cleanup:** Removed redundant examples and streamlined documentation to keep the guides focused and easier to follow in [#86](https://github.com/software-mansion-labs/live-stash/pull/86)
+- **README refresh:** Updated README content to reflect the latest API and usage patterns in [#79](https://github.com/software-mansion-labs/live-stash/pull/79)
+
 ## 0.1.2 (2026-04-08)
 
 ### Core Architecture & Features
