@@ -6,57 +6,16 @@ defmodule LiveStash.Adapters.Redis do
   (source: `docs/redis.md`).
   """
 
-  @compile {:no_warn_undefined, [Redix, Redix.Error, Redix.ConnectionError]}
+  @compile {:no_warn_undefined, [Redix]}
 
   @behaviour LiveStash.Adapter
 
   alias Phoenix.Component
   alias Phoenix.LiveView
-  alias LiveStash.Adapters.Redis.Context
+  alias LiveStash.Adapters.Redis.{Context, Helpers, Hook}
   alias LiveStash.Utils
 
   require Logger
-
-  @conn_name __MODULE__.Conn
-  @conn_options [name: @conn_name, sync_connect: false]
-
-  @stash_script """
-  local key = KEYS[1]
-  local owner_id = ARGV[1]
-  local payload = ARGV[2]
-  local ttl = tonumber(ARGV[3])
-
-  local existing_owner = redis.call('HGET', key, 'owner_id')
-
-  if existing_owner and existing_owner ~= owner_id then
-    return {err = 'Ownership mismatch'}
-  end
-
-  redis.call('HSET', key, 'owner_id', owner_id, 'payload', payload)
-  redis.call('EXPIRE', key, ttl)
-
-  return 'OK'
-  """
-
-  @stash_script_hash :crypto.hash(:sha, @stash_script) |> Base.encode16(case: :lower)
-
-  @recover_script """
-  local key = KEYS[1]
-  local new_owner_id = ARGV[1]
-  local ttl = tonumber(ARGV[2])
-
-  local payload = redis.call('HGET', key, 'payload')
-  if not payload then
-    return nil
-  end
-
-  redis.call('HSET', key, 'owner_id', new_owner_id)
-  redis.call('EXPIRE', key, ttl)
-
-  return payload
-  """
-
-  @recover_script_hash :crypto.hash(:sha, @recover_script) |> Base.encode16(case: :lower)
 
   @doc false
   @impl true
@@ -75,54 +34,25 @@ defmodule LiveStash.Adapters.Redis do
       raise RuntimeError, msg
     end
 
-    redix_args = build_redix_args()
-    Supervisor.child_spec({Redix, redix_args}, id: __MODULE__)
+    Supervisor.child_spec({Redix, Helpers.redix_args()}, id: __MODULE__)
   end
 
-  defp build_redix_args() do
-    uri_or_opts = Application.get_env(:live_stash, :redis, [])
-
-    case uri_or_opts do
-      uri when is_binary(uri) ->
-        {uri, @conn_options}
-
-      {uri, extra_opts} when is_binary(uri) and is_list(extra_opts) ->
-        {uri, Keyword.merge(extra_opts, @conn_options)}
-
-      config_opts when is_list(config_opts) ->
-        Keyword.merge(config_opts, @conn_options)
-
-      invalid ->
-        msg =
-          Utils.reason_message(
-            "Invalid :live_stash, :redis configuration: #{inspect(invalid)}. " <>
-              "Expected one of: a Redis URI string, a {uri, options} tuple, " <>
-              "or a keyword list of Redix options.",
-            :invalid
-          )
-
-        raise ArgumentError, msg
-    end
-  end
-
-  def command(cmd) do
-    Redix.command(@conn_name, cmd)
-  end
+  @doc false
+  defdelegate command(cmd), to: Helpers
 
   @impl true
   def init_stash(socket, session, opts) do
     context = Context.new(socket, session, opts)
     socket = LiveView.put_private(socket, :live_stash_context, context)
+    redis_key = get_redis_key(socket)
 
     if not context.reconnected? do
-      send_delete_stash(socket)
+      delete_stash(redis_key)
     end
 
     socket
-    |> start_keep_alive_cycle()
-    |> LiveView.push_event("live-stash:init-redis", %{
-      stashId: context.id
-    })
+    |> Hook.attach(redis_key)
+    |> LiveView.push_event("live-stash:init-redis", %{stashId: context.id})
   end
 
   @impl true
@@ -136,14 +66,13 @@ defmodule LiveStash.Adapters.Redis do
       redis_key = get_redis_key(socket)
       owner_id = inspect(self())
       payload = :erlang.term_to_binary(assigns_to_stash)
-      ttl = context.ttl
 
-      case eval_script(@stash_script, @stash_script_hash, [redis_key], [owner_id, payload, ttl]) do
-        {:ok, "OK"} ->
+      case Helpers.save(redis_key, owner_id, payload, context.ttl) do
+        :ok ->
           new_context = %{context | stash_fingerprint: new_fingerprint}
           LiveView.put_private(socket, :live_stash_context, new_context)
 
-        {:error, %Redix.Error{message: "Ownership mismatch"}} ->
+        {:error, :ownership_mismatch} ->
           msg =
             Utils.reason_message(
               "Failed to stash assigns - stash already exists for another process",
@@ -152,8 +81,7 @@ defmodule LiveStash.Adapters.Redis do
 
           raise RuntimeError, msg
 
-        {:error, error} ->
-          err = format_command_error_message("Failed to stash assigns", error)
+        {:error, err} ->
           Logger.error(err)
           socket
       end
@@ -167,15 +95,14 @@ defmodule LiveStash.Adapters.Redis do
     redis_key = get_redis_key(socket)
     new_owner_id = inspect(self())
 
-    case eval_script(@recover_script, @recover_script_hash, [redis_key], [new_owner_id, ttl]) do
-      {:ok, nil} ->
+    case Helpers.recover(redis_key, new_owner_id, ttl) do
+      {:ok, :not_found} ->
         {:not_found, socket}
 
-      {:ok, binary_state} when is_binary(binary_state) ->
+      {:ok, binary_state} ->
         apply_recovered_state(socket, binary_state)
 
-      {:error, error} ->
-        err = format_command_error_message("Failed to recover state", error)
+      {:error, err} ->
         Logger.error(err)
         {:error, socket}
     end
@@ -187,6 +114,26 @@ defmodule LiveStash.Adapters.Redis do
   end
 
   def recover_state(socket), do: {:new, socket}
+
+  @impl true
+  def reset_stash(socket) do
+    context = socket.private.live_stash_context
+    updated_context = %{context | stash_fingerprint: nil}
+    redis_key = get_redis_key(socket)
+
+    case delete_stash(redis_key) do
+      :ok ->
+        LiveView.put_private(socket, :live_stash_context, updated_context)
+
+      {:error, _err} ->
+        socket
+    end
+  rescue
+    error ->
+      err = Utils.exception_message("Failed to reset stash", error, __STACKTRACE__)
+      Logger.error(err)
+      socket
+  end
 
   defp apply_recovered_state(socket, binary_state) do
     recovered_state = :erlang.binary_to_term(binary_state, [:safe])
@@ -211,97 +158,15 @@ defmodule LiveStash.Adapters.Redis do
       {:error, socket}
   end
 
-  @impl true
-  def reset_stash(socket) do
-    context = socket.private.live_stash_context
-    updated_context = %{context | stash_fingerprint: nil}
-
-    case send_delete_stash(socket) do
+  defp delete_stash(redis_key) do
+    case Helpers.delete(redis_key) do
       :ok ->
-        LiveView.put_private(socket, :live_stash_context, updated_context)
-
-      {:error, _error} ->
-        socket
-    end
-  rescue
-    error ->
-      err = Utils.exception_message("Failed to reset stash", error, __STACKTRACE__)
-      Logger.error(err)
-      socket
-  end
-
-  defp send_delete_stash(socket) do
-    redis_key = get_redis_key(socket)
-
-    case command(["DEL", redis_key]) do
-      {:ok, _count} ->
         :ok
 
-      {:error, error} ->
-        err = format_command_error_message("Failed to delete stash for key #{redis_key}", error)
+      {:error, err} = error ->
         Logger.error(err)
-
-        {:error, error}
+        error
     end
-  end
-
-  defp eval_script(script, script_hash, keys, args) do
-    num_keys = length(keys)
-
-    normalized_args =
-      Enum.map(args, fn
-        arg when is_integer(arg) -> Integer.to_string(arg)
-        arg -> arg
-      end)
-
-    cmd_args = [to_string(num_keys)] ++ keys ++ normalized_args
-
-    case command(["EVALSHA", script_hash | cmd_args]) do
-      {:error, %Redix.Error{message: "NOSCRIPT" <> _}} ->
-        command(["EVAL", script | cmd_args])
-
-      result ->
-        result
-    end
-  end
-
-  defp start_keep_alive_cycle(socket) do
-    ttl = socket.private.live_stash_context.ttl
-    send_keep_alive(ttl)
-
-    LiveView.attach_hook(socket, :live_stash_keep_alive, :handle_info, &handle_keep_alive/2)
-  end
-
-  defp handle_keep_alive(:live_stash_keep_alive, socket) do
-    context = socket.private.live_stash_context
-    ttl = context.ttl
-    redis_key = get_redis_key(socket)
-
-    Task.start(fn ->
-      case command(["EXPIRE", redis_key, to_string(ttl)]) do
-        {:ok, _} ->
-          :ok
-
-        {:error, error} ->
-          err =
-            format_command_error_message("Failed to refresh stash for key #{redis_key}", error)
-
-          Logger.error(err)
-      end
-    end)
-
-    send_keep_alive(ttl)
-
-    {:halt, socket}
-  end
-
-  defp handle_keep_alive(_msg, socket) do
-    {:cont, socket}
-  end
-
-  defp send_keep_alive(ttl) do
-    keep_alive_interval = div(ttl * 1_000, 2)
-    Process.send_after(self(), :live_stash_keep_alive, keep_alive_interval)
   end
 
   defp get_redis_key(socket) do
@@ -312,18 +177,5 @@ defmodule LiveStash.Adapters.Redis do
     hashed_binary = :crypto.hash(:sha256, raw_key)
 
     "live_stash:" <> Base.encode64(hashed_binary, padding: false)
-  end
-
-  defp format_command_error_message(message, error) do
-    case error do
-      %Redix.Error{} = redis_error ->
-        Utils.exception_message("#{message} - Redis error", redis_error)
-
-      %Redix.ConnectionError{} = conn_error ->
-        Utils.reason_message("#{message} - Redis connection error", conn_error)
-
-      other ->
-        Utils.reason_message(message, other)
-    end
   end
 end
