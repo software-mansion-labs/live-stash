@@ -248,7 +248,7 @@ defmodule LiveStash.Adapters.ETSTest do
           assert {:error, _socket} = ETS.recover_state(broken_socket)
         end)
 
-      assert log =~ "Could not recover state"
+      assert log =~ "Failed to recover state"
     end
 
     test "returns :new and socket when reconnected? is false", %{socket: socket} do
@@ -280,7 +280,7 @@ defmodule LiveStash.Adapters.ETSTest do
           assert %Socket{} = ETS.reset_stash(broken_socket)
         end)
 
-      assert log =~ "Could not reset stash"
+      assert log =~ "Failed to reset stash"
     end
   end
 end

@@ -6,13 +6,11 @@ const routes = [
   "/test/counter/live_stash_redis",
 ];
 
-test.describe("ETS, Browser memory, & Redis adapters - state recovery after reconnect", () => {
+test.describe("ETS, BrowserMemory, and Redis adapters - TTL expiration", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {
-    test(`should recover counter state after websocket reconnect on ${route}`, async ({
-      page,
-    }) => {
+    test(`should not recover expired state on ${route}`, async ({ page }) => {
       await page.goto(route);
 
       const incrementBtn = page.getByLabel("Increment");
@@ -36,6 +34,8 @@ test.describe("ETS, Browser memory, & Redis adapters - state recovery after reco
         () => window.liveSocket && !window.liveSocket.isConnected(),
       );
 
+      await page.waitForTimeout(2000);
+
       await page.evaluate(() => window.liveSocket.connect());
 
       await page.waitForFunction(
@@ -44,7 +44,7 @@ test.describe("ETS, Browser memory, & Redis adapters - state recovery after reco
 
       await expect(page.locator(".phx-connected").first()).toBeVisible();
 
-      await expect(counterValue).toHaveText("2");
+      await expect(counterValue).toHaveText("0");
     });
   });
 });

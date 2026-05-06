@@ -85,7 +85,8 @@ defmodule LiveStash.Server.CleanerTest do
       State.insert!(expired_record)
 
       Process.exit(dead_pid, :kill)
-      Process.sleep(100)
+      ref = Process.monitor(dead_pid)
+      assert_receive {:DOWN, ^ref, :process, ^dead_pid, _}, 1000
 
       assert Cleaner.clean_expired_states!() == :ok
       assert :ets.tab2list(@table_name) == []
@@ -125,7 +126,8 @@ defmodule LiveStash.Server.CleanerTest do
       State.insert!(dead_record)
 
       Process.exit(dead_pid, :kill)
-      Process.sleep(100)
+      ref = Process.monitor(dead_pid)
+      assert_receive {:DOWN, ^ref, :process, ^dead_pid, _}, 1000
 
       Cleaner.clean_expired_states!()
 
@@ -161,7 +163,8 @@ defmodule LiveStash.Server.CleanerTest do
         end)
 
       Process.exit(dead_pid, :kill)
-      Process.sleep(100)
+      ref = Process.monitor(dead_pid)
+      assert_receive {:DOWN, ^ref, :process, ^dead_pid, _}, 1000
 
       dead_record =
         State.state(
