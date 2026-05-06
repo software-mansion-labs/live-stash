@@ -65,7 +65,7 @@ defmodule LiveStash.Adapters.Redis.Helpers do
       {:ok, "OK"} ->
         :ok
 
-      {:error, %Redix.Error{message: "Ownership mismatch"}} ->
+      {:error, %{__struct__: Redix.Error, message: "Ownership mismatch"}} ->
         {:error, :ownership_mismatch}
 
       {:error, error} ->
@@ -131,7 +131,7 @@ defmodule LiveStash.Adapters.Redis.Helpers do
     cmd_args = [to_string(num_keys)] ++ keys ++ normalized_args
 
     case command(["EVALSHA", script_hash | cmd_args]) do
-      {:error, %Redix.Error{message: "NOSCRIPT" <> _}} ->
+      {:error, %{__struct__: Redix.Error, message: "NOSCRIPT" <> _}} ->
         command(["EVAL", script | cmd_args])
 
       result ->
@@ -139,11 +139,11 @@ defmodule LiveStash.Adapters.Redis.Helpers do
     end
   end
 
-  defp format_error(message, %Redix.Error{} = redis_error) do
+  defp format_error(message, %{__struct__: Redix.Error} = redis_error) do
     Utils.exception_message("#{message} - Redis error", redis_error)
   end
 
-  defp format_error(message, %Redix.ConnectionError{} = conn_error) do
+  defp format_error(message, %{__struct__: Redix.ConnectionError} = conn_error) do
     Utils.reason_message("#{message} - Redis connection error", conn_error)
   end
 

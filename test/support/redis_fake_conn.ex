@@ -94,7 +94,9 @@ defmodule LiveStash.TestRedisConn do
     if Map.has_key?(scripts, hash) do
       eval(rest, state)
     else
-      {{:error, %Redix.Error{message: "NOSCRIPT No matching script. Please use EVAL."}}, state}
+      {{:error,
+        %{__struct__: Redix.Error, message: "NOSCRIPT No matching script. Please use EVAL."}},
+       state}
     end
   end
 
@@ -133,7 +135,7 @@ defmodule LiveStash.TestRedisConn do
     existing_owner = get_in(store, [key, "owner_id"])
 
     if not is_nil(existing_owner) and existing_owner != owner_id do
-      {{:error, %Redix.Error{message: "Ownership mismatch"}}, state}
+      {{:error, %{__struct__: Redix.Error, message: "Ownership mismatch"}}, state}
     else
       new_hash = %{"owner_id" => owner_id, "payload" => payload}
       updated_store = Map.update(store, key, new_hash, &Map.merge(&1, new_hash))

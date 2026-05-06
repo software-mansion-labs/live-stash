@@ -65,6 +65,7 @@ defmodule ShowcaseApp.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:live_stash, path: "../../"},
+      {:redix, "~> 1.1"},
       {:ecto_sql, "~> 3.10"},
       {:ecto_sqlite3, ">= 0.0.0"},
       {:phoenix_ecto, "~> 4.4"},

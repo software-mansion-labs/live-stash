@@ -362,7 +362,11 @@ defmodule LiveStash.Adapters.RedisTest do
       socket: socket,
       redis_id: redis_id
     } do
-      noscript = %Redix.Error{message: "NOSCRIPT No matching script. Please use EVAL."}
+      noscript = %{
+        __struct__: Redix.Error,
+        message: "NOSCRIPT No matching script. Please use EVAL."
+      }
+
       assert :ok = LiveStash.TestRedisConn.fail_next("EVALSHA", noscript)
 
       assert %Socket{} = Redis.stash(socket)
