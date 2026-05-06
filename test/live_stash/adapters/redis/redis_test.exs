@@ -357,6 +357,48 @@ defmodule LiveStash.Adapters.RedisTest do
     end
   end
 
+  describe "EVALSHA / EVAL fallback" do
+    test "falls back to EVAL when EVALSHA returns NOSCRIPT", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      noscript = %Redix.Error{message: "NOSCRIPT No matching script. Please use EVAL."}
+      assert :ok = LiveStash.TestRedisConn.fail_next("EVALSHA", noscript)
+
+      assert %Socket{} = Redis.stash(socket)
+      assert {:ok, payload} = Redis.command(["HGET", redis_id, "payload"])
+      assert :erlang.binary_to_term(payload) == %{username: "tester"}
+    end
+
+    test "subsequent calls hit EVALSHA without falling back to EVAL", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      stashed_socket = Redis.stash(socket)
+
+      assert :ok = LiveStash.TestRedisConn.fail_next("EVAL", :should_not_be_called)
+
+      updated_socket = put_in(stashed_socket.assigns.username, "tester-2")
+      assert %Socket{} = Redis.stash(updated_socket)
+
+      assert {:ok, payload} = Redis.command(["HGET", redis_id, "payload"])
+      assert :erlang.binary_to_term(payload) == %{username: "tester-2"}
+    end
+
+    test "EVALSHA failures other than NOSCRIPT are not retried via EVAL", %{socket: socket} do
+      assert :ok = LiveStash.TestRedisConn.fail_next("EVALSHA", :timeout)
+      assert :ok = LiveStash.TestRedisConn.fail_next("EVAL", :should_not_be_called)
+
+      log =
+        capture_log(fn ->
+          assert Redis.stash(socket) == socket
+        end)
+
+      assert log =~ "Failed to stash assigns"
+      assert log =~ ":timeout"
+    end
+  end
+
   defp redis_key(id, secret) do
     hashed_binary =
       :crypto.hash(:sha256, id <> secret)

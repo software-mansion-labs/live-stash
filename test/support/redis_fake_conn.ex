@@ -9,7 +9,8 @@ defmodule LiveStash.TestRedisConn do
   def start_link(opts \\ []) do
     name = Keyword.get(opts, :name, @conn_name)
 
-    :gen_statem.start_link({:local, name}, __MODULE__, %{store: %{}, failures: %{}}, [])
+    initial_state = %{store: %{}, failures: %{}, scripts: %{}}
+    :gen_statem.start_link({:local, name}, __MODULE__, initial_state, [])
   end
 
   def fail_next(command, reason \\ :simulated_error) when is_binary(command) do
@@ -83,30 +84,17 @@ defmodule LiveStash.TestRedisConn do
     {{:error, reason}, %{state | failures: updated_failures}}
   end
 
-  defp handle_command(
-         ["EVAL", _script, "1", key, owner_id, payload, _ttl],
-         %{store: store} = state
-       ) do
-    existing_owner = get_in(store, [key, "owner_id"])
-
-    if not is_nil(existing_owner) and existing_owner != owner_id do
-      {{:error, %Redix.Error{message: "Ownership mismatch"}}, state}
-    else
-      new_hash = %{"owner_id" => owner_id, "payload" => payload}
-      updated_store = Map.update(store, key, new_hash, &Map.merge(&1, new_hash))
-
-      {"OK", %{state | store: updated_store}}
-    end
+  defp handle_command(["EVAL", script | rest], %{scripts: scripts} = state) do
+    hash = :crypto.hash(:sha, script) |> Base.encode16(case: :lower)
+    state = %{state | scripts: Map.put(scripts, hash, script)}
+    eval(rest, state)
   end
 
-  defp handle_command(["EVAL", _script, "1", key, new_owner_id], %{store: store} = state) do
-    payload = get_in(store, [key, "payload"])
-
-    if is_nil(payload) do
-      {nil, state}
+  defp handle_command(["EVALSHA", hash | rest], %{scripts: scripts} = state) do
+    if Map.has_key?(scripts, hash) do
+      eval(rest, state)
     else
-      updated_store = Map.update!(store, key, &Map.put(&1, "owner_id", new_owner_id))
-      {payload, %{state | store: updated_store}}
+      {{:error, %Redix.Error{message: "NOSCRIPT No matching script. Please use EVAL."}}, state}
     end
   end
 
@@ -139,5 +127,29 @@ defmodule LiveStash.TestRedisConn do
   defp handle_command(other, state) do
     Logger.error("Unexpected Redis command in test: #{inspect(other)}")
     {{:error, :unexpected_command}, state}
+  end
+
+  defp eval(["1", key, owner_id, payload, _ttl], %{store: store} = state) do
+    existing_owner = get_in(store, [key, "owner_id"])
+
+    if not is_nil(existing_owner) and existing_owner != owner_id do
+      {{:error, %Redix.Error{message: "Ownership mismatch"}}, state}
+    else
+      new_hash = %{"owner_id" => owner_id, "payload" => payload}
+      updated_store = Map.update(store, key, new_hash, &Map.merge(&1, new_hash))
+
+      {"OK", %{state | store: updated_store}}
+    end
+  end
+
+  defp eval(["1", key, new_owner_id, _ttl], %{store: store} = state) do
+    payload = get_in(store, [key, "payload"])
+
+    if is_nil(payload) do
+      {nil, state}
+    else
+      updated_store = Map.update!(store, key, &Map.put(&1, "owner_id", new_owner_id))
+      {payload, %{state | store: updated_store}}
+    end
   end
 end
