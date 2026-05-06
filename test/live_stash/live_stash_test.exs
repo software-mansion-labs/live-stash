@@ -17,14 +17,14 @@ defmodule LiveStashTest do
     {:ok, socket: socket}
   end
 
-  test "init_stash/3 attaches after_render hook when auto_stash is true by default", %{
+  test "init_stash/3 doesn't attach after_render hook when auto_stash is false by default", %{
     socket: socket
   } do
     socket_with_hook = LiveStash.init_stash(socket, %{}, stored_keys: [:count])
 
     assert %{after_render: hooks} = socket_with_hook.private.lifecycle
 
-    assert Enum.any?(hooks, fn
+    refute Enum.any?(hooks, fn
              %{id: id} -> id == :live_stash_auto_stash
              {id, _function} -> id == :live_stash_auto_stash
            end)
@@ -44,7 +44,7 @@ defmodule LiveStashTest do
            end)
   end
 
-  test "init_stash/3 accepts explicit auto_stash true", %{socket: socket} do
+  test "init_stash/3 attaches after_render hook when auto_stash is true", %{socket: socket} do
     socket_with_hook =
       LiveStash.init_stash(socket, %{}, stored_keys: [:count], auto_stash: true)
 
