@@ -22,7 +22,8 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   Returns the Redix `start_link` arguments derived from `:live_stash, :redis`
   application config.
   """
-  def redix_args do
+  @spec redix_args() :: {binary(), Keyword.t()} | Keyword.t()
+  def redix_args() do
     case Application.get_env(:live_stash, :redis, []) do
       uri when is_binary(uri) ->
         {uri, @conn_options}
@@ -49,6 +50,7 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   @doc """
   Runs a raw Redix command against the adapter's connection.
   """
+  @spec command(list()) :: {:ok, term()} | {:error, term()}
   def command(cmd) do
     Redix.command(@conn_name, cmd)
   end
@@ -60,6 +62,8 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   different owner, otherwise `:ok` on success or `{:error, formatted_error}`
   on connection / Redis errors.
   """
+  @spec save(binary(), binary(), binary(), integer()) ::
+          :ok | {:error, :ownership_mismatch | binary()}
   def save(key, owner_id, payload, ttl) do
     case eval_script(@stash_script, @stash_script_hash, [key], [owner_id, payload, ttl]) do
       {:ok, "OK"} ->
@@ -80,6 +84,8 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   Returns `{:ok, binary}` when a payload was found, `{:ok, :not_found}` when
   the key does not exist, or `{:error, formatted_error}` on Redis errors.
   """
+  @spec recover(binary(), binary(), integer()) ::
+          {:error, binary()} | {:ok, :not_found | binary()}
   def recover(key, new_owner_id, ttl) do
     case eval_script(@recover_script, @recover_script_hash, [key], [new_owner_id, ttl]) do
       {:ok, nil} ->
@@ -96,6 +102,7 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   @doc """
   Deletes the stash entry stored under `key`.
   """
+  @spec delete(binary()) :: :ok | {:error, binary()}
   def delete(key) do
     case command(["DEL", key]) do
       {:ok, _count} ->
@@ -109,6 +116,7 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   @doc """
   Refreshes the TTL on `key` without touching its contents.
   """
+  @spec bump_ttl(binary(), integer()) :: :ok | {:error, binary()}
   def bump_ttl(key, ttl) do
     case command(["EXPIRE", key, to_string(ttl)]) do
       {:ok, _} ->

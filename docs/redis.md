@@ -2,6 +2,8 @@
 
 ## Description
 
+[Redix](https://github.com/whatyouhide/redix) dependency is required to use the Redis adapter.
+
 In this mode, the stashed state is securely stored in Redis on the server. Instead of sending the full payload to the browser, the client only receives and stores a lightweight stash ID. Upon reconnection, LiveStash uses that reference to retrieve the state from Redis.
 
 The assigns you want to persist are declared once at the module level with `stored_keys: [...]`, and `stash/1` only rewrites the Redis entry when those values change.
@@ -10,7 +12,7 @@ The assigns you want to persist are declared once at the module level with `stor
 
 Choose the Redis mode when:
 
-- **Payloads are large:** You need to stash substantial amounts of data that would otherwise degrade WebSocket performance, exceed browser storage limits or consume excessive memory on your server.
+- **Payloads are large:** You need to stash substantial amounts of data that would otherwise degrade WebSocket performance, exceed browser storage limits or consume excessive memory on your node.
 - **Fitting architecture:** You already use Redis in your stack and want to leverage it for state persistence.
 - **Highly sensitive data:** You want to ensure the actual state never leaves your infrastructure and is not exposed to the browser.
 

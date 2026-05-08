@@ -3,7 +3,7 @@ defmodule LiveStash.Adapters.RedisTest do
   import ExUnit.CaptureLog
 
   alias LiveStash.Adapters.Redis
-  alias LiveStash.Adapters.Redis.Context
+  alias LiveStash.Adapters.Redis.{Context, Helpers}
   alias LiveStash.Fakes
   alias Phoenix.LiveView.Socket
 
@@ -69,7 +69,7 @@ defmodule LiveStash.Adapters.RedisTest do
       binary_state = :erlang.term_to_binary(%{username: "stale"})
 
       assert {:ok, "OK"} =
-               Redis.command([
+               Helpers.command([
                  "HSET",
                  redis_id,
                  "owner_id",
@@ -98,7 +98,7 @@ defmodule LiveStash.Adapters.RedisTest do
       binary_state = :erlang.term_to_binary(%{recovered: true})
 
       assert {:ok, "OK"} =
-               Redis.command([
+               Helpers.command([
                  "HSET",
                  redis_id,
                  "owner_id",
@@ -129,11 +129,11 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert %Socket{} = returned_socket
 
-      assert {:ok, saved_binary} = Redis.command(["HGET", redis_id, "payload"])
+      assert {:ok, saved_binary} = Helpers.command(["HGET", redis_id, "payload"])
       assert :erlang.binary_to_term(saved_binary) == %{username: "tester"}
 
-      assert {:ok, owner} = Redis.command(["HGET", redis_id, "owner_id"])
-      assert owner == inspect(self())
+      assert {:ok, owner} = Helpers.command(["HGET", redis_id, "owner_id"])
+      assert owner == :erlang.term_to_binary(self())
     end
 
     test "stashes only the intersection of configured keys and present socket assigns", %{
@@ -146,7 +146,7 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert %Socket{} = Redis.stash(socket_configured)
 
-      assert {:ok, saved_binary} = Redis.command(["HGET", redis_id, "payload"])
+      assert {:ok, saved_binary} = Helpers.command(["HGET", redis_id, "payload"])
       assert :erlang.binary_to_term(saved_binary) == %{username: "tester"}
     end
 
@@ -179,7 +179,7 @@ defmodule LiveStash.Adapters.RedisTest do
 
       Redis.stash(updated_socket)
 
-      assert {:ok, saved_binary} = Redis.command(["HGET", redis_id, "payload"])
+      assert {:ok, saved_binary} = Helpers.command(["HGET", redis_id, "payload"])
       assert :erlang.binary_to_term(saved_binary) == %{username: "tester-2"}
     end
 
@@ -188,7 +188,7 @@ defmodule LiveStash.Adapters.RedisTest do
       redis_id: redis_id
     } do
       fake_owner = "#PID<0.999.0>"
-      Redis.command(["HSET", redis_id, "owner_id", fake_owner, "payload", "old_state"])
+      Helpers.command(["HSET", redis_id, "owner_id", fake_owner, "payload", "old_state"])
 
       socket_with_new_state = put_in(socket.assigns.username, "current process")
 
@@ -223,7 +223,7 @@ defmodule LiveStash.Adapters.RedisTest do
       binary_state = :erlang.term_to_binary(state_to_recover)
 
       assert {:ok, "OK"} =
-               Redis.command([
+               Helpers.command([
                  "HSET",
                  redis_id,
                  "owner_id",
@@ -246,12 +246,12 @@ defmodule LiveStash.Adapters.RedisTest do
 
       fake_owner = "#PID<0.999.0>"
       binary_state = :erlang.term_to_binary(socket.assigns)
-      Redis.command(["HSET", redis_id, "owner_id", fake_owner, "payload", binary_state])
+      Helpers.command(["HSET", redis_id, "owner_id", fake_owner, "payload", binary_state])
 
       assert {:recovered, _recovered_socket} = Redis.recover_state(socket)
 
-      assert {:ok, owner} = Redis.command(["HGET", redis_id, "owner_id"])
-      assert owner == inspect(self())
+      assert {:ok, owner} = Helpers.command(["HGET", redis_id, "owner_id"])
+      assert owner == :erlang.term_to_binary(self())
     end
 
     test "returns {:not_found, socket} when there is no payload in Redis for the given id", %{
@@ -283,7 +283,7 @@ defmodule LiveStash.Adapters.RedisTest do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
       malicious_binary = <<131, 118, 0, 31, "non_existent_malicious_atom_999">>
-      Redis.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", malicious_binary])
+      Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", malicious_binary])
 
       log =
         capture_log(fn ->
@@ -319,8 +319,8 @@ defmodule LiveStash.Adapters.RedisTest do
     } do
       socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
 
-      Redis.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", "to_be_deleted"])
-      assert {:ok, _} = Redis.command(["HGET", redis_id, "payload"])
+      Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", "to_be_deleted"])
+      assert {:ok, _} = Helpers.command(["HGET", redis_id, "payload"])
 
       reset_socket = Redis.reset_stash(socket)
 
@@ -331,7 +331,7 @@ defmodule LiveStash.Adapters.RedisTest do
 
     test "logs DEL errors and still returns socket", %{socket: socket, redis_id: redis_id} do
       socket = put_in(socket.private.live_stash_context.stash_fingerprint, "fingerprint")
-      Redis.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", "to_be_deleted"])
+      Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", "to_be_deleted"])
 
       assert :ok = LiveStash.TestRedisConn.fail_next("DEL", :timeout)
 
@@ -370,7 +370,7 @@ defmodule LiveStash.Adapters.RedisTest do
       assert :ok = LiveStash.TestRedisConn.fail_next("EVALSHA", noscript)
 
       assert %Socket{} = Redis.stash(socket)
-      assert {:ok, payload} = Redis.command(["HGET", redis_id, "payload"])
+      assert {:ok, payload} = Helpers.command(["HGET", redis_id, "payload"])
       assert :erlang.binary_to_term(payload) == %{username: "tester"}
     end
 
@@ -385,7 +385,7 @@ defmodule LiveStash.Adapters.RedisTest do
       updated_socket = put_in(stashed_socket.assigns.username, "tester-2")
       assert %Socket{} = Redis.stash(updated_socket)
 
-      assert {:ok, payload} = Redis.command(["HGET", redis_id, "payload"])
+      assert {:ok, payload} = Helpers.command(["HGET", redis_id, "payload"])
       assert :erlang.binary_to_term(payload) == %{username: "tester-2"}
     end
 

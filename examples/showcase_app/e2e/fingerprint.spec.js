@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { waitForConnected } = require("./helpers");
 
 test.describe("Browser memory adapter - fingerprint optimization", () => {
   test.use({ baseURL: "http://localhost:4000" });
@@ -19,10 +20,7 @@ test.describe("Browser memory adapter - fingerprint optimization", () => {
     const addZeroBtn = page.getByLabel("Add Zero");
     const counterValue = page.locator(".stat-value");
 
-    await page.waitForFunction(
-      () => window.liveSocket && window.liveSocket.isConnected(),
-    );
-    await expect(page.locator(".phx-connected").first()).toBeVisible();
+    await waitForConnected(page);
 
     await incrementBtn.click();
     await expect(counterValue).toHaveText("1");

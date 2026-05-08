@@ -12,8 +12,9 @@ defmodule LiveStash.Adapters.Redis do
 
   alias Phoenix.Component
   alias Phoenix.LiveView
-  alias LiveStash.Adapters.Redis.{Context, Helpers, Hook}
+  alias LiveStash.Adapters.Redis.{Helpers, Hook}
   alias LiveStash.Utils
+  alias LiveStash.Adapters.Common
 
   require Logger
 
@@ -37,13 +38,9 @@ defmodule LiveStash.Adapters.Redis do
     Supervisor.child_spec({Redix, Helpers.redix_args()}, id: __MODULE__)
   end
 
-  @doc false
-  defdelegate command(cmd), to: Helpers
-
   @impl true
   def init_stash(socket, session, opts) do
-    context = Context.new(socket, session, opts)
-    socket = LiveView.put_private(socket, :live_stash_context, context)
+    {socket, context} = Common.init_context(socket, session, opts, __MODULE__)
     redis_key = get_redis_key(socket)
 
     if not context.reconnected? do
@@ -62,38 +59,36 @@ defmodule LiveStash.Adapters.Redis do
     assigns_to_stash = Map.take(socket.assigns, keys)
     new_fingerprint = Utils.hash_term(assigns_to_stash)
 
-    if new_fingerprint != context.stash_fingerprint do
-      redis_key = get_redis_key(socket)
-      owner_id = inspect(self())
-      payload = :erlang.term_to_binary(assigns_to_stash)
-
-      case Helpers.save(redis_key, owner_id, payload, context.ttl) do
-        :ok ->
-          new_context = %{context | stash_fingerprint: new_fingerprint}
-          LiveView.put_private(socket, :live_stash_context, new_context)
-
-        {:error, :ownership_mismatch} ->
-          msg =
-            Utils.reason_message(
-              "Failed to stash assigns - stash already exists for another process",
-              :conflict
-            )
-
-          raise RuntimeError, msg
-
-        {:error, err} ->
-          Logger.error(err)
-          socket
-      end
+    with true <- new_fingerprint != context.stash_fingerprint,
+         redis_key = get_redis_key(socket),
+         owner_id = :erlang.term_to_binary(self()),
+         payload = :erlang.term_to_binary(assigns_to_stash),
+         :ok <- Helpers.save(redis_key, owner_id, payload, context.ttl) do
+      new_context = %{context | stash_fingerprint: new_fingerprint}
+      LiveView.put_private(socket, :live_stash_context, new_context)
     else
-      socket
+      false ->
+        socket
+
+      {:error, :ownership_mismatch} ->
+        msg =
+          Utils.reason_message(
+            "Failed to stash assigns - stash already exists for another process",
+            :conflict
+          )
+
+        raise RuntimeError, msg
+
+      {:error, err} ->
+        Logger.error(err)
+        socket
     end
   end
 
   @impl true
   def recover_state(%{private: %{live_stash_context: %{reconnected?: true, ttl: ttl}}} = socket) do
     redis_key = get_redis_key(socket)
-    new_owner_id = inspect(self())
+    new_owner_id = :erlang.term_to_binary(self())
 
     case Helpers.recover(redis_key, new_owner_id, ttl) do
       {:ok, :not_found} ->

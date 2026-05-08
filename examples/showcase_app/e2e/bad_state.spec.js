@@ -1,12 +1,7 @@
 const { test, expect } = require("@playwright/test");
+const { routes, waitForConnected } = require("./helpers");
 
-const routes = [
-  "/test/counter/live_stash_server",
-  "/test/counter/live_stash_client",
-  "/test/counter/live_stash_redis",
-];
-
-test.describe("ETS, Browser memory, & Redis adapters - state recovery with bad state", () => {
+test.describe("All adapters - state recovery with bad state", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {
@@ -18,9 +13,7 @@ test.describe("ETS, Browser memory, & Redis adapters - state recovery with bad s
       const incrementBtn = page.getByLabel("Increment");
       const counterValue = page.locator(".stat-value");
 
-      await page.waitForFunction(
-        () => window.liveSocket && window.liveSocket.isConnected(),
-      );
+      await waitForConnected(page);
 
       await page.evaluate(() => window.liveSocket.disconnect());
 
@@ -44,11 +37,7 @@ test.describe("ETS, Browser memory, & Redis adapters - state recovery with bad s
 
       await page.evaluate(() => window.liveSocket.connect());
 
-      await page.waitForFunction(
-        () => window.liveSocket && window.liveSocket.isConnected(),
-      );
-
-      await expect(page.locator(".phx-connected").first()).toBeVisible();
+      await waitForConnected(page);
 
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");

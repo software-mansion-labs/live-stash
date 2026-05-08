@@ -17,6 +17,7 @@ defmodule LiveStash.Adapters.ETS do
   alias LiveStash.Adapters.ETS.StateFinder
   alias LiveStash.Adapters.ETS.Context
   alias LiveStash.Utils
+  alias LiveStash.Adapters.Common
 
   alias Phoenix.LiveView
 
@@ -37,9 +38,7 @@ defmodule LiveStash.Adapters.ETS do
 
   @impl true
   def init_stash(socket, session, opts) do
-    context = Context.new(socket, session, opts)
-
-    socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
+    {socket, context} = Common.init_context(socket, session, opts, __MODULE__)
 
     if not context.reconnected? do
       socket

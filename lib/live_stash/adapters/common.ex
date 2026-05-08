@@ -4,6 +4,12 @@ defmodule LiveStash.Adapters.Common do
   alias Phoenix.LiveView
   alias LiveStash.Utils
 
+  def init_context(socket, session, opts, adapter) do
+    context = Module.concat(adapter, Context).new(socket, session, opts)
+    socket = LiveView.put_private(socket, :live_stash_context, context)
+    {socket, context}
+  end
+
   def get_connect_params(socket) do
     try do
       LiveView.get_connect_params(socket)

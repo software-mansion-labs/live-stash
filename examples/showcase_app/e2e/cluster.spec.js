@@ -1,12 +1,9 @@
 const { test, expect } = require("@playwright/test");
+const { reconnect, routes, waitForConnected } = require("./helpers");
 
-const routes = [
-  "/test/counter/live_stash_server",
-  "/test/counter/live_stash_client",
-  "/test/counter/live_stash_redis",
-];
+const CLUSTER_NODES = 2;
 
-test.describe("ETS, BrowserMemory, and Redis adapters - state recovery on cluster", () => {
+test.describe("All adapters - state recovery on cluster", () => {
   test.use({ baseURL: "http://localhost:8080" });
 
   routes.forEach((route) => {
@@ -16,11 +13,7 @@ test.describe("ETS, BrowserMemory, and Redis adapters - state recovery on cluste
       const incrementBtn = page.getByLabel("Increment");
       const counterValue = page.locator(".stat-value");
 
-      await page.waitForFunction(
-        () => window.liveSocket && window.liveSocket.isConnected(),
-      );
-
-      await expect(page.locator(".phx-connected").first()).toBeVisible();
+      await waitForConnected(page);
 
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");
@@ -28,20 +21,10 @@ test.describe("ETS, BrowserMemory, and Redis adapters - state recovery on cluste
       await incrementBtn.click();
       await expect(counterValue).toHaveText("2");
 
-      await page.evaluate(() => window.liveSocket.disconnect());
-
-      await page.waitForFunction(
-        () => window.liveSocket && !window.liveSocket.isConnected(),
-      );
-
-      await page.evaluate(() => window.liveSocket.connect());
-
-      await page.waitForFunction(
-        () => window.liveSocket && window.liveSocket.isConnected(),
-      );
-
-      await expect(page.locator(".phx-connected").first()).toBeVisible();
-      await expect(counterValue).toHaveText("2");
+      for (let i = 0; i < CLUSTER_NODES + 1; i++) {
+        await reconnect(page, { delayMs: 100 });
+        await expect(counterValue).toHaveText("2");
+      }
     });
   });
 });
