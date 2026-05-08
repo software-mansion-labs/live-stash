@@ -283,7 +283,15 @@ defmodule LiveStash.Adapters.RedisTest do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
       malicious_binary = <<131, 118, 0, 31, "non_existent_malicious_atom_999">>
-      Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", malicious_binary])
+
+      Helpers.command([
+        "HSET",
+        redis_id,
+        "owner_id",
+        inspect(self()),
+        "payload",
+        malicious_binary
+      ])
 
       log =
         capture_log(fn ->
