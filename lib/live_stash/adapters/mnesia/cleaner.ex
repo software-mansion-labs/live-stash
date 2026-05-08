@@ -40,7 +40,7 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
 
     State.expired_records(now)
     |> Enum.each(fn {id, pid, ttl} ->
-      if Process.alive?(pid) do
+      if node(pid) == node() and Process.alive?(pid) do
         State.bump_delete_at!(id, now + ttl)
       else
         State.delete_by_id!(id)

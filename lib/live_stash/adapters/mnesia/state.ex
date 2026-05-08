@@ -5,6 +5,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
     attributes: [:id, :pid, :delete_at, :ttl, :state],
     type: :set
 
+  require Logger
   alias LiveStash.Utils
 
   @type t :: %__MODULE__{
@@ -27,27 +28,32 @@ defmodule LiveStash.Adapters.Mnesia.State do
     }
   end
 
-  def setup_cluster_state! do
-    nodes = Node.list()
+  def setup_cluster_state!() do
+    Memento.start()
 
-    if nodes == [] do
-      Memento.start()
+    setup_result =
+      case Node.list() do
+        [] ->
+          Memento.Table.create(__MODULE__, ram_copies: [node()])
 
-      case Memento.Table.create(__MODULE__, ram_copies: [node()]) do
-        :ok -> :ok
-        {:error, {:already_exists, _}} -> :ok
-        {:error, reason} -> raise "Could not create Mnesia table: #{inspect(reason)}"
+        nodes ->
+          Memento.add_nodes(nodes)
+          Memento.Table.create_copy(__MODULE__, node(), :ram_copies)
       end
-    else
-      Memento.start()
 
-      Memento.add_nodes(nodes)
+    case setup_result do
+      :ok ->
+        :ok
 
-      case Memento.Table.create_copy(__MODULE__, node(), :ram_copies) do
-        :ok -> :ok
-        {:error, {:already_exists, _, _}} -> :ok
-        {:error, reason} -> raise "Could not copy Mnesia table: #{inspect(reason)}"
-      end
+      {:error, {:already_exists, _}} ->
+        :ok
+
+      {:error, {:already_exists, _, _}} ->
+        :ok
+
+      {:error, reason} ->
+        msg = Utils.reason_message("Failed to set up Mnesia table", reason)
+        raise RuntimeError, msg
     end
 
     Memento.Table.wait([__MODULE__], 15_000)
@@ -85,6 +91,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
 
     case transaction_result do
       :ok ->
+        Logger.debug("not dead code")
         :ok
 
       {:error, reason} ->
