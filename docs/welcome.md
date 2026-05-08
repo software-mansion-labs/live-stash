@@ -16,7 +16,7 @@ defmodule ShowcaseAppWeb.CounterLive do
   use LiveStash, stored_keys: [:count, :user_id]
 ```
 
-2. Update your assigns. By default, LiveStash auto-stashes after each render (`auto_stash: true`). LiveStash avoids redundant stash writes when the values have not changed.
+2. Update your assigns. By default, LiveStash requires you to call `LiveStash.stash/1` manually, and only writes when the configured `stored_keys` values change.
 
 ```elixir
   def handle_event("increment", _, socket) do
@@ -27,7 +27,7 @@ defmodule ShowcaseAppWeb.CounterLive do
   end
 ```
 
-If you want explicit control, disable auto mode and call `LiveStash.stash/1` manually:
+You can pass `auto_stash: true` when you want auto-stashes after each render, but we recommend using it only if you have a very specific use case that requires it. In most cases, manual stashing is more efficient and gives you better control over when the state is saved:
 
 ```elixir
 defmodule ShowcaseAppWeb.CounterLive do

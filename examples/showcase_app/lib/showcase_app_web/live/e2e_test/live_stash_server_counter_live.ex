@@ -3,8 +3,7 @@ defmodule ShowcaseAppWeb.E2eTest.LiveStashServerCounterLive do
   use LiveStash,
    adapter: LiveStash.Adapters.ETS,
    ttl: 1,
-   stored_keys: [:count],
-   auto_stash: false
+   stored_keys: [:count]
 
   def mount(_params, _session, socket) do
     socket

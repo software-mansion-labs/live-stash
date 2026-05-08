@@ -8,6 +8,10 @@ The assigns you want to persist are declared once at the module level with `stor
 
 LiveStash requires you to call `LiveStash.stash/1` manually by default (`auto_stash: false`). Set `auto_stash: true` if you prefer to auto-stash after each render.
 
+> #### Warning {: .warning}
+>
+> Auto-stashing can lead to increased network traffic and potential performance issues if used unresponsibly, for example with input fields.
+
 ## When to use
 
 Choose the Browser Memory mode when:

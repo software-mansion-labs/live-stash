@@ -153,9 +153,7 @@ defmodule LiveStash do
           socket,
           :live_stash_auto_stash,
           :after_render,
-          fn hook_socket ->
-            stash(hook_socket)
-          end
+          &stash/1
         )
       else
         socket

@@ -7,7 +7,7 @@ defmodule LiveStash.Adapters.Common do
   def ensure_stored_keys!(attrs) do
     unless Keyword.has_key?(attrs, :stored_keys) do
       msg =
-        LiveStash.Utils.reason_message(
+        Utils.reason_message(
           "Missing required option: :stored_keys. You must define which assigns to persist. Example: use LiveStash, stored_keys: [:count]",
           :invalid
         )
