@@ -81,6 +81,14 @@ defmodule LiveStash.Adapters.RedisTest do
       assert Keyword.fetch!(opts, :sync_connect) == false
       assert Keyword.fetch!(opts, :socket_opts) == []
     end
+
+    test "raises ArgumentError on invalid config" do
+      Application.put_env(:live_stash, :redis, 123)
+
+      assert_raise ArgumentError, ~r/Invalid :live_stash, :redis configuration/, fn ->
+        Redis.child_spec([])
+      end
+    end
   end
 
   describe "init_stash/3" do
@@ -114,6 +122,28 @@ defmodule LiveStash.Adapters.RedisTest do
                ["live-stash:init-redis", payload] -> payload.stashId == generated_id
                _other -> false
              end)
+    end
+
+    test "logs and continues when DEL fails on fresh mount", %{socket: socket, redis_id: redis_id} do
+      binary_state = :erlang.term_to_binary(%{username: "stale"})
+      Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", binary_state])
+
+      assert :ok = LiveStash.TestRedisConn.fail_next("DEL", :econnrefused)
+
+      log =
+        capture_log(fn ->
+          initialized_socket = Redis.init_stash(socket, %{}, stored_keys: [:username])
+          assert %Socket{} = initialized_socket
+
+          queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
+
+          assert Enum.any?(queued_events, fn
+                   ["live-stash:init-redis", _] -> true
+                   _other -> false
+                 end)
+        end)
+
+      assert log =~ "Failed to delete stash"
     end
 
     test "uses existing stashId from connect_params and does not clear Redis when reconnected? is true",
@@ -339,7 +369,7 @@ defmodule LiveStash.Adapters.RedisTest do
           assert {:error, _socket} = Redis.recover_state(broken_socket)
         end)
 
-      assert log =~ "Could not recover state"
+      assert log =~ "Failed to recover state"
     end
   end
 
@@ -447,6 +477,7 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert log =~ "Failed to stash assigns"
       assert log =~ ":timeout"
+      refute log =~ "should_not_be_called"
     end
   end
 

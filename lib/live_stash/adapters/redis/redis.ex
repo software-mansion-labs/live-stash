@@ -102,7 +102,7 @@ defmodule LiveStash.Adapters.Redis do
     end
   rescue
     error ->
-      err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
+      err = Utils.exception_message("Failed to recover state", error, __STACKTRACE__)
       Logger.error(err)
       {:error, socket}
   end
@@ -147,7 +147,7 @@ defmodule LiveStash.Adapters.Redis do
     error in ArgumentError ->
       err =
         Utils.exception_message(
-          "Could not deserialize recovered state (invalid atoms)",
+          "Failed to deserialize recovered state (invalid atoms)",
           error,
           __STACKTRACE__
         )

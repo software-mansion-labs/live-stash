@@ -91,7 +91,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
     error ->
       msg =
         Utils.exception_message(
-          "Could not recover stashed state due to an unexpected error.",
+          "Failed to recover stashed state due to an unexpected error.",
           error,
           __STACKTRACE__
         )
