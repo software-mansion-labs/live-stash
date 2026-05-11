@@ -10,7 +10,7 @@ LiveStash requires you to call `LiveStash.stash/1` manually by default (`auto_st
 
 > #### Warning {: .warning}
 >
-> Auto-stashing can lead to increased network traffic and potential performance issues if used unresponsibly, for example with input fields.
+> Auto-stashing can lead to increased network traffic and potential performance issues if used irresponsibly, for example with input fields.
 
 ## When to use
 

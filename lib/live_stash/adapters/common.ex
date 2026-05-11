@@ -4,18 +4,6 @@ defmodule LiveStash.Adapters.Common do
   alias Phoenix.LiveView
   alias LiveStash.Utils
 
-  def ensure_stored_keys!(attrs) do
-    unless Keyword.has_key?(attrs, :stored_keys) do
-      msg =
-        Utils.reason_message(
-          "Missing required option: :stored_keys. You must define which assigns to persist. Example: use LiveStash, stored_keys: [:count]",
-          :invalid
-        )
-
-      raise ArgumentError, msg
-    end
-  end
-
   def get_connect_params(socket) do
     try do
       LiveView.get_connect_params(socket)

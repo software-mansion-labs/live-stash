@@ -17,42 +17,29 @@ defmodule LiveStashTest do
     {:ok, socket: socket}
   end
 
-  test "init_stash/3 doesn't attach after_render hook when auto_stash is false by default", %{
-    socket: socket
-  } do
-    socket_with_hook = LiveStash.init_stash(socket, %{}, stored_keys: [:count])
+  describe "init_stash/3" do
+    for {label, opts} <- [
+          {"omitted (default)", [stored_keys: [:count]]},
+          {"explicitly false", [stored_keys: [:count], auto_stash: false]}
+        ] do
+      test "does not attach after_render hook when auto_stash #{label}", %{socket: socket} do
+        result = LiveStash.init_stash(socket, %{}, unquote(opts))
+        refute has_auto_stash_hook?(result)
+      end
+    end
 
-    assert %{after_render: hooks} = socket_with_hook.private.lifecycle
-
-    refute Enum.any?(hooks, fn
-             %{id: id} -> id == :live_stash_auto_stash
-             {id, _function} -> id == :live_stash_auto_stash
-           end)
+    test "attaches after_render hook when auto_stash: true", %{socket: socket} do
+      result = LiveStash.init_stash(socket, %{}, stored_keys: [:count], auto_stash: true)
+      assert has_auto_stash_hook?(result)
+    end
   end
 
-  test "init_stash/3 does not attach after_render hook when auto_stash is false", %{
-    socket: socket
-  } do
-    socket_without_hook =
-      LiveStash.init_stash(socket, %{}, stored_keys: [:count], auto_stash: false)
+  defp has_auto_stash_hook?(socket) do
+    %{after_render: hooks} = socket.private.lifecycle
 
-    assert %{after_render: hooks} = socket_without_hook.private.lifecycle
-
-    refute Enum.any?(hooks, fn
-             %{id: id} -> id == :live_stash_auto_stash
-             {id, _function} -> id == :live_stash_auto_stash
-           end)
-  end
-
-  test "init_stash/3 attaches after_render hook when auto_stash is true", %{socket: socket} do
-    socket_with_hook =
-      LiveStash.init_stash(socket, %{}, stored_keys: [:count], auto_stash: true)
-
-    assert %{after_render: hooks} = socket_with_hook.private.lifecycle
-
-    assert Enum.any?(hooks, fn
-             %{id: id} -> id == :live_stash_auto_stash
-             {id, _function} -> id == :live_stash_auto_stash
-           end)
+    Enum.any?(hooks, fn
+      %{id: id} -> id == :live_stash_auto_stash
+      {id, _function} -> id == :live_stash_auto_stash
+    end)
   end
 end

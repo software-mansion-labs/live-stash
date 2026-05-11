@@ -23,6 +23,7 @@ defmodule ShowcaseAppWeb.CounterLive do
     socket
     |> assign(:count, socket.assigns.count + 1)
     |> assign(:user_id, 123)
+    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 ```
@@ -31,13 +32,12 @@ You can pass `auto_stash: true` when you want auto-stashes after each render, bu
 
 ```elixir
 defmodule ShowcaseAppWeb.CounterLive do
-  use LiveStash, stored_keys: [:count, :user_id], auto_stash: false
+  use LiveStash, stored_keys: [:count, :user_id], auto_stash: true
 
   def handle_event("increment", _, socket) do
     socket
     |> assign(:count, socket.assigns.count + 1)
     |> assign(:user_id, 123)
-    |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
 end
