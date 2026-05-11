@@ -48,6 +48,16 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   end
 
   @doc """
+  Computes the Redis key for the given stash `id` and `secret`.
+  """
+  @spec redis_key(binary(), binary()) :: binary()
+  def redis_key(id, secret) do
+    raw_key = id <> secret
+    hashed_binary = :crypto.hash(:sha256, raw_key)
+    "live_stash:" <> Base.encode64(hashed_binary, padding: false)
+  end
+
+  @doc """
   Runs a raw Redix command against the adapter's connection.
   """
   @spec command(list()) :: {:ok, term()} | {:error, term()}

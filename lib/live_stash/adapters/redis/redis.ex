@@ -41,14 +41,13 @@ defmodule LiveStash.Adapters.Redis do
   @impl true
   def init_stash(socket, session, opts) do
     {socket, context} = Common.init_context(socket, session, opts, __MODULE__)
-    redis_key = get_redis_key(socket)
 
     if not context.reconnected? do
-      delete_stash(redis_key)
+      delete_stash(get_redis_key(socket))
     end
 
     socket
-    |> Hook.attach(redis_key)
+    |> Hook.attach()
     |> LiveView.push_event("live-stash:init-redis", %{stashId: context.id})
   end
 
@@ -113,15 +112,19 @@ defmodule LiveStash.Adapters.Redis do
   @impl true
   def reset_stash(socket) do
     context = socket.private.live_stash_context
-    updated_context = %{context | stash_fingerprint: nil}
-    redis_key = get_redis_key(socket)
 
-    case delete_stash(redis_key) do
+    case delete_stash(get_redis_key(socket)) do
       :ok ->
+        updated_context = %{context | stash_fingerprint: nil}
         LiveView.put_private(socket, :live_stash_context, updated_context)
 
-      {:error, _err} ->
+      {:error, _} ->
+        new_id = Uniq.UUID.uuid4()
+        updated_context = %{context | id: new_id, stash_fingerprint: nil}
+
         socket
+        |> LiveView.put_private(:live_stash_context, updated_context)
+        |> LiveView.push_event("live-stash:init-redis", %{stashId: new_id})
     end
   rescue
     error ->
@@ -165,12 +168,7 @@ defmodule LiveStash.Adapters.Redis do
   end
 
   defp get_redis_key(socket) do
-    id = socket.private.live_stash_context.id
-    secret = socket.private.live_stash_context.secret
-
-    raw_key = id <> secret
-    hashed_binary = :crypto.hash(:sha256, raw_key)
-
-    "live_stash:" <> Base.encode64(hashed_binary, padding: false)
+    context = socket.private.live_stash_context
+    Helpers.redis_key(context.id, context.secret)
   end
 end

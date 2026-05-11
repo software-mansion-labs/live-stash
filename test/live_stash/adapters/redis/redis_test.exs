@@ -58,6 +58,29 @@ defmodule LiveStash.Adapters.RedisTest do
       assert Keyword.fetch!(opts, :host) == "localhost"
       assert Keyword.fetch!(opts, :port) == 6379
     end
+
+    test "builds the child spec with a URI string config" do
+      Application.put_env(:live_stash, :redis, "redis://localhost:6379")
+
+      spec = Redis.child_spec([])
+
+      assert %{id: Redis} = spec
+      assert {Redix, :start_link, ["redis://localhost:6379", opts]} = spec.start
+      assert Keyword.fetch!(opts, :name) == LiveStash.Adapters.Redis.Conn
+      assert Keyword.fetch!(opts, :sync_connect) == false
+    end
+
+    test "builds the child spec with a {uri, extra_opts} tuple config" do
+      Application.put_env(:live_stash, :redis, {"redis://localhost:6379", [socket_opts: []]})
+
+      spec = Redis.child_spec([])
+
+      assert %{id: Redis} = spec
+      assert {Redix, :start_link, ["redis://localhost:6379", opts]} = spec.start
+      assert Keyword.fetch!(opts, :name) == LiveStash.Adapters.Redis.Conn
+      assert Keyword.fetch!(opts, :sync_connect) == false
+      assert Keyword.fetch!(opts, :socket_opts) == []
+    end
   end
 
   describe "init_stash/3" do
@@ -321,9 +344,10 @@ defmodule LiveStash.Adapters.RedisTest do
   end
 
   describe "reset_stash/1" do
-    test "deletes the state from Redis and clears fingerprint", %{
+    test "deletes old Redis entry and clears fingerprint, keeping the same stash ID", %{
       socket: socket,
-      redis_id: redis_id
+      redis_id: redis_id,
+      stash_id: stash_id
     } do
       socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
 
@@ -334,10 +358,15 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert %Socket{} = reset_socket
       assert reset_socket.private.live_stash_context.stash_fingerprint == nil
+      assert reset_socket.private.live_stash_context.id == stash_id
       assert LiveStash.TestRedisConn.snapshot().store[redis_id] == nil
     end
 
-    test "logs DEL errors and still returns socket", %{socket: socket, redis_id: redis_id} do
+    test "rotates stash ID and pushes init event when DEL fails", %{
+      socket: socket,
+      redis_id: redis_id,
+      stash_id: stash_id
+    } do
       socket = put_in(socket.private.live_stash_context.stash_fingerprint, "fingerprint")
       Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", "to_be_deleted"])
 
@@ -347,7 +376,17 @@ defmodule LiveStash.Adapters.RedisTest do
         capture_log(fn ->
           returned_socket = Redis.reset_stash(socket)
           assert %Socket{} = returned_socket
-          assert returned_socket.private.live_stash_context.stash_fingerprint == "fingerprint"
+          assert returned_socket.private.live_stash_context.stash_fingerprint == nil
+
+          new_id = returned_socket.private.live_stash_context.id
+          assert new_id != stash_id
+
+          queued_events = get_in(returned_socket.private, [:live_temp, :push_events]) || []
+
+          assert Enum.any?(queued_events, fn
+                   ["live-stash:init-redis", payload] -> payload.stashId == new_id
+                   _other -> false
+                 end)
         end)
 
       assert log =~ "Failed to delete stash"
@@ -411,11 +450,5 @@ defmodule LiveStash.Adapters.RedisTest do
     end
   end
 
-  defp redis_key(id, secret) do
-    hashed_binary =
-      :crypto.hash(:sha256, id <> secret)
-      |> Base.encode64(padding: false)
-
-    "live_stash:" <> hashed_binary
-  end
+  defp redis_key(id, secret), do: Helpers.redis_key(id, secret)
 end
