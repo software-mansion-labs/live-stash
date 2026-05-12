@@ -2,17 +2,21 @@ defmodule LiveStash.Adapters.Mnesia.State do
   @moduledoc false
 
   use Memento.Table,
-    attributes: [:id, :pid, :delete_at, :ttl, :state],
+    attributes: [:id, :pid, :delete_at, :state],
     type: :set
 
   require Logger
   alias LiveStash.Utils
 
+  # `Memento.transaction/1`'s spec claims it always returns `{:ok, _} | {:error, _}`,
+  # but in reality returns :ok. The `:ok ->` branch in `put!/3` is therefore reachable. Silence the
+  # dialyzer warning.
+  @dialyzer {:no_match, put!: 3}
+
   @type t :: %__MODULE__{
           id: term(),
           pid: pid(),
           delete_at: integer(),
-          ttl: integer(),
           state: map()
         }
 
@@ -23,7 +27,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
       id: id,
       pid: self(),
       delete_at: System.os_time(:second) + ttl,
-      ttl: ttl,
       state: state
     }
   end
@@ -91,15 +94,14 @@ defmodule LiveStash.Adapters.Mnesia.State do
 
     case transaction_result do
       :ok ->
-        Logger.debug("not dead code")
+        :ok
+
+      {:ok, _result} ->
         :ok
 
       {:error, reason} ->
         msg = Utils.reason_message("Mnesia transaction aborted", reason)
         raise RuntimeError, msg
-
-      {:ok, _result} ->
-        :ok
     end
   end
 
@@ -120,30 +122,37 @@ defmodule LiveStash.Adapters.Mnesia.State do
     :ok
   end
 
-  def expired_records(now) when is_integer(now) do
-    Memento.transaction!(fn ->
-      Memento.Query.select(__MODULE__, {:<, :delete_at, now})
-      |> Enum.filter(&locally_owned_or_from_disconnected_node?/1)
-      |> Enum.map(fn record -> {record.id, record.pid, record.ttl} end)
-    end)
-  end
-
-  defp locally_owned_or_from_disconnected_node?(%__MODULE__{pid: pid}) do
-    owner_node = node(pid)
-
-    owner_node == node() or owner_node not in Node.list()
-  end
-
-  def bump_delete_at!(id, time) when is_integer(time) do
+  @doc """
+  Refreshes the `delete_at` of a record to `now + ttl`. No-op if the record
+  does not exist.
+  """
+  def bump_delete_at!(id, ttl) when is_integer(ttl) do
     Memento.transaction!(fn ->
       case Memento.Query.read(__MODULE__, id) do
         nil ->
           :ok
 
         record ->
-          Memento.Query.write(%{record | delete_at: time})
+          Memento.Query.write(%{record | delete_at: System.os_time(:second) + ttl})
           :ok
       end
+    end)
+  end
+
+  @doc """
+  Deletes every record whose `delete_at` is strictly less than `now`.
+  """
+  def delete_expired!(now) when is_integer(now) do
+    Memento.transaction!(fn ->
+      match_head = {__MODULE__, :"$1", :_, :"$2", :_}
+      guards = [{:<, :"$2", now}]
+      projection = [:"$1"]
+
+      ids = :mnesia.select(__MODULE__, [{match_head, guards, projection}])
+
+      Enum.each(ids, &Memento.Query.delete(__MODULE__, &1))
+
+      length(ids)
     end)
   end
 end

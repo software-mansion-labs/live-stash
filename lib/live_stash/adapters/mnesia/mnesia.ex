@@ -11,6 +11,8 @@ defmodule LiveStash.Adapters.Mnesia do
   require Logger
 
   alias LiveStash.Adapters.Mnesia.Context
+  alias LiveStash.Adapters.Mnesia.Helpers
+  alias LiveStash.Adapters.Mnesia.Hook
   alias LiveStash.Adapters.Mnesia.State
   alias LiveStash.Utils
 
@@ -49,7 +51,9 @@ defmodule LiveStash.Adapters.Mnesia do
       |> State.delete_by_id!()
     end
 
-    LiveView.push_event(socket, "live-stash:init-mnesia", %{
+    socket
+    |> Hook.attach()
+    |> LiveView.push_event("live-stash:init-mnesia", %{
       stashId: context.id
     })
   end
@@ -127,13 +131,8 @@ defmodule LiveStash.Adapters.Mnesia do
   end
 
   defp get_mnesia_id(socket) do
-    id = socket.private.live_stash_context.id
-    secret = socket.private.live_stash_context.secret
-
-    raw_key = id <> secret
-    hashed_binary = :crypto.hash(:sha256, raw_key)
-
-    Base.encode64(hashed_binary, padding: false)
+    context = socket.private.live_stash_context
+    Helpers.mnesia_id(context.id, context.secret)
   end
 
   defp get_opts(socket) do

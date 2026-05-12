@@ -34,18 +34,20 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
       {:noreply, state}
   end
 
+  @doc """
+  Deletes all records whose `delete_at` has elapsed.
+
+  TTL bumping for live LiveViews is handled by
+  `LiveStash.Adapters.Mnesia.Hook` via periodic keep-alive ticks on the owning
+  process, so this cleaner only needs to evict records whose owners stopped
+  bumping them. The actual select+delete sweep runs inside a single Mnesia
+  transaction in `State.delete_expired!/1` and projects only ids — never full
+  records — to keep memory pressure low.
+  """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do
-    now = System.os_time(:second)
-
-    State.expired_records(now)
-    |> Enum.each(fn {id, pid, ttl} ->
-      if node(pid) == node() and Process.alive?(pid) do
-        State.bump_delete_at!(id, now + ttl)
-      else
-        State.delete_by_id!(id)
-      end
-    end)
+    State.delete_expired!(System.os_time(:second))
+    :ok
   end
 
   defp schedule_cleanup(), do: Process.send_after(self(), :cleanup, @cleanup_interval)

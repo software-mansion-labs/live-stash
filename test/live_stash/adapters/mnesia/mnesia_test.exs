@@ -22,6 +22,7 @@ defmodule LiveStash.Adapters.MnesiaTest do
         },
         private: %{
           live_temp: %{},
+          lifecycle: %Phoenix.LiveView.Lifecycle{},
           connect_params: %{"liveStash" => %{"stashId" => "test_uuid_1234"}},
           live_stash_context: %Context{
             stored_keys: [:username],

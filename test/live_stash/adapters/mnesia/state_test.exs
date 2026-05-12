@@ -24,7 +24,6 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
 
       assert record.id == id
       assert record.pid == self()
-      assert record.ttl == 1
       assert record.state == state_map
       assert is_integer(record.delete_at)
     end
@@ -95,38 +94,51 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
   end
 
   describe "bump_delete_at!/2" do
-    test "updates delete_at time for existing record" do
+    test "refreshes delete_at to now + ttl for an existing record" do
       id = "bump_id"
       assert :ok = State.put!(id, %{key: "value"}, ttl: 1)
 
-      assert {:ok, _state} = State.get_by_id!(id)
-      assert State.bump_delete_at!(id, System.os_time(:second) + 10) == :ok
+      assert State.bump_delete_at!(id, 100) == :ok
+
+      record =
+        Memento.transaction!(fn -> Memento.Query.read(LiveStash.Adapters.Mnesia.State, id) end)
+
+      now = System.os_time(:second)
+      assert record.delete_at >= now + 99
+      assert record.delete_at <= now + 100
     end
 
     test "returns :ok even when record does not exist" do
-      assert State.bump_delete_at!("non_existent_id", 1_234_567_890) == :ok
+      assert State.bump_delete_at!("non_existent_id", 60) == :ok
     end
   end
 
-  describe "expired_records/1" do
-    test "returns expired records" do
-      now = System.os_time(:second)
-      past_time = now - 5
-
+  describe "delete_expired!/1" do
+    test "deletes only records whose delete_at is strictly less than now" do
       assert :ok = State.put!("expired_1", %{key: "value1"}, ttl: 1)
       assert :ok = State.put!("expired_2", %{key: "value2"}, ttl: 1)
+      assert :ok = State.put!("fresh", %{key: "fresh"}, ttl: 86_400)
 
-      assert State.bump_delete_at!("expired_1", past_time) == :ok
-      assert State.bump_delete_at!("expired_2", past_time) == :ok
+      # Force the two records into the past.
+      Memento.transaction!(fn ->
+        for id <- ["expired_1", "expired_2"] do
+          record = Memento.Query.read(LiveStash.Adapters.Mnesia.State, id)
+          Memento.Query.write(%{record | delete_at: System.os_time(:second) - 5})
+        end
+      end)
 
-      ids = State.expired_records(now) |> Enum.map(fn {id, _pid, _ttl} -> id end)
+      assert State.delete_expired!(System.os_time(:second)) == 2
 
-      assert "expired_1" in ids
-      assert "expired_2" in ids
+      assert :not_found == State.get_by_id!("expired_1")
+      assert :not_found == State.get_by_id!("expired_2")
+      assert {:ok, _} = State.get_by_id!("fresh")
     end
 
-    test "returns an empty list when no expired records exist" do
-      assert Enum.to_list(State.expired_records(System.os_time(:second))) == []
+    test "returns 0 when nothing is expired" do
+      assert :ok = State.put!("fresh", %{key: "fresh"}, ttl: 86_400)
+
+      assert State.delete_expired!(System.os_time(:second)) == 0
+      assert {:ok, _} = State.get_by_id!("fresh")
     end
   end
 end
