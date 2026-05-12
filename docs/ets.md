@@ -36,6 +36,14 @@ State can also be cleared manually by calling `LiveStash.reset_stash/1`.
 
 ## Configuration
 
+### Activating the adapter
+
+Remember to define adapters you would like to activate in your `config.exs` file.
+
+```elixir
+config :live_stash, adapters: [LiveStash.Adapters.ETS]
+```
+
 ### Expiration (TTL)
 
 Stashed data in server mode has a Time-To-Live (TTL) to prevent stale state from persisting indefinitely. You can adjust this using the `:ttl` option.

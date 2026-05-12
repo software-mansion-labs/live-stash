@@ -25,6 +25,14 @@ The stash is always cleared after a LiveView using this mode is rendered for the
 
 ## Configuration
 
+### Activating the adapter
+
+Remember to define adapters you would like to activate in your `config.exs` file.
+
+```elixir
+config :live_stash, adapters: [LiveStash.Adapters.BrowserMemory]
+```
+
 ### Expiration (TTL)
 
 Stashed data has a Time-To-Live (TTL) that is used to determine how long the data should be retained. You can adjust this using the `:ttl` option. There is an external upper limit from Phoenix Token of 1 day (24 hours) for the maximum TTL.

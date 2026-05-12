@@ -12,8 +12,8 @@ The assigns you want to persist are declared once at the module level with `stor
 
 Choose the Redis mode when:
 
+- **Frequent deployments:** Ideal for preserving state across node restarts. Unlike the ETS mode, in Redis adapter state survives application downtime and redeploys.
 - **Payloads are large:** You need to stash substantial amounts of data that would otherwise degrade WebSocket performance, exceed browser storage limits or consume excessive memory on your node.
-- **Fitting architecture:** You already use Redis in your stack and want to leverage it for state persistence.
 - **Highly sensitive data:** You want to ensure the actual state never leaves your infrastructure and is not exposed to the browser.
 
 > #### Warning {: .warning}
@@ -34,6 +34,14 @@ State can also be cleared manually by calling `LiveStash.reset_stash/1`.
 
 ## Configuration
 
+### Activating the adapter
+
+Remember to define adapters you would like to activate in your `config.exs` file.
+
+```elixir
+config :live_stash, adapters: [LiveStash.Adapters.Redis]
+```
+
 ### Redis connection
 
 Defines how LiveStash connects to Redis. The value is read from `config :live_stash, :redis` and can be:
@@ -50,6 +58,16 @@ Example:
 config :live_stash,
   adapters: [LiveStash.Adapters.Redis],
   redis: "redis://localhost:6379"
+```
+
+### Expiration (TTL)
+
+Stashed data in server mode has a Time-To-Live (TTL) to prevent stale state from persisting indefinitely. You can adjust this using the `:ttl` option.
+
+**Default:** `300` seconds (5 minutes)
+
+```elixir
+use LiveStash, adapter: LiveStash.Adapters.Redis, ttl: 60, stored_keys: [:count]
 ```
 
 ## Security
