@@ -244,18 +244,22 @@ defmodule LiveStash.Adapters.RedisTest do
       assert :erlang.binary_to_term(saved_binary) == %{username: "tester-2"}
     end
 
-    test "crashes the process if attempting to stash to a record owned by a different PID", %{
-      socket: socket,
-      redis_id: redis_id
-    } do
+    test "returns socket and logs error if attempting to stash to a record owned by a different PID",
+         %{
+           socket: socket,
+           redis_id: redis_id
+         } do
       fake_owner = "#PID<0.999.0>"
       Helpers.command(["HSET", redis_id, "owner_id", fake_owner, "payload", "old_state"])
 
       socket_with_new_state = put_in(socket.assigns.username, "current process")
 
-      assert_raise RuntimeError, ~r/already exists for another process/, fn ->
-        Redis.stash(socket_with_new_state)
-      end
+      log =
+        ExUnit.CaptureLog.capture_log(fn ->
+          assert Redis.stash(socket_with_new_state) == socket_with_new_state
+        end)
+
+      assert log =~ "Failed to stash assigns - stash already exists for another process"
     end
 
     test "logs and returns socket unchanged when Redis EVAL fails", %{
