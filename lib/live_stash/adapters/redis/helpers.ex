@@ -112,14 +112,14 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   @doc """
   Deletes the stash entry stored under `key`.
   """
-  @spec delete(binary()) :: :ok | {:error, term()}
+  @spec delete(binary()) :: :ok | {:error, binary()}
   def delete(key) do
     case command(["DEL", key]) do
       {:ok, _count} ->
         :ok
 
       {:error, error} ->
-        {:error, error}
+        {:error, format_error("Failed to delete stash", error)}
     end
   end
 
