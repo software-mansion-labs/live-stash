@@ -272,5 +272,31 @@ defmodule LiveStash.Adapters.ETSTest do
       assert reset_socket.private.live_stash_context.stash_fingerprint == nil
       assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
     end
+
+    test "rotates ID and pushes init event when ETS delete fails", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
+
+      :ets.delete(@table_name)
+
+      log =
+        capture_log(fn ->
+          reset_socket = ETS.reset_stash(socket)
+
+          assert %Socket{} = reset_socket
+          assert reset_socket.private.live_stash_context.stash_fingerprint == nil
+
+          new_id = reset_socket.private.live_stash_context.id
+          assert new_id != "test_uuid_1234"
+
+          queued_events = get_in(reset_socket.private, [:live_temp, :push_events]) || []
+
+          assert Enum.any?(queued_events, fn
+                   ["live-stash:init-ets", payload] -> payload.stashId == new_id
+                   _other -> false
+                 end)
+        end)
+
+      assert log =~ "Failed to delete stash during reset"
+    end
   end
 end

@@ -151,7 +151,7 @@ defmodule LiveStash.Adapters.RedisTest do
                  end)
         end)
 
-      assert log =~ "Failed"
+      assert log =~ "Failed to clear existing stash"
     end
 
     test "uses existing stashId from connect_params and does not clear Redis when reconnected? is true",
