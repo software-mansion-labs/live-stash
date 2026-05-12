@@ -35,7 +35,7 @@ defmodule LiveStash.Adapters.Redis do
       raise RuntimeError, msg
     end
 
-    Supervisor.child_spec({Redix, Helpers.redix_args()}, id: __MODULE__)
+    Supervisor.child_spec({Redix, Helpers.redix_args!()}, id: __MODULE__)
   end
 
   @impl true
@@ -76,7 +76,8 @@ defmodule LiveStash.Adapters.Redis do
             :conflict
           )
 
-        raise RuntimeError, msg
+        Logger.error(msg)
+        socket
 
       {:error, err} ->
         Logger.error(err)

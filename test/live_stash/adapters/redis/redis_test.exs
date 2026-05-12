@@ -104,7 +104,7 @@ defmodule LiveStash.Adapters.RedisTest do
                  "HSET",
                  redis_id,
                  "owner_id",
-                 inspect(self()),
+                 :erlang.term_to_binary(self()),
                  "payload",
                  binary_state
                ])
@@ -126,7 +126,15 @@ defmodule LiveStash.Adapters.RedisTest do
 
     test "logs and continues when DEL fails on fresh mount", %{socket: socket, redis_id: redis_id} do
       binary_state = :erlang.term_to_binary(%{username: "stale"})
-      Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", binary_state])
+
+      Helpers.command([
+        "HSET",
+        redis_id,
+        "owner_id",
+        :erlang.term_to_binary(self()),
+        "payload",
+        binary_state
+      ])
 
       assert :ok = LiveStash.TestRedisConn.fail_next("DEL", :econnrefused)
 
@@ -155,7 +163,7 @@ defmodule LiveStash.Adapters.RedisTest do
                  "HSET",
                  redis_id,
                  "owner_id",
-                 inspect(self()),
+                 :erlang.term_to_binary(self()),
                  "payload",
                  binary_state
                ])
@@ -280,7 +288,7 @@ defmodule LiveStash.Adapters.RedisTest do
                  "HSET",
                  redis_id,
                  "owner_id",
-                 inspect(self()),
+                 :erlang.term_to_binary(self()),
                  "payload",
                  binary_state
                ])
@@ -341,7 +349,7 @@ defmodule LiveStash.Adapters.RedisTest do
         "HSET",
         redis_id,
         "owner_id",
-        inspect(self()),
+        :erlang.term_to_binary(self()),
         "payload",
         malicious_binary
       ])
@@ -381,7 +389,15 @@ defmodule LiveStash.Adapters.RedisTest do
     } do
       socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
 
-      Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", "to_be_deleted"])
+      Helpers.command([
+        "HSET",
+        redis_id,
+        "owner_id",
+        :erlang.term_to_binary(self()),
+        "payload",
+        "to_be_deleted"
+      ])
+
       assert {:ok, _} = Helpers.command(["HGET", redis_id, "payload"])
 
       reset_socket = Redis.reset_stash(socket)
@@ -398,7 +414,15 @@ defmodule LiveStash.Adapters.RedisTest do
       stash_id: stash_id
     } do
       socket = put_in(socket.private.live_stash_context.stash_fingerprint, "fingerprint")
-      Helpers.command(["HSET", redis_id, "owner_id", inspect(self()), "payload", "to_be_deleted"])
+
+      Helpers.command([
+        "HSET",
+        redis_id,
+        "owner_id",
+        :erlang.term_to_binary(self()),
+        "payload",
+        "to_be_deleted"
+      ])
 
       assert :ok = LiveStash.TestRedisConn.fail_next("DEL", :timeout)
 

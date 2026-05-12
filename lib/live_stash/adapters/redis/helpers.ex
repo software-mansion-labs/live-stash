@@ -22,8 +22,8 @@ defmodule LiveStash.Adapters.Redis.Helpers do
   Returns the Redix `start_link` arguments derived from `:live_stash, :redis`
   application config.
   """
-  @spec redix_args() :: {binary(), Keyword.t()} | Keyword.t()
-  def redix_args() do
+  @spec redix_args!() :: {binary(), Keyword.t()} | Keyword.t()
+  def redix_args!() do
     case Application.get_env(:live_stash, :redis, []) do
       uri when is_binary(uri) ->
         {uri, @conn_options}

@@ -36,7 +36,6 @@ defmodule LiveStash.Adapters.Redis.HookTest do
     end
 
     test "schedules the first keep-alive after ttl / 2 milliseconds", %{socket: socket} do
-      # ttl = 1s → interval = 500ms
       Hook.attach(socket)
       assert_receive :live_stash_keep_alive, 600
     end

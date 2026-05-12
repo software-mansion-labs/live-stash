@@ -28,9 +28,13 @@ defmodule LiveStash.Adapters.Redis.Hook do
     redis_key = Helpers.redis_key(context.id, context.secret)
 
     Task.start(fn ->
-      case Helpers.bump_ttl(redis_key, ttl) do
-        :ok -> :ok
-        {:error, err} -> Logger.error(err)
+      try do
+        case Helpers.bump_ttl(redis_key, ttl) do
+          :ok -> :ok
+          {:error, err} -> Logger.error(err)
+        end
+      catch
+        :exit, _ -> :ok
       end
     end)
 
