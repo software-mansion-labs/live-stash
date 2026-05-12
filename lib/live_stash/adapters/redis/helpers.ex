@@ -119,7 +119,7 @@ defmodule LiveStash.Adapters.Redis.Helpers do
         :ok
 
       {:error, error} ->
-        {:error, format_error("Failed to delete stash", error)}
+        {:error, format_error("Failed to delete stash for key #{key}", error)}
     end
   end
 
