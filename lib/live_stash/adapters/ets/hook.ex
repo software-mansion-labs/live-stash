@@ -1,7 +1,7 @@
 defmodule LiveStash.Adapters.ETS.Hook do
   @moduledoc false
 
-  alias LiveStash.Adapters.ETS.State
+  alias LiveStash.Adapters.ETS.{Helpers, State}
   alias Phoenix.LiveView
 
   require Logger
@@ -15,18 +15,17 @@ defmodule LiveStash.Adapters.ETS.Hook do
   The ETS id is derived from the context on each tick so that it stays
   correct after `reset_stash/1` rotates the stash id.
   """
-  def attach(socket, ets_id_fun) do
+  def attach(socket) do
     ttl = socket.private.live_stash_context.ttl
     send_keep_alive(ttl)
 
-    LiveView.attach_hook(socket, @hook_name, :handle_info, fn msg, sock ->
-      handle_keep_alive(msg, sock, ets_id_fun)
-    end)
+    LiveView.attach_hook(socket, @hook_name, :handle_info, &handle_keep_alive/2)
   end
 
-  defp handle_keep_alive(@hook_name, socket, ets_id_fun) do
-    ttl = socket.private.live_stash_context.ttl
-    id = ets_id_fun.(socket)
+  defp handle_keep_alive(@hook_name, socket) do
+    context = socket.private.live_stash_context
+    ttl = context.ttl
+    id = Helpers.ets_id(context.id, context.secret)
 
     State.bump_delete_at!(id, ttl)
 
@@ -35,7 +34,7 @@ defmodule LiveStash.Adapters.ETS.Hook do
     {:halt, socket}
   end
 
-  defp handle_keep_alive(_msg, socket, _ets_id_fun), do: {:cont, socket}
+  defp handle_keep_alive(_msg, socket), do: {:cont, socket}
 
   defp send_keep_alive(ttl) do
     interval = div(ttl * 1_000, 2)

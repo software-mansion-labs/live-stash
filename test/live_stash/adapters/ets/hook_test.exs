@@ -3,7 +3,7 @@ defmodule LiveStash.Adapters.ETS.HookTest do
 
   require LiveStash.Adapters.ETS.State
 
-  alias LiveStash.Adapters.ETS.{Context, Hook, State}
+  alias LiveStash.Adapters.ETS.{Context, Helpers, Hook, State}
   alias LiveStash.Fakes
 
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
@@ -34,21 +34,21 @@ defmodule LiveStash.Adapters.ETS.HookTest do
     {:ok, socket: socket}
   end
 
-  describe "attach/2" do
+  describe "attach/1" do
     test "registers one handle_info hook on the socket", %{socket: socket} do
-      attached = Hook.attach(socket, fn _ -> "ignored" end)
+      attached = Hook.attach(socket)
       assert length(attached.private.lifecycle.handle_info) == 1
     end
 
     test "schedules the first keep-alive after ttl / 2 milliseconds", %{socket: socket} do
-      Hook.attach(socket, fn _ -> "ignored" end)
+      Hook.attach(socket)
       assert_receive :live_stash_keep_alive, 600
     end
   end
 
   describe "hook callback" do
     setup %{socket: socket} do
-      attached = Hook.attach(socket, fn _ -> "ets-id" end)
+      attached = Hook.attach(socket)
       [%{function: callback}] = attached.private.lifecycle.handle_info
       {:ok, attached: attached, callback: callback}
     end
@@ -57,12 +57,15 @@ defmodule LiveStash.Adapters.ETS.HookTest do
       attached: attached,
       callback: callback
     } do
-      State.insert!(State.state(id: "ets-id", pid: self(), delete_at: 0, state: %{}))
+      context = attached.private.live_stash_context
+      ets_id = Helpers.ets_id(context.id, context.secret)
+
+      State.insert!(State.state(id: ets_id, pid: self(), delete_at: 0, state: %{}))
 
       assert {:halt, _socket} = callback.(:live_stash_keep_alive, attached)
 
       now = System.os_time(:second)
-      [{:state, "ets-id", _pid, delete_at, _}] = :ets.lookup(@table_name, "ets-id")
+      [{:state, ^ets_id, _pid, delete_at, _}] = :ets.lookup(@table_name, ets_id)
       assert delete_at >= now
     end
 
@@ -74,21 +77,15 @@ defmodule LiveStash.Adapters.ETS.HookTest do
       assert_receive :live_stash_keep_alive, 600
     end
 
-    test "uses the ets_id derived from the socket on each tick", %{
-      socket: socket
+    test "reads the current ets id from context on each tick", %{
+      attached: attached,
+      callback: callback
     } do
-      test_pid = self()
+      new_id = "rotated-id"
+      updated_context = %{attached.private.live_stash_context | id: new_id}
+      socket_with_new_id = put_in(attached.private.live_stash_context, updated_context)
 
-      attached =
-        Hook.attach(socket, fn sock ->
-          send(test_pid, {:resolving_for, sock.private.live_stash_context.id})
-          "any-id"
-        end)
-
-      [%{function: callback}] = attached.private.lifecycle.handle_info
-
-      callback.(:live_stash_keep_alive, attached)
-      assert_receive {:resolving_for, "test-id"}
+      assert {:halt, _} = callback.(:live_stash_keep_alive, socket_with_new_id)
     end
 
     test "returns {:cont, socket} for non-keep-alive messages", %{
