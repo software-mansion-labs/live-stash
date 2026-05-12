@@ -42,7 +42,9 @@ defmodule LiveStash.Adapters.ETS do
     context = socket.private.live_stash_context
 
     socket =
-      if not context.reconnected? do
+      if context.reconnected? do
+        socket
+      else
         try do
           socket
           |> get_ets_id()
@@ -60,8 +62,6 @@ defmodule LiveStash.Adapters.ETS do
         end
 
         Common.rotate_id(socket)
-      else
-        socket
       end
 
     node_hint = NodeHint.create_node_hint(socket)

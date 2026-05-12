@@ -44,7 +44,9 @@ defmodule LiveStash.Adapters.Redis do
     context = socket.private.live_stash_context
 
     socket =
-      if not context.reconnected? do
+      if context.reconnected? do
+        socket
+      else
         case Helpers.delete(get_redis_key(socket)) do
           :ok ->
             :ok
@@ -55,8 +57,6 @@ defmodule LiveStash.Adapters.Redis do
         end
 
         Common.rotate_id(socket)
-      else
-        socket
       end
 
     socket
