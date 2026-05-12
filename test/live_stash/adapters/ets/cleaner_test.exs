@@ -20,51 +20,24 @@ defmodule LiveStash.Server.CleanerTest do
 
   describe "clean_expired_states!/0" do
     test "does not clear records that are not expired" do
-      now = System.os_time(:second)
-      future_time = now + 5
-
-      future_record =
-        State.state(
-          id: "future_id",
-          pid: self(),
-          delete_at: future_time,
-          ttl: 1,
-          state: %{key: "value"}
-        )
-
+      future_record = State.new("future_id", %{key: "value"}, ttl: 60)
       State.insert!(future_record)
 
       assert Cleaner.clean_expired_states!() == :ok
       assert length(:ets.tab2list(@table_name)) == 1
     end
 
-    test "bumps delete_at time for records with alive processes" do
+    test "deletes expired records regardless of whether the owning process is alive" do
       now = System.os_time(:second)
       past_time = now - 5
-      ttl = 1
 
-      expired_record =
+      alive_record =
         State.state(
           id: "alive_expired",
           pid: self(),
           delete_at: past_time,
-          ttl: ttl,
-          state: %{key: "value"}
+          state: %{key: "alive"}
         )
-
-      State.insert!(expired_record)
-
-      Cleaner.clean_expired_states!()
-
-      assert [{:state, "alive_expired", _pid, delete_at, _ttl, _state}] =
-               :ets.lookup(@table_name, "alive_expired")
-
-      assert delete_at >= now + ttl
-    end
-
-    test "deletes expired records with dead processes" do
-      now = System.os_time(:second)
-      past_time = now - 5
 
       dead_pid =
         spawn(fn ->
@@ -73,51 +46,11 @@ defmodule LiveStash.Server.CleanerTest do
           end
         end)
 
-      expired_record =
+      dead_record =
         State.state(
           id: "dead_expired",
           pid: dead_pid,
           delete_at: past_time,
-          ttl: 1,
-          state: %{key: "value"}
-        )
-
-      State.insert!(expired_record)
-
-      Process.exit(dead_pid, :kill)
-      Process.sleep(100)
-
-      assert Cleaner.clean_expired_states!() == :ok
-      assert :ets.tab2list(@table_name) == []
-    end
-
-    test "handles mixed alive and dead processes" do
-      now = System.os_time(:second)
-      past_time = now - 5
-      ttl = 1
-
-      dead_pid =
-        spawn(fn ->
-          receive do
-            :stop -> :ok
-          end
-        end)
-
-      alive_record =
-        State.state(
-          id: "alive_mixed",
-          pid: self(),
-          delete_at: past_time,
-          ttl: ttl,
-          state: %{key: "alive"}
-        )
-
-      dead_record =
-        State.state(
-          id: "dead_mixed",
-          pid: dead_pid,
-          delete_at: past_time,
-          ttl: ttl,
           state: %{key: "dead"}
         )
 
@@ -125,67 +58,33 @@ defmodule LiveStash.Server.CleanerTest do
       State.insert!(dead_record)
 
       Process.exit(dead_pid, :kill)
-      Process.sleep(100)
+      Process.sleep(50)
 
-      Cleaner.clean_expired_states!()
-
-      assert length(:ets.tab2list(@table_name)) == 1
-
-      assert [{:state, "alive_mixed", _pid, delete_at, _ttl, _state}] =
-               :ets.lookup(@table_name, "alive_mixed")
-
-      assert delete_at >= now + ttl
+      assert Cleaner.clean_expired_states!() == :ok
+      assert :ets.tab2list(@table_name) == []
     end
 
-    test "handles continuation batches" do
+    test "deletes only expired records when mixed with non-expired ones" do
       now = System.os_time(:second)
       past_time = now - 5
-      ttl = 1
 
-      records =
-        for i <- 1..150 do
-          State.state(
-            id: "batch_#{i}",
-            pid: self(),
-            delete_at: past_time,
-            ttl: ttl,
-            state: %{key: "value"}
-          )
-        end
-
-      dead_pid =
-        spawn(fn ->
-          receive do
-            :stop -> :ok
-          end
-        end)
-
-      Process.exit(dead_pid, :kill)
-      Process.sleep(100)
-
-      dead_record =
+      expired_record =
         State.state(
-          id: "dead_mixed",
-          pid: dead_pid,
+          id: "expired",
+          pid: self(),
           delete_at: past_time,
-          ttl: ttl,
-          state: %{key: "dead"}
+          state: %{key: "expired"}
         )
 
-      Enum.each(records, &State.insert!/1)
-      State.insert!(dead_record)
-      assert length(:ets.tab2list(@table_name)) == 151
+      fresh_record = State.new("fresh", %{key: "fresh"}, ttl: 60)
 
-      Cleaner.clean_expired_states!()
+      State.insert!(expired_record)
+      State.insert!(fresh_record)
 
-      assert length(:ets.tab2list(@table_name)) == 150
+      assert Cleaner.clean_expired_states!() == :ok
 
-      for i <- 1..150 do
-        id = "batch_#{i}"
-        [{:state, ^id, _pid, delete_at, _ttl, _state}] = :ets.lookup(@table_name, id)
-
-        assert delete_at >= now + ttl
-      end
+      assert :not_found == State.get_by_id!("expired")
+      assert {:ok, %{key: "fresh"}} = State.get_by_id!("fresh")
     end
   end
 end

@@ -31,6 +31,7 @@ defmodule LiveStash.Adapters.ETSTest do
         },
         private: %{
           live_temp: %{},
+          lifecycle: %Phoenix.LiveView.Lifecycle{},
           connect_params: %{"liveStash" => %{"stashId" => stash_id}},
           live_stash_context: %ETS.Context{
             stored_keys: [:username],
@@ -58,9 +59,7 @@ defmodule LiveStash.Adapters.ETSTest do
       ets_id: ets_id,
       delete_at: delete_at
     } do
-      State.insert!(
-        State.state(id: ets_id, pid: self(), delete_at: delete_at, ttl: 1, state: %{})
-      )
+      State.insert!(State.state(id: ets_id, pid: self(), delete_at: delete_at, state: %{}))
 
       initialized_socket = ETS.init_stash(socket, %{}, stored_keys: [:username])
 
@@ -88,7 +87,6 @@ defmodule LiveStash.Adapters.ETSTest do
           id: ets_id,
           pid: self(),
           delete_at: delete_at,
-          ttl: 1,
           state: %{recovered: true}
         )
       )

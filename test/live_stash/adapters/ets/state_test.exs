@@ -24,9 +24,8 @@ defmodule LiveStash.Adapters.ETS.StateTest do
 
       record = State.new(id, state_map, opts)
 
-      assert {:state, ^id, pid, delete_at, ttl, ^state_map} = record
+      assert {:state, ^id, pid, delete_at, ^state_map} = record
       assert pid == self()
-      assert ttl == 1
       assert is_integer(delete_at)
     end
 
@@ -42,7 +41,7 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       record = State.new("test_id", %{key: "value"}, ttl: 1)
       assert State.insert!(record) == :ok
 
-      assert [{:state, "test_id", _pid, _delete_at, _ttl, %{key: "value"}}] =
+      assert [{:state, "test_id", _pid, _delete_at, %{key: "value"}}] =
                :ets.lookup(@table_name, "test_id")
     end
   end
@@ -64,9 +63,6 @@ defmodule LiveStash.Adapters.ETS.StateTest do
 
       assert {:ok, state} = State.get_by_id!(id)
       assert state == %{key2: "new_value"}
-
-      [{:state, ^id, _pid, _delete_at, ttl, _state}] = :ets.lookup(@table_name, id)
-      assert ttl == 2
     end
 
     test "raises exception if state is owned by a different process (PID mismatch)" do
@@ -142,106 +138,66 @@ defmodule LiveStash.Adapters.ETS.StateTest do
   end
 
   describe "bump_delete_at!/2" do
-    test "updates delete_at time for existing record" do
+    test "refreshes delete_at to now + ttl for an existing record" do
       id = "bump_id"
       record = State.new(id, %{key: "value"}, ttl: 1)
       State.insert!(record)
 
-      [{:state, ^id, _pid, original_delete_at, _ttl, _state}] = :ets.lookup(@table_name, id)
-      new_time = original_delete_at + 5
+      [{:state, ^id, _pid, _original_delete_at, _state}] = :ets.lookup(@table_name, id)
 
-      assert State.bump_delete_at!(id, new_time) == :ok
+      assert State.bump_delete_at!(id, 100) == :ok
 
-      [{:state, ^id, _pid, delete_at, _ttl, _state}] = :ets.lookup(@table_name, id)
-      assert delete_at == new_time
+      now = System.os_time(:second)
+      [{:state, ^id, _pid, delete_at, _state}] = :ets.lookup(@table_name, id)
+      assert delete_at >= now + 99
+      assert delete_at <= now + 100
     end
 
     test "returns :ok even when record doesn't exist" do
-      assert State.bump_delete_at!("non_existent_id", 1_234_567_890) == :ok
+      assert State.bump_delete_at!("non_existent_id", 60) == :ok
     end
   end
 
-  describe "get_batch!/1" do
-    test "returns expired records" do
+  describe "delete_expired!/1" do
+    test "deletes only records whose delete_at is strictly less than now" do
       now = System.os_time(:second)
       past_time = now - 5
 
-      expired_id1 = "expired_1"
-      expired_id2 = "expired_2"
-
       expired_record1 =
         State.state(
-          id: expired_id1,
+          id: "expired_1",
           pid: self(),
           delete_at: past_time,
-          ttl: 1,
           state: %{key: "value1"}
         )
 
       expired_record2 =
         State.state(
-          id: expired_id2,
+          id: "expired_2",
           pid: self(),
           delete_at: past_time,
-          ttl: 1,
           state: %{key: "value2"}
         )
 
+      future_record = State.new("future_id", %{key: "value"}, ttl: 60)
+
       State.insert!(expired_record1)
       State.insert!(expired_record2)
-
-      future_id = "future_id"
-      future_record = State.new("future_id", %{key: "value"}, ttl: 1)
       State.insert!(future_record)
 
-      assert {candidates, _continuation} = State.get_batch!(now)
+      assert State.delete_expired!(now) == 2
 
-      ids = Enum.map(candidates, fn {id, _pid, _ttl} -> id end)
-      assert expired_id1 in ids
-      assert expired_id2 in ids
-      refute future_id in ids
+      assert :not_found == State.get_by_id!("expired_1")
+      assert :not_found == State.get_by_id!("expired_2")
+      assert {:ok, _} = State.get_by_id!("future_id")
     end
 
-    test "returns :$end_of_table when no expired records exist" do
-      now = System.os_time(:second)
-      future_time = now + 5
-
-      future_record = State.new("future_id", %{key: "value"}, ttl: 1)
-      future_record = put_elem(future_record, 3, future_time)
+    test "returns 0 when no records are expired" do
+      future_record = State.new("future_id", %{key: "value"}, ttl: 60)
       State.insert!(future_record)
 
-      assert :"$end_of_table" == State.get_batch!(now)
-    end
-  end
-
-  describe "get_next_batch!/1" do
-    test "returns next batch from continuation" do
-      now = System.os_time(:second)
-      past_time = now - 5
-
-      records =
-        for i <- 1..150 do
-          State.state(
-            id: "batch_#{i}",
-            pid: self(),
-            delete_at: past_time,
-            ttl: 1,
-            state: %{key: "value"}
-          )
-        end
-
-      Enum.each(records, &State.insert!/1)
-
-      assert {first_candidates, continuation} = State.get_batch!(now)
-      assert length(first_candidates) == 100
-      assert is_tuple(continuation)
-
-      assert {next_candidates, _next_continuation} = State.get_next_batch!(continuation)
-      assert length(next_candidates) == 50
-    end
-
-    test "returns :$end_of_table when continuation is :$end_of_table" do
-      assert State.get_next_batch!(:"$end_of_table") == :"$end_of_table"
+      assert State.delete_expired!(System.os_time(:second)) == 0
+      assert {:ok, _} = State.get_by_id!("future_id")
     end
   end
 end

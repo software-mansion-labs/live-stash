@@ -12,6 +12,7 @@ defmodule LiveStash.Adapters.ETS do
 
   alias Phoenix.Component
 
+  alias LiveStash.Adapters.ETS.Hook
   alias LiveStash.Adapters.ETS.NodeHint
   alias LiveStash.Adapters.ETS.State
   alias LiveStash.Adapters.ETS.StateFinder
@@ -54,7 +55,9 @@ defmodule LiveStash.Adapters.ETS do
 
     node_hint = NodeHint.create_node_hint(socket)
 
-    LiveView.push_event(socket, "live-stash:init-ets", %{
+    socket
+    |> Hook.attach(&get_ets_id/1)
+    |> LiveView.push_event("live-stash:init-ets", %{
       node: node_hint,
       stashId: context.id
     })
