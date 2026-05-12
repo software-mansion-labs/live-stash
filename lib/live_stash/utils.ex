@@ -20,4 +20,9 @@ defmodule LiveStash.Utils do
   def hash_term(term) do
     :crypto.hash(:sha256, :erlang.term_to_binary(term))
   end
+
+  @spec generate_id() :: binary()
+  def generate_id() do
+    Uniq.UUID.uuid4()
+  end
 end
