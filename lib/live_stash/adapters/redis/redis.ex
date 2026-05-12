@@ -45,7 +45,15 @@ defmodule LiveStash.Adapters.Redis do
 
     socket =
       if not context.reconnected? do
-        Helpers.delete(get_redis_key(socket))
+        case Helpers.delete(get_redis_key(socket)) do
+          :ok ->
+            :ok
+
+          {:error, reason} ->
+            msg = Utils.reason_message("Failed to clear existing stash on new connection", reason)
+            Logger.error(msg)
+        end
+
         Common.rotate_id(socket)
       else
         socket
@@ -119,25 +127,23 @@ defmodule LiveStash.Adapters.Redis do
 
   @impl true
   def reset_stash(socket) do
-    delete_result =
-      try do
-        Helpers.delete(get_redis_key(socket))
-      rescue
-        error ->
-          err = Utils.exception_message("Failed to reset stash", error, __STACKTRACE__)
-          Logger.error(err)
-
-          {:error, :rescued_exception}
-      end
-
-    case delete_result do
+    case Helpers.delete(get_redis_key(socket)) do
       :ok ->
         Common.clear_fingerprint(socket)
 
-      {:error, _reason} ->
-        socket
-        |> Common.rotate_id()
-        |> Common.clear_fingerprint()
+      {:error, error} ->
+        msg =
+          Utils.reason_message(
+            "Failed to reset stash - error deleting from Redis",
+            error
+          )
+
+        Logger.error(msg)
+
+        socket =
+          socket
+          |> Common.rotate_id()
+          |> Common.clear_fingerprint()
 
         LiveView.push_event(socket, "live-stash:init-redis", %{
           stashId: socket.private.live_stash_context.id

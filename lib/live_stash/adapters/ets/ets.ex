@@ -130,20 +130,23 @@ defmodule LiveStash.Adapters.ETS do
       socket
       |> get_ets_id()
       |> State.delete_by_id!()
+
+      Common.clear_fingerprint(socket)
     rescue
       error ->
-        err =
+        msg =
           Utils.exception_message(
             "Failed to delete stash during reset. Rotating ID as fallback.",
             error,
             __STACKTRACE__
           )
 
-        Logger.error(err)
+        Logger.error(msg)
 
-        socket
-        |> Common.rotate_id()
-        |> Common.clear_fingerprint()
+        socket =
+          socket
+          |> Common.rotate_id()
+          |> Common.clear_fingerprint()
 
         LiveView.push_event(socket, "live-stash:init-ets", %{
           node: socket.private.live_stash_context.node_hint,
