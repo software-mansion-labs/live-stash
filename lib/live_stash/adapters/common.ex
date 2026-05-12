@@ -42,7 +42,7 @@ defmodule LiveStash.Adapters.Common do
     end
   end
 
-  @spec reconnected?(map()) :: boolean()
+  @spec reconnected?(term()) :: boolean()
   def reconnected?(%{"_mounts" => mounts}) when is_integer(mounts), do: mounts > 0
   def reconnected?(_params), do: false
 
