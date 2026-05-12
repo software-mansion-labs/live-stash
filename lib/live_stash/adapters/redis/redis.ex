@@ -48,7 +48,9 @@ defmodule LiveStash.Adapters.Redis do
         socket
       else
         with {:error, reason} <- Helpers.delete(get_redis_key(socket)) do
-          Logger.error(Utils.reason_message("Failed to clear existing stash on new connection", reason))
+          Logger.error(
+            Utils.reason_message("Failed to clear existing stash on new connection", reason)
+          )
         end
 
         Common.rotate_id(socket)
