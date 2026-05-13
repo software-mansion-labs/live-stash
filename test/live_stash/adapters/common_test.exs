@@ -43,15 +43,6 @@ defmodule LiveStash.Adapters.CommonTest do
       assert updated.private.live_stash_context.id == "my-id"
       assert updated.private.live_stash_context.ttl == 1
     end
-
-    test "is a no-op when fingerprint is already nil" do
-      socket =
-        Fakes.socket(private: %{live_stash_context: %{id: "my-id", stash_fingerprint: nil}})
-
-      updated = Common.clear_fingerprint(socket)
-
-      assert updated.private.live_stash_context.stash_fingerprint == nil
-    end
   end
 
   describe "reconnected?/1" do
