@@ -8,6 +8,12 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   alias LiveStash.Adapters.Mnesia.State
   alias LiveStash.Utils
 
+  @wait_timeout 15_000
+  @retry_delay 5_000
+  @max_retries 3
+
+  defstruct healing?: false, retries_left: @max_retries, auto_heal?: false
+
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -17,89 +23,99 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     State.setup_cluster_state!()
     {:ok, _node} = :mnesia.subscribe(:system)
 
-    {:ok, %{}}
+    auto_heal? = Application.get_env(:live_stash, :auto_heal_mnesia, false)
+    {:ok, %__MODULE__{auto_heal?: auto_heal?}}
   end
 
   @impl true
   def handle_info({:mnesia_system_event, {:inconsistent_database, _context, remote_node}}, state) do
     Logger.error(
-      Utils.reason_message(
-        "Mnesia split-brain detected with #{remote_node}",
-        :conflict
-      )
+      Utils.reason_message("Mnesia split-brain detected with #{remote_node}", :conflict)
     )
 
-    if Application.get_env(:live_stash, :auto_heal_mnesia, false) do
-      if node() > remote_node do
-        Logger.info("[LiveStash] Yielding state to #{remote_node}. Attempting auto-heal.")
-
-        Task.Supervisor.start_child(LiveStash.Adapters.Mnesia.TaskSupervisor, fn ->
-          perform_sacrifice_and_heal()
-        end)
-      end
-    else
-      Logger.warning(
-        Utils.reason_message(
-          "LiveStash auto-heal disabled. Manual Mnesia reconciliation required.",
-          :conflict
+    cond do
+      not state.auto_heal? ->
+        Logger.warning(
+          Utils.reason_message(
+            "LiveStash auto-heal disabled. Manual Mnesia reconciliation required.",
+            :conflict
+          )
         )
-      )
-    end
 
-    {:noreply, state}
+        {:noreply, state}
+
+      state.healing? ->
+        {:noreply, state}
+
+      node() > remote_node ->
+        Logger.info(Utils.message("Yielding state to #{remote_node}. Attempting auto-heal."))
+
+        {:noreply, %{state | healing?: true, retries_left: @max_retries}, {:continue, :heal}}
+
+      true ->
+        {:noreply, state}
+    end
   end
 
-  @impl true
+  def handle_info(:heal_retry, state) do
+    {:noreply, state, {:continue, :heal}}
+  end
+
   def handle_info(_message, state) do
     {:noreply, state}
   end
 
-  defp perform_sacrifice_and_heal(retries \\ 3)
+  @impl true
+  def handle_continue(:heal, state) do
+    case run_heal() do
+      :ok ->
+        Logger.info(Utils.message("Successfully sacrificed and healed Mnesia State table."))
+        {:noreply, %{state | healing?: false, retries_left: @max_retries}}
 
-  defp perform_sacrifice_and_heal(0) do
-    Logger.error(
-      Utils.reason_message(
-        "LiveStash auto-heal exhausted all retries. Local table replica may be missing. Manual Mnesia restart required.",
-        :error
-      )
-    )
+      {:error, reason} ->
+        schedule_retry(state, reason)
+    end
   end
 
-  defp perform_sacrifice_and_heal(retries) do
-    target_table = LiveStash.Adapters.Mnesia.State
-
-    try do
-      with :ok <- Memento.Table.delete_copy(target_table, node()),
-           :ok <- Memento.Table.create_copy(target_table, node(), :ram_copies),
-           :ok <- wait_for_table(target_table) do
-        Logger.info("[LiveStash] Successfully sacrificed and healed Mnesia State table.")
-      else
-        {:error, reason} ->
-          schedule_retry(retries, reason)
-      end
-    rescue
-      e ->
-        schedule_retry(retries, e)
+  defp run_heal do
+    with :ok <- Memento.Table.delete_copy(State, node()),
+         :ok <- Memento.Table.create_copy(State, node(), :ram_copies),
+         :ok <- wait_for_table(State) do
+      :ok
     end
+  rescue
+    e ->
+      Logger.error(Utils.exception_message("Mnesia auto-heal raised", e, __STACKTRACE__))
+      {:error, e}
   end
 
   defp wait_for_table(table) do
-    case Memento.Table.wait([table], 15_000) do
-      :ok -> :ok
+    case Memento.Table.wait([table], @wait_timeout) do
       {:timeout, _} -> {:error, :timeout}
-      {:error, reason} -> {:error, reason}
+      other -> other
     end
   end
 
-  defp schedule_retry(retries_left, reason) do
-    Logger.warning(
+  defp schedule_retry(%{retries_left: 1} = state, reason) do
+    Logger.error(
       Utils.reason_message(
-        "LiveStash auto-heal attempt failed (#{inspect(reason)}). Retrying in 5 seconds...",
-        :retry
+        "LiveStash auto-heal exhausted all retries. Manual Mnesia restart required.",
+        reason
       )
     )
 
-    Process.sleep(5_000)
-    perform_sacrifice_and_heal(retries_left - 1)
+    {:noreply, %{state | healing?: false, retries_left: @max_retries}}
+  end
+
+  defp schedule_retry(state, reason) do
+    Logger.warning(
+      Utils.reason_message(
+        "LiveStash auto-heal attempt failed. Retrying in #{div(@retry_delay, 1000)}s...",
+        reason
+      )
+    )
+
+    Process.send_after(self(), :heal_retry, @retry_delay)
+    {:noreply, %{state | retries_left: state.retries_left - 1}}
   end
 end

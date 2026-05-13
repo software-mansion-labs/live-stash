@@ -7,7 +7,9 @@
 # General application configuration
 import Config
 
-config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Mnesia]
+config :live_stash,
+  adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Mnesia],
+  auto_heal_mnesia: true
 
 config :showcase_app, :scopes,
   user: [

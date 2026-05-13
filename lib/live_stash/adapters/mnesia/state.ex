@@ -59,9 +59,18 @@ defmodule LiveStash.Adapters.Mnesia.State do
         raise RuntimeError, msg
     end
 
-    Memento.Table.wait([__MODULE__], 15_000)
+    case Memento.Table.wait([__MODULE__], 15_000) do
+      :ok ->
+        :ok
 
-    :ok
+      {:timeout, bad} ->
+        msg = Utils.reason_message("Mnesia table did not become ready", {:timeout, bad})
+        raise RuntimeError, msg
+
+      {:error, reason} ->
+        msg = Utils.reason_message("Mnesia table wait failed", reason)
+        raise RuntimeError, msg
+    end
   end
 
   def insert!(record) do
