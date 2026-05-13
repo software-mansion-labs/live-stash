@@ -3,6 +3,7 @@ defmodule LiveStash.Adapters.ETS.Hook do
 
   alias LiveStash.Adapters.ETS.{Helpers, State}
   alias Phoenix.LiveView
+  alias LiveStash.Utils
 
   require Logger
 
@@ -27,7 +28,13 @@ defmodule LiveStash.Adapters.ETS.Hook do
     ttl = context.ttl
     id = Helpers.ets_id(context.id, context.secret)
 
-    State.bump_delete_at!(id, ttl)
+    try do
+      State.bump_delete_at!(id, ttl)
+    catch
+      _ ->
+        msg = Utils.reason_message("Failed to bump TTL for ETS stash with id #{id}", :error)
+        Logger.error(msg)
+    end
 
     send_keep_alive(ttl)
 
