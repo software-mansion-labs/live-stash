@@ -34,42 +34,44 @@ defmodule LiveStash.Adapters.Mnesia.State do
   def setup_cluster_state!() do
     Memento.start()
 
-    setup_result =
-      case Node.list() do
-        [] ->
-          Memento.Table.create(__MODULE__, ram_copies: [node()])
+    ensure_table_created!()
+    wait_for_table!()
+  end
 
-        nodes ->
-          Memento.add_nodes(nodes)
-          Memento.Table.create_copy(__MODULE__, node(), :ram_copies)
-      end
+  defp ensure_table_created!() do
+    Node.list()
+    |> init_table()
+    |> handle_create_result!()
+  end
 
-    case setup_result do
-      :ok ->
-        :ok
+  defp init_table([]) do
+    Memento.Table.create(__MODULE__, ram_copies: [node()])
+  end
 
-      {:error, {:already_exists, _}} ->
-        :ok
+  defp init_table(nodes) do
+    Memento.add_nodes(nodes)
+    Memento.Table.create_copy(__MODULE__, node(), :ram_copies)
+  end
 
-      {:error, {:already_exists, _, _}} ->
-        :ok
+  defp handle_create_result!(:ok), do: :ok
+  defp handle_create_result!({:error, {:already_exists, _}}), do: :ok
+  defp handle_create_result!({:error, {:already_exists, _, _}}), do: :ok
 
-      {:error, reason} ->
-        msg = Utils.reason_message("Failed to set up Mnesia table", reason)
-        raise RuntimeError, msg
-    end
+  defp handle_create_result!({:error, reason}) do
+    raise RuntimeError, Utils.reason_message("Failed to set up Mnesia table", reason)
+  end
 
+  defp wait_for_table!() do
     case Memento.Table.wait([__MODULE__], 15_000) do
       :ok ->
         :ok
 
       {:timeout, bad} ->
-        msg = Utils.reason_message("Mnesia table did not become ready", {:timeout, bad})
-        raise RuntimeError, msg
+        raise RuntimeError,
+              Utils.reason_message("Mnesia table did not become ready", {:timeout, bad})
 
       {:error, reason} ->
-        msg = Utils.reason_message("Mnesia table wait failed", reason)
-        raise RuntimeError, msg
+        raise RuntimeError, Utils.reason_message("Mnesia table wait failed", reason)
     end
   end
 

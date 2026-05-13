@@ -79,9 +79,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
 
   defp run_heal do
     with :ok <- Memento.Table.delete_copy(State, node()),
-         :ok <- Memento.Table.create_copy(State, node(), :ram_copies),
-         :ok <- wait_for_table(State) do
-      :ok
+         :ok <- Memento.Table.create_copy(State, node(), :ram_copies) do
+      wait_for_table(State)
     end
   rescue
     e ->
