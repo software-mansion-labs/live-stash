@@ -21,25 +21,28 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   end
 
   @impl true
-  def handle_info({:mnesia_system_event, {:inconsistent_database, _context, node}}, state) do
+  def handle_info({:mnesia_system_event, {:inconsistent_database, _context, remote_node}}, state) do
     Logger.error(
-      Utils.reason_message("Split-brain detected on Mnesia with node #{node}!", {:conflict, node})
+      Utils.reason_message(
+        "Mnesia split-brain detected with #{remote_node}",
+        :conflict
+      )
     )
 
     if Application.get_env(:live_stash, :auto_heal_mnesia, false) do
-      Logger.info(
-        Utils.reason_message(
-          "Auto-heal enabled. Attempting self-heal by removing local Mnesia copy and rejoining the cluster.",
-          :conflict
-        )
-      )
+      if node() > remote_node do
+        Logger.info("[LiveStash] Yielding state to #{remote_node}. Attempting auto-heal.")
 
-      Task.Supervisor.start_child(LiveStash.Adapters.Mnesia.TaskSupervisor, fn ->
-        perform_auto_heal()
-      end)
+        Task.Supervisor.start_child(LiveStash.Adapters.Mnesia.TaskSupervisor, fn ->
+          perform_sacrifice_and_heal()
+        end)
+      end
     else
       Logger.warning(
-        "live_stash auto-heal is disabled. Manual cluster intervention may be required."
+        Utils.reason_message(
+          "LiveStash auto-heal disabled. Manual Mnesia reconciliation required.",
+          :conflict
+        )
       )
     end
 
@@ -51,19 +54,52 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     {:noreply, state}
   end
 
-  defp perform_auto_heal() do
+  defp perform_sacrifice_and_heal(retries \\ 3)
+
+  defp perform_sacrifice_and_heal(0) do
+    Logger.error(
+      Utils.reason_message(
+        "LiveStash auto-heal exhausted all retries. Local table replica may be missing. Manual Mnesia restart required.",
+        :error
+      )
+    )
+  end
+
+  defp perform_sacrifice_and_heal(retries) do
+    target_table = LiveStash.Adapters.Mnesia.State
+
     try do
-      Memento.Table.delete_copy(LiveStash.Adapters.Mnesia.State, node())
-      Memento.Table.create_copy(LiveStash.Adapters.Mnesia.State, node(), :ram_copies)
-
-      Memento.Table.wait([LiveStash.Adapters.Mnesia.State], 15_000)
-
-      Logger.info("Successfully auto-healed LiveStash Mnesia State table.")
+      with :ok <- Memento.Table.delete_copy(target_table, node()),
+           :ok <- Memento.Table.create_copy(target_table, node(), :ram_copies),
+           :ok <- wait_for_table(target_table) do
+        Logger.info("[LiveStash] Successfully sacrificed and healed Mnesia State table.")
+      else
+        {:error, reason} ->
+          schedule_retry(retries, reason)
+      end
     rescue
       e ->
-        Logger.error(
-          "LiveStash auto-heal failed. The cluster might still be unreachable: #{inspect(e)}"
-        )
+        schedule_retry(retries, e)
     end
+  end
+
+  defp wait_for_table(table) do
+    case Memento.Table.wait([table], 15_000) do
+      :ok -> :ok
+      {:timeout, _} -> {:error, :timeout}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp schedule_retry(retries_left, reason) do
+    Logger.warning(
+      Utils.reason_message(
+        "LiveStash auto-heal attempt failed (#{inspect(reason)}). Retrying in 5 seconds...",
+        :retry
+      )
+    )
+
+    Process.sleep(5_000)
+    perform_sacrifice_and_heal(retries_left - 1)
   end
 end
