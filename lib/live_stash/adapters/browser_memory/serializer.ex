@@ -20,16 +20,14 @@ defmodule LiveStash.Adapters.BrowserMemory.Serializer do
   @spec decode_token(socket :: Socket.t(), value :: binary(), opts :: map()) ::
           {:error, :expired | :invalid | :missing} | {:ok, any()}
   def decode_token(socket, value, %{security_mode: :sign} = opts) do
-    with {:ok, binary} <- Phoenix.Token.verify(socket, opts.secret, value, max_age: opts.ttl),
-         {:ok, term} <- decompress_term(binary) do
-      {:ok, term}
+    with {:ok, binary} <- Phoenix.Token.verify(socket, opts.secret, value, max_age: opts.ttl) do
+      decompress_term(binary)
     end
   end
 
   def decode_token(socket, value, %{security_mode: :encrypt} = opts) do
-    with {:ok, binary} <- Phoenix.Token.decrypt(socket, opts.secret, value, max_age: opts.ttl),
-         {:ok, term} <- decompress_term(binary) do
-      {:ok, term}
+    with {:ok, binary} <- Phoenix.Token.decrypt(socket, opts.secret, value, max_age: opts.ttl) do
+      decompress_term(binary)
     end
   end
 
