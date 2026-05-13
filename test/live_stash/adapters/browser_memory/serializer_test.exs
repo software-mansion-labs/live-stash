@@ -67,12 +67,16 @@ defmodule LiveStash.Adapters.BrowserMemory.SerializerTest do
       compressed_token = Serializer.encode_token(socket, repetitive, opts)
 
       uncompressed_payload = :erlang.term_to_binary(repetitive)
-      uncompressed_token = Phoenix.Token.sign(socket, opts.secret, uncompressed_payload, max_age: opts.ttl)
+
+      uncompressed_token =
+        Phoenix.Token.sign(socket, opts.secret, uncompressed_payload, max_age: opts.ttl)
 
       assert byte_size(compressed_token) < byte_size(uncompressed_token)
     end
 
-    test "returns error when decoding a pre-compression token (no backwards compat)", %{socket: socket} do
+    test "returns error when decoding a pre-compression token (no backwards compat)", %{
+      socket: socket
+    } do
       opts = %{security_mode: :sign, secret: "my_secret", ttl: 86_400}
 
       # Simulate an old token that stored the raw term directly (before compression was added)
