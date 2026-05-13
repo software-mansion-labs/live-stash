@@ -61,7 +61,7 @@ defmodule LiveStash.Adapters.Redis do
     with true <- new_fingerprint != context.stash_fingerprint,
          redis_key = get_redis_key(socket),
          owner_id = :erlang.term_to_binary(self()),
-         payload = :erlang.term_to_binary(assigns_to_stash),
+         payload = :erlang.term_to_binary(assigns_to_stash, [:compressed]),
          :ok <- Helpers.save(redis_key, owner_id, payload, context.ttl) do
       new_context = %{context | stash_fingerprint: new_fingerprint}
       LiveView.put_private(socket, :live_stash_context, new_context)
