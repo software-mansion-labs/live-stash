@@ -17,34 +17,28 @@ defmodule LiveStash.Adapters.ETS do
   alias LiveStash.Adapters.ETS.StateFinder
   alias LiveStash.Adapters.ETS.Context
   alias LiveStash.Utils
+  alias LiveStash.Adapters.Common
 
   alias Phoenix.LiveView
 
   @doc false
   @impl true
   def child_spec(opts \\ []) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
-      type: :supervisor
-    }
-  end
-
-  @doc false
-  def start_link(opts \\ []) do
     children = [
       {LiveStash.Adapters.ETS.Storage, opts},
       {LiveStash.Adapters.ETS.Cleaner, opts}
     ]
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: __MODULE__.Supervisor)
+    %{
+      id: __MODULE__,
+      start: {Supervisor, :start_link, [children, [strategy: :one_for_one]]},
+      type: :supervisor
+    }
   end
 
   @impl true
   def init_stash(socket, session, opts) do
-    context = Context.new(socket, session, opts)
-
-    socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
+    {socket, context} = Common.init_context(socket, session, opts, __MODULE__)
 
     if not context.reconnected? do
       socket
@@ -104,7 +98,7 @@ defmodule LiveStash.Adapters.ETS do
     end
   rescue
     error ->
-      err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
+      err = Utils.exception_message("Failed to recover state", error, __STACKTRACE__)
       Logger.error(err)
 
       {:error, socket}
@@ -124,7 +118,7 @@ defmodule LiveStash.Adapters.ETS do
     LiveView.put_private(socket, :live_stash_context, updated_context)
   rescue
     error ->
-      err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
+      err = Utils.exception_message("Failed to reset stash", error, __STACKTRACE__)
       Logger.error(err)
 
       socket

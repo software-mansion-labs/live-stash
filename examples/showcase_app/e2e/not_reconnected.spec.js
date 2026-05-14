@@ -1,11 +1,7 @@
 const { test, expect } = require("@playwright/test");
+const { reconnect, routes, waitForConnected } = require("./helpers");
 
-const routes = [
-  "/test/counter/live_stash_server",
-  "/test/counter/live_stash_client",
-];
-
-test.describe("ETS & Browser memory adapters- not reconnected", () => {
+test.describe("All adapters - not reconnected", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {
@@ -17,9 +13,7 @@ test.describe("ETS & Browser memory adapters- not reconnected", () => {
       const incrementBtn = page.getByLabel("Increment");
       const counterValue = page.locator(".stat-value");
 
-      await page.waitForFunction(
-        () => window.liveSocket && window.liveSocket.isConnected(),
-      );
+      await waitForConnected(page);
 
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");
@@ -30,19 +24,9 @@ test.describe("ETS & Browser memory adapters- not reconnected", () => {
       await page.goto("/");
       await page.goto(route);
 
-      await page.evaluate(() => window.liveSocket.disconnect());
+      await waitForConnected(page);
 
-      await page.waitForFunction(
-        () => window.liveSocket && !window.liveSocket.isConnected(),
-      );
-
-      await page.evaluate(() => window.liveSocket.connect());
-
-      await page.waitForFunction(
-        () => window.liveSocket && window.liveSocket.isConnected(),
-      );
-
-      await expect(page.locator(".phx-connected").first()).toBeVisible();
+      await reconnect(page);
 
       await expect(counterValue).toHaveText("0");
     });

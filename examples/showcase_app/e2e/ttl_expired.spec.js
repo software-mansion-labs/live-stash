@@ -1,13 +1,11 @@
 const { test, expect } = require("@playwright/test");
 const { reconnect, routes, waitForConnected } = require("./helpers");
 
-test.describe("All adapters - state recovery after reconnect", () => {
+test.describe("All adapters - TTL expiration", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {
-    test(`should recover counter state after websocket reconnect on ${route}`, async ({
-      page,
-    }) => {
+    test(`should not recover expired state on ${route}`, async ({ page }) => {
       await page.goto(route);
 
       const incrementBtn = page.getByLabel("Increment");
@@ -21,9 +19,9 @@ test.describe("All adapters - state recovery after reconnect", () => {
       await incrementBtn.click();
       await expect(counterValue).toHaveText("2");
 
-      await reconnect(page);
+      await reconnect(page, { delayMs: 2000 });
 
-      await expect(counterValue).toHaveText("2");
+      await expect(counterValue).toHaveText("0");
     });
   });
 });

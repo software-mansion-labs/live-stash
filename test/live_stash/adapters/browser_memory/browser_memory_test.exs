@@ -209,7 +209,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
           assert {:error, _socket} = BrowserMemory.recover_state(broken_socket)
         end)
 
-      assert log =~ "Could not recover stashed state due to an unexpected error"
+      assert log =~ "Failed to recover stashed state due to an unexpected error"
     end
 
     test "returns :new and socket when reconnected? is false", %{socket: socket} do

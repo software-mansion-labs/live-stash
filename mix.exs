@@ -32,6 +32,8 @@ defmodule LiveStash.MixProject do
     [
       {:phoenix_live_view, "~> 1.0"},
       {:uniq, "~> 0.6"},
+      {:redix, "~> 1.1", optional: true},
+      {:castore, ">= 0.0.0", optional: true},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:makeup_js, "~> 0.1.0", only: :dev, runtime: false},
@@ -54,6 +56,7 @@ defmodule LiveStash.MixProject do
         "docs/welcome.md",
         "docs/browser_memory.md",
         "docs/ets.md",
+        "docs/redis.md",
         "docs/adapters.md",
         "docs/example.md"
       ],
@@ -61,6 +64,7 @@ defmodule LiveStash.MixProject do
         Adapters: [
           "docs/browser_memory.md",
           "docs/ets.md",
+          "docs/redis.md",
           "docs/adapters.md"
         ]
       ],
