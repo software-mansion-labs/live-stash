@@ -135,7 +135,7 @@ defmodule LiveStash.Adapters.Redis do
   end
 
   defp apply_recovered_state(socket, binary_state) do
-    recovered_state = :erlang.binary_to_term(binary_state, [:safe])
+    recovered_state = :erlang.binary_to_term(binary_state)
     context = socket.private.live_stash_context
     fingerprint = Utils.hash_term(recovered_state)
     updated_context = %{context | stash_fingerprint: fingerprint}
