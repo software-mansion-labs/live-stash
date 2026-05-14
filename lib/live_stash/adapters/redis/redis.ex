@@ -122,7 +122,10 @@ defmodule LiveStash.Adapters.Redis do
 
   @impl true
   def reset_stash(socket) do
-    case Helpers.delete(get_redis_key(socket)) do
+    socket
+    |> get_redis_key()
+    |> Helpers.delete()
+    |> case  do
       :ok ->
         Common.clear_fingerprint(socket)
 
