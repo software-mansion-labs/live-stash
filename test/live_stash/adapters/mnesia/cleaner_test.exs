@@ -1,4 +1,4 @@
-defmodule LiveStash.Server.MnesiaCleanerTest do
+defmodule LiveStash.Adapters.Mnesia.MnesiaCleanerTest do
   use ExUnit.Case, async: false
 
   alias LiveStash.Adapters.Mnesia.Cleaner

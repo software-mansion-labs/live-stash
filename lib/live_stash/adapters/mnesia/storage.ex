@@ -12,6 +12,11 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   @retry_delay 5_000
   @max_retries 3
 
+  @type state :: %__MODULE__{
+          healing?: boolean(),
+          retries_left: non_neg_integer(),
+          auto_heal?: boolean()
+        }
   defstruct healing?: false, retries_left: @max_retries, auto_heal?: false
 
   def start_link(opts \\ []) do
@@ -53,14 +58,20 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
         {:noreply, %{state | healing?: true, retries_left: @max_retries}, {:continue, :heal}}
 
       true ->
+        Logger.info(
+          Utils.message("Attempting to reclaim state from #{remote_node}. Attempting auto-heal.")
+        )
+
         {:noreply, state}
     end
   end
 
+  @impl true
   def handle_info(:heal_retry, state) do
     {:noreply, state, {:continue, :heal}}
   end
 
+  @impl true
   def handle_info(_message, state) do
     {:noreply, state}
   end
@@ -69,7 +80,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   def handle_continue(:heal, state) do
     case run_heal() do
       :ok ->
-        Logger.info(Utils.message("Successfully sacrificed and healed Mnesia State table."))
+        Logger.info(Utils.message("Mnesia State table copy dropped and recreated successfully."))
         {:noreply, %{state | healing?: false, retries_left: @max_retries}}
 
       {:error, reason} ->

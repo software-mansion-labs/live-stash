@@ -12,8 +12,7 @@ defmodule LiveStash.Adapters.Mnesia.Hook do
   Schedules the first keep-alive tick and attaches the LiveView `:handle_info`
   hook that refreshes the TTL on every tick.
 
-  The Mnesia id is derived from the context on each tick so that it stays
-  correct after `reset_stash/1` rotates the stash id.
+  The Mnesia id is derived from the context on each tick.
   """
   def attach(socket) do
     ttl = socket.private.live_stash_context.ttl
