@@ -60,7 +60,6 @@ defmodule LiveStash.Adapters.Mnesia.HookTest do
 
       assert :ok = State.put!(mnesia_id, %{}, ttl: 1)
 
-      # Force the record into the past.
       Memento.transaction!(fn ->
         record = Memento.Query.read(LiveStash.Adapters.Mnesia.State, mnesia_id)
         Memento.Query.write(%{record | delete_at: 0})

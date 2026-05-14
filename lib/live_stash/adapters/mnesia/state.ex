@@ -9,8 +9,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
   alias LiveStash.Utils
 
   # `Memento.transaction/1`'s spec claims it always returns `{:ok, _} | {:error, _}`,
-  # but in reality returns :ok. The `:ok ->` branch in `put!/3` is therefore reachable. Silence the
-  # dialyzer warning.
+  # but in reality returns :ok. The `:ok ->` branch in `put!/3` is therefore reachable.
   @dialyzer {:no_match, put!: 3}
 
   @type t :: %__MODULE__{

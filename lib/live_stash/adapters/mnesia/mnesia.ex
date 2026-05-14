@@ -80,32 +80,30 @@ defmodule LiveStash.Adapters.Mnesia do
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
     id = get_mnesia_id(socket)
 
-    try do
-      case State.get_by_id!(id) do
-        {:ok, recovered_state} ->
-          id
-          |> State.new(recovered_state, get_opts(socket))
-          |> State.insert!()
+    case State.get_by_id!(id) do
+      {:ok, recovered_state} ->
+        id
+        |> State.new(recovered_state, get_opts(socket))
+        |> State.insert!()
 
-          context = socket.private.live_stash_context
-          fingerprint = Utils.hash_term(recovered_state)
-          updated_context = %{context | stash_fingerprint: fingerprint}
+        context = socket.private.live_stash_context
+        fingerprint = Utils.hash_term(recovered_state)
+        updated_context = %{context | stash_fingerprint: fingerprint}
 
-          socket
-          |> Component.assign(recovered_state)
-          |> LiveView.put_private(:live_stash_context, updated_context)
-          |> then(&{:recovered, &1})
+        socket
+        |> Component.assign(recovered_state)
+        |> LiveView.put_private(:live_stash_context, updated_context)
+        |> then(&{:recovered, &1})
 
-        :not_found ->
-          {:not_found, socket}
-      end
-    rescue
-      error ->
-        err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
-        Logger.error(err)
-
-        {:error, socket}
+      :not_found ->
+        {:not_found, socket}
     end
+  rescue
+    error ->
+      err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
+      Logger.error(err)
+
+      {:error, socket}
   end
 
   def recover_state(socket), do: {:new, socket}
@@ -115,18 +113,16 @@ defmodule LiveStash.Adapters.Mnesia do
     context = socket.private.live_stash_context
     updated_context = %{context | stash_fingerprint: nil}
 
-    try do
-      get_mnesia_id(socket)
-      |> State.delete_by_id!()
+    get_mnesia_id(socket)
+    |> State.delete_by_id!()
 
-      LiveView.put_private(socket, :live_stash_context, updated_context)
-    rescue
-      error ->
-        err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
-        Logger.error(err)
+    LiveView.put_private(socket, :live_stash_context, updated_context)
+  rescue
+    error ->
+      err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
+      Logger.error(err)
 
-        socket
-    end
+      socket
   end
 
   defp get_mnesia_id(socket) do

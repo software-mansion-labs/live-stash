@@ -119,7 +119,6 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
       assert :ok = State.put!("expired_2", %{key: "value2"}, ttl: 1)
       assert :ok = State.put!("fresh", %{key: "fresh"}, ttl: 86_400)
 
-      # Force the two records into the past.
       Memento.transaction!(fn ->
         for id <- ["expired_1", "expired_2"] do
           record = Memento.Query.read(LiveStash.Adapters.Mnesia.State, id)

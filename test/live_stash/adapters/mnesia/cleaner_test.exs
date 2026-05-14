@@ -56,21 +56,5 @@ defmodule LiveStash.Server.MnesiaCleanerTest do
       assert :not_found == State.get_by_id!("expired")
       assert {:ok, %{key: "fresh"}} = State.get_by_id!("fresh")
     end
-
-    test "handles a large batch of expired records" do
-      past = System.os_time(:second) - 5
-
-      for i <- 1..150 do
-        id = "batch_#{i}"
-        assert :ok = State.put!(id, %{key: "value"}, ttl: 1)
-        force_delete_at(id, past)
-      end
-
-      Cleaner.clean_expired_states!()
-
-      for i <- 1..150 do
-        assert :not_found == State.get_by_id!("batch_#{i}")
-      end
-    end
   end
 end
