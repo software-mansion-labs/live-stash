@@ -49,14 +49,14 @@ defmodule LiveStash.OptsHelpersTest do
       {:ok, socket: socket}
     end
 
-    for {label, opts} <- [
-          {"default", [stored_keys: [:count]]},
-          {"explicitly false", [stored_keys: [:count], auto_stash: false]}
-        ] do
-      test "does not attach after_render hook when auto_stash #{label}", %{socket: socket} do
-        result = OptsHelpers.handle_auto_stash(socket, unquote(opts))
-        refute has_auto_stash_hook?(result)
-      end
+    test "does not attach after_render hook when auto_stash default", %{socket: socket} do
+      result = OptsHelpers.handle_auto_stash(socket, stored_keys: [:count])
+      refute has_auto_stash_hook?(result)
+    end
+
+    test "does not attach after_render hook when auto_stash explicitly false", %{socket: socket} do
+      result = OptsHelpers.handle_auto_stash(socket, stored_keys: [:count], auto_stash: false)
+      refute has_auto_stash_hook?(result)
     end
 
     test "attaches after_render hook when auto_stash: true", %{socket: socket} do
