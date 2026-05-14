@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 (2026-05-14)
+
+### Core Architecture & Features
+
+- **Redis adapter:** Added `LiveStash.Adapters.Redis` for server-side state in Redis with a lightweight stash reference in the browser [#90](https://github.com/software-mansion-labs/live-stash/pull/90)
+- **Automatic stashing:** Added `auto_stash: true` to attach an `:after_render` hook that calls `LiveStash.stash/1` when you want stashing without explicit calls in [#88](https://github.com/software-mansion-labs/live-stash/pull/88)
+- **Payload compression:** Compress Erlang term payloads for browser-memory tokens (sign and encrypt) and for Redis writes to reduce size on the wire and in storage in [#103](https://github.com/software-mansion-labs/live-stash/pull/103)
+
+### Bug Fixes
+
+- **Stash ID rotation:** Rotate stash identifiers on fresh mounts [#100](https://github.com/software-mansion-labs/live-stash/pull/100)
+
 ## 0.2.0 (2026-04-22)
 
 ### Breaking Changes
