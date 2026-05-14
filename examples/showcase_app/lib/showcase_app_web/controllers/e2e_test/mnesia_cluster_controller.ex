@@ -1,4 +1,5 @@
 defmodule ShowcaseAppWeb.E2eTest.MnesiaClusterController do
+  @moduledoc false
 
   use ShowcaseAppWeb, :controller
 
