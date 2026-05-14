@@ -23,9 +23,6 @@ defmodule LiveStash.Adapters.BrowserMemory.SerializerTest do
       token = Serializer.encode_token(socket, original_state, opts)
       assert is_binary(token)
 
-      assert {:ok, ^original_state} =
-               Phoenix.Token.verify(socket, opts.secret, token, max_age: opts.ttl)
-
       assert {:ok, ^original_state} = Serializer.decode_token(socket, token, opts)
     end
 
@@ -37,6 +34,22 @@ defmodule LiveStash.Adapters.BrowserMemory.SerializerTest do
       assert is_binary(token)
 
       assert {:ok, ^original_state} = Serializer.decode_token(socket, token, opts)
+    end
+  end
+
+  describe "compression" do
+    test "compressed token is smaller than uncompressed for repetitive data", %{socket: socket} do
+      opts = %{security_mode: :sign, secret: "my_secret", ttl: 86_400}
+      repetitive = Enum.map(1..50, fn i -> %{id: i, status: :active, score: i * 10} end)
+
+      compressed_token = Serializer.encode_token(socket, repetitive, opts)
+
+      uncompressed_payload = :erlang.term_to_binary(repetitive)
+
+      uncompressed_token =
+        Phoenix.Token.sign(socket, opts.secret, uncompressed_payload, max_age: opts.ttl)
+
+      assert byte_size(compressed_token) < byte_size(uncompressed_token)
     end
   end
 
