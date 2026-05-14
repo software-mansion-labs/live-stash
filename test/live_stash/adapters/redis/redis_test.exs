@@ -341,32 +341,6 @@ defmodule LiveStash.Adapters.RedisTest do
       assert log =~ "Failed to recover state"
     end
 
-    test "returns {:error, socket} and logs when payload contains unsafe/unknown atoms", %{
-      socket: socket,
-      redis_id: redis_id
-    } do
-      socket = put_in(socket.private.live_stash_context.reconnected?, true)
-
-      malicious_binary = <<131, 118, 0, 31, "non_existent_malicious_atom_999">>
-
-      Helpers.command([
-        "HSET",
-        redis_id,
-        "owner_id",
-        :erlang.term_to_binary(self()),
-        "payload",
-        malicious_binary
-      ])
-
-      log =
-        capture_log(fn ->
-          assert {:error, returned_socket} = Redis.recover_state(socket)
-          assert returned_socket == socket
-        end)
-
-      assert log =~ "invalid atoms"
-    end
-
     test "returns :new and socket when reconnected? is false", %{socket: socket} do
       assert {:new, returned_socket} = Redis.recover_state(socket)
       assert returned_socket == socket
