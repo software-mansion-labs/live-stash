@@ -71,7 +71,7 @@ defmodule LiveStash.Adapters.Redis do
     with true <- new_fingerprint != context.stash_fingerprint,
          redis_key = get_redis_key(socket),
          owner_id = :erlang.term_to_binary(self()),
-         payload = :erlang.term_to_binary(assigns_to_stash),
+         payload = :erlang.term_to_binary(assigns_to_stash, [{:compressed, 1}]),
          :ok <- Helpers.save(redis_key, owner_id, payload, context.ttl) do
       new_context = %{context | stash_fingerprint: new_fingerprint}
       LiveView.put_private(socket, :live_stash_context, new_context)
@@ -125,7 +125,7 @@ defmodule LiveStash.Adapters.Redis do
     socket
     |> get_redis_key()
     |> Helpers.delete()
-    |> case  do
+    |> case do
       :ok ->
         Common.clear_fingerprint(socket)
 
@@ -150,7 +150,7 @@ defmodule LiveStash.Adapters.Redis do
   end
 
   defp apply_recovered_state(socket, binary_state) do
-    recovered_state = :erlang.binary_to_term(binary_state, [:safe])
+    recovered_state = :erlang.binary_to_term(binary_state)
     context = socket.private.live_stash_context
     fingerprint = Utils.hash_term(recovered_state)
     updated_context = %{context | stash_fingerprint: fingerprint}
