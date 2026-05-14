@@ -32,12 +32,12 @@ defmodule LiveStash.Adapters.BrowserMemory.Serializer do
   end
 
   defp compress_term(term) do
-    :erlang.term_to_binary(term, [:compressed])
+    :erlang.term_to_binary(term, [{:compressed, 1}])
   end
 
   defp decompress_term(binary) do
     try do
-      {:ok, :erlang.binary_to_term(binary, [:safe])}
+      {:ok, :erlang.binary_to_term(binary)}
     rescue
       ArgumentError -> {:error, :invalid}
     end
