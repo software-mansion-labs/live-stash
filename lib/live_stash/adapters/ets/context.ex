@@ -14,6 +14,7 @@ defmodule LiveStash.Adapters.ETS.Context do
   alias LiveStash.Adapters.ETS.NodeHint
   alias Phoenix.LiveView
   alias LiveStash.Adapters.Common
+  alias LiveStash.Utils
 
   @enforce_keys [
     :stored_keys,
@@ -64,7 +65,7 @@ defmodule LiveStash.Adapters.ETS.Context do
     context =
       attrs
       |> Keyword.put(:reconnected?, Common.reconnected?(connect_params))
-      |> Keyword.put(:id, get_in(connect_params, ["liveStash", "stashId"]) || Uniq.UUID.uuid4())
+      |> Keyword.put(:id, get_in(connect_params, ["liveStash", "stashId"]) || Utils.generate_id())
       |> Common.validate_attributes!(@allowed_keys)
       |> then(&struct!(__MODULE__, &1))
 

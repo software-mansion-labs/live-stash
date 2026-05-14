@@ -38,19 +38,37 @@ defmodule LiveStash.Adapters.ETS do
 
   @impl true
   def init_stash(socket, session, opts) do
-    {socket, context} = Common.init_context(socket, session, opts, __MODULE__)
+    socket = Common.init_context(socket, session, opts, __MODULE__)
+    context = socket.private.live_stash_context
 
-    if not context.reconnected? do
-      socket
-      |> get_ets_id()
-      |> State.delete_by_id!()
-    end
+    socket =
+      if context.reconnected? do
+        socket
+      else
+        try do
+          socket
+          |> get_ets_id()
+          |> State.delete_by_id!()
+        rescue
+          error ->
+            err =
+              Utils.exception_message(
+                "Failed to clear existing stash on new connection",
+                error,
+                __STACKTRACE__
+              )
+
+            Logger.error(err)
+        end
+
+        Common.rotate_id(socket)
+      end
 
     node_hint = NodeHint.create_node_hint(socket)
 
     LiveView.push_event(socket, "live-stash:init-ets", %{
       node: node_hint,
-      stashId: context.id
+      stashId: socket.private.live_stash_context.id
     })
   end
 
@@ -108,20 +126,31 @@ defmodule LiveStash.Adapters.ETS do
 
   @impl true
   def reset_stash(socket) do
-    context = socket.private.live_stash_context
-    updated_context = %{context | stash_fingerprint: nil}
-
     socket
     |> get_ets_id()
     |> State.delete_by_id!()
 
-    LiveView.put_private(socket, :live_stash_context, updated_context)
+    Common.clear_fingerprint(socket)
   rescue
     error ->
-      err = Utils.exception_message("Failed to reset stash", error, __STACKTRACE__)
-      Logger.error(err)
+      msg =
+        Utils.exception_message(
+          "Failed to delete stash during reset. Rotating ID as fallback.",
+          error,
+          __STACKTRACE__
+        )
 
-      socket
+      Logger.error(msg)
+
+      socket =
+        socket
+        |> Common.rotate_id()
+        |> Common.clear_fingerprint()
+
+      LiveView.push_event(socket, "live-stash:init-ets", %{
+        node: socket.private.live_stash_context.node_hint,
+        stashId: socket.private.live_stash_context.id
+      })
   end
 
   defp get_ets_id(socket) do

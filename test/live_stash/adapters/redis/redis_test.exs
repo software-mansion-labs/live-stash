@@ -92,7 +92,7 @@ defmodule LiveStash.Adapters.RedisTest do
   end
 
   describe "init_stash/3" do
-    test "reuses existing stashId, pushes init event and clears Redis when not reconnected", %{
+    test "rotates stashId, pushes init event and clears Redis when not reconnected", %{
       socket: socket,
       redis_id: redis_id,
       stash_id: stash_id
@@ -113,7 +113,7 @@ defmodule LiveStash.Adapters.RedisTest do
 
       generated_id = initialized_socket.private.live_stash_context.id
 
-      assert generated_id == stash_id
+      assert generated_id != stash_id
       assert LiveStash.TestRedisConn.snapshot().store[redis_id] == nil
 
       queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
@@ -419,17 +419,6 @@ defmodule LiveStash.Adapters.RedisTest do
                    ["live-stash:init-redis", payload] -> payload.stashId == new_id
                    _other -> false
                  end)
-        end)
-
-      assert log =~ "Failed to delete stash"
-    end
-
-    test "rescues exceptions, logs error and returns socket unchanged", %{socket: socket} do
-      broken_socket = put_in(socket.private.live_stash_context, nil)
-
-      log =
-        capture_log(fn ->
-          assert %Socket{} = Redis.reset_stash(broken_socket)
         end)
 
       assert log =~ "Failed to reset stash"

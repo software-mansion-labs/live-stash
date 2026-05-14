@@ -20,9 +20,9 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def init_stash(socket, session, opts) do
-    {socket, context} = Common.init_context(socket, session, opts, __MODULE__)
+    socket = Common.init_context(socket, session, opts, __MODULE__)
+    context = socket.private.live_stash_context
 
-    # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
     if context.reconnected? do
       socket
     else

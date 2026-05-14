@@ -40,15 +40,25 @@ defmodule LiveStash.Adapters.Redis do
 
   @impl true
   def init_stash(socket, session, opts) do
-    {socket, context} = Common.init_context(socket, session, opts, __MODULE__)
+    socket = Common.init_context(socket, session, opts, __MODULE__)
+    context = socket.private.live_stash_context
 
-    if not context.reconnected? do
-      delete_stash(get_redis_key(socket))
-    end
+    socket =
+      if context.reconnected? do
+        socket
+      else
+        with {:error, msg} <- Helpers.delete(get_redis_key(socket)) do
+          Logger.error(msg)
+        end
+
+        Common.rotate_id(socket)
+      end
 
     socket
     |> Hook.attach()
-    |> LiveView.push_event("live-stash:init-redis", %{stashId: context.id})
+    |> LiveView.push_event("live-stash:init-redis", %{
+      stashId: socket.private.live_stash_context.id
+    })
   end
 
   @impl true
@@ -61,7 +71,7 @@ defmodule LiveStash.Adapters.Redis do
     with true <- new_fingerprint != context.stash_fingerprint,
          redis_key = get_redis_key(socket),
          owner_id = :erlang.term_to_binary(self()),
-         payload = :erlang.term_to_binary(assigns_to_stash, [:compressed]),
+         payload = :erlang.term_to_binary(assigns_to_stash, [{:compressed, 1}]),
          :ok <- Helpers.save(redis_key, owner_id, payload, context.ttl) do
       new_context = %{context | stash_fingerprint: new_fingerprint}
       LiveView.put_private(socket, :live_stash_context, new_context)
@@ -112,26 +122,31 @@ defmodule LiveStash.Adapters.Redis do
 
   @impl true
   def reset_stash(socket) do
-    context = socket.private.live_stash_context
-
-    case delete_stash(get_redis_key(socket)) do
+    socket
+    |> get_redis_key()
+    |> Helpers.delete()
+    |> case do
       :ok ->
-        updated_context = %{context | stash_fingerprint: nil}
-        LiveView.put_private(socket, :live_stash_context, updated_context)
+        Common.clear_fingerprint(socket)
 
-      {:error, _} ->
-        new_id = Uniq.UUID.uuid4()
-        updated_context = %{context | id: new_id, stash_fingerprint: nil}
+      {:error, error} ->
+        msg =
+          Utils.reason_message(
+            "Failed to reset stash - error deleting from Redis",
+            error
+          )
 
-        socket
-        |> LiveView.put_private(:live_stash_context, updated_context)
-        |> LiveView.push_event("live-stash:init-redis", %{stashId: new_id})
+        Logger.error(msg)
+
+        socket =
+          socket
+          |> Common.rotate_id()
+          |> Common.clear_fingerprint()
+
+        LiveView.push_event(socket, "live-stash:init-redis", %{
+          stashId: socket.private.live_stash_context.id
+        })
     end
-  rescue
-    error ->
-      err = Utils.exception_message("Failed to reset stash", error, __STACKTRACE__)
-      Logger.error(err)
-      socket
   end
 
   defp apply_recovered_state(socket, binary_state) do
@@ -155,17 +170,6 @@ defmodule LiveStash.Adapters.Redis do
 
       Logger.error(err)
       {:error, socket}
-  end
-
-  defp delete_stash(redis_key) do
-    case Helpers.delete(redis_key) do
-      :ok ->
-        :ok
-
-      {:error, err} = error ->
-        Logger.error(err)
-        error
-    end
   end
 
   defp get_redis_key(socket) do
