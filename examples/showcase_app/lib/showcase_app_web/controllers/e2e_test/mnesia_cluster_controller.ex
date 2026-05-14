@@ -1,8 +1,4 @@
 defmodule ShowcaseAppWeb.E2eTest.MnesiaClusterController do
-  @moduledoc """
-  E2E-only debug controller. Exposes the minimum surface needed for a
-  Playwright test to drive the Mnesia split-brain auto-heal code path.
-  """
 
   use ShowcaseAppWeb, :controller
 
@@ -25,7 +21,9 @@ defmodule ShowcaseAppWeb.E2eTest.MnesiaClusterController do
 
     case Process.whereis(@storage) do
       nil ->
-        conn |> put_status(:service_unavailable) |> json(%{error: "storage not running"})
+        conn
+        |> put_status(:service_unavailable)
+        |> json(%{error: "storage not running"})
 
       pid ->
         send(pid, {:mnesia_system_event, {:inconsistent_database, :e2e_test, remote_atom}})
