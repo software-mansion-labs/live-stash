@@ -37,7 +37,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
       not state.auto_heal? ->
         Logger.warning(
           Utils.reason_message(
-            "LiveStash auto-heal disabled. Manual Mnesia reconciliation required.",
+            "LiveStash Mnesia auto-heal disabled. Manual Mnesia reconciliation required.",
             :conflict
           )
         )
@@ -98,7 +98,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   defp schedule_retry(%{retries_left: 1} = state, reason) do
     Logger.error(
       Utils.reason_message(
-        "LiveStash auto-heal exhausted all retries. Manual Mnesia restart required.",
+        "Mnesia auto-heal exhausted all retries. Manual Mnesia restart required.",
         reason
       )
     )
@@ -109,7 +109,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   defp schedule_retry(state, reason) do
     Logger.warning(
       Utils.reason_message(
-        "LiveStash auto-heal attempt failed. Retrying in #{div(@retry_delay, 1000)}s...",
+        "Mnesia auto-heal attempt failed. Retrying in #{div(@retry_delay, 1000)}s...",
         reason
       )
     )
