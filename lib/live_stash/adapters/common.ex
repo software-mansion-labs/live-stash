@@ -50,10 +50,10 @@ defmodule LiveStash.Adapters.Common do
   def maybe_put_secret(attrs, nil, _session), do: attrs
 
   def maybe_put_secret(attrs, session_key, session) do
-    Keyword.put(attrs, :secret, fetch_secret(session_key, session))
+    Keyword.put(attrs, :secret, fetch_secret!(session_key, session))
   end
 
-  defp fetch_secret(session_key, session) do
+  defp fetch_secret!(session_key, session) do
     secret =
       try do
         Map.fetch!(session, session_key)
