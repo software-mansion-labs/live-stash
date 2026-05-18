@@ -14,6 +14,7 @@ defmodule LiveStash.Adapters.Mnesia do
   alias LiveStash.Adapters.Mnesia.Helpers
   alias LiveStash.Adapters.Mnesia.Hook
   alias LiveStash.Adapters.Mnesia.State
+  alias LiveStash.Adapters.Common
   alias LiveStash.Utils
 
   alias Phoenix.Component
@@ -45,15 +46,33 @@ defmodule LiveStash.Adapters.Mnesia do
 
     socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
 
-    if not context.reconnected? do
-      get_mnesia_id(socket)
-      |> State.delete_by_id!()
-    end
+    socket =
+      if context.reconnected? do
+        socket
+      else
+        try do
+          socket
+          |> get_mnesia_id()
+          |> State.delete_by_id!()
+        rescue
+          error ->
+            err =
+              Utils.exception_message(
+                "Failed to clear existing stash on new connection",
+                error,
+                __STACKTRACE__
+              )
+
+            Logger.error(err)
+        end
+
+        Common.rotate_id(socket)
+      end
 
     socket
     |> Hook.attach()
     |> LiveView.push_event("live-stash:init-mnesia", %{
-      stashId: context.id
+      stashId: socket.private.live_stash_context.id
     })
   end
 
@@ -110,19 +129,30 @@ defmodule LiveStash.Adapters.Mnesia do
 
   @impl true
   def reset_stash(socket) do
-    context = socket.private.live_stash_context
-    updated_context = %{context | stash_fingerprint: nil}
-
-    get_mnesia_id(socket)
+    socket
+    |> get_mnesia_id()
     |> State.delete_by_id!()
 
-    LiveView.put_private(socket, :live_stash_context, updated_context)
+    Common.clear_fingerprint(socket)
   rescue
     error ->
-      err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
-      Logger.error(err)
+      msg =
+        Utils.exception_message(
+          "Failed to delete stash during reset. Rotating ID as fallback.",
+          error,
+          __STACKTRACE__
+        )
 
-      socket
+      Logger.error(msg)
+
+      socket =
+        socket
+        |> Common.rotate_id()
+        |> Common.clear_fingerprint()
+
+      LiveView.push_event(socket, "live-stash:init-mnesia", %{
+        stashId: socket.private.live_stash_context.id
+      })
   end
 
   defp get_mnesia_id(socket) do

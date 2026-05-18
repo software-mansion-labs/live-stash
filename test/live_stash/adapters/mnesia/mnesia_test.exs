@@ -46,13 +46,14 @@ defmodule LiveStash.Adapters.MnesiaTest do
 
     Memento.Table.clear(LiveStash.Adapters.Mnesia.State)
 
-    {:ok, socket: socket, mnesia_id: mnesia_id}
+    {:ok, socket: socket, mnesia_id: mnesia_id, stash_id: stash_id}
   end
 
   describe "init_stash/3" do
-    test "reuses existing stashId, pushes init event and clears Mnesia when not reconnected", %{
+    test "rotates stashId, pushes init event and clears Mnesia when not reconnected", %{
       socket: socket,
-      mnesia_id: mnesia_id
+      mnesia_id: mnesia_id,
+      stash_id: stash_id
     } do
       State.insert!(State.new(mnesia_id, %{}, ttl: 86_400))
 
@@ -60,7 +61,8 @@ defmodule LiveStash.Adapters.MnesiaTest do
 
       generated_id = initialized_socket.private.live_stash_context.id
 
-      assert generated_id == "test_uuid_1234"
+      assert generated_id != stash_id
+      assert is_binary(generated_id)
 
       assert State.get_by_id!(mnesia_id) == :not_found
 
@@ -75,8 +77,38 @@ defmodule LiveStash.Adapters.MnesiaTest do
              end)
     end
 
+    test "logs error and rotates ID when Mnesia delete fails on new connection", %{
+      socket: socket,
+      stash_id: stash_id
+    } do
+      on_exit(fn -> State.setup_cluster_state!() end)
+
+      :mnesia.delete_table(LiveStash.Adapters.Mnesia.State)
+
+      log =
+        capture_log(fn ->
+          initialized_socket = Mnesia.init_stash(socket, %{}, stored_keys: [:username])
+
+          generated_id = initialized_socket.private.live_stash_context.id
+          assert generated_id != stash_id
+          assert is_binary(generated_id)
+
+          queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
+
+          assert Enum.any?(queued_events, fn
+                   ["live-stash:init-mnesia", payload] ->
+                     payload.stashId == generated_id
+
+                   _other ->
+                     false
+                 end)
+        end)
+
+      assert log =~ "Failed to clear existing stash on new connection"
+    end
+
     test "uses existing stashId from connect_params and does not clear Mnesia when reconnected? is true",
-         %{socket: socket, mnesia_id: mnesia_id} do
+         %{socket: socket, mnesia_id: mnesia_id, stash_id: stash_id} do
       State.insert!(State.new(mnesia_id, %{recovered: true}, ttl: 86_400))
 
       socket = put_in(socket.private[:connect_params]["_mounts"], 1)
@@ -84,7 +116,7 @@ defmodule LiveStash.Adapters.MnesiaTest do
       initialized_socket = Mnesia.init_stash(socket, %{}, stored_keys: [:username])
 
       id_after_init = initialized_socket.private.live_stash_context.id
-      assert id_after_init == "test_uuid_1234"
+      assert id_after_init == stash_id
       assert initialized_socket.private.live_stash_context.reconnected? == true
 
       queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
@@ -263,15 +295,32 @@ defmodule LiveStash.Adapters.MnesiaTest do
       assert State.get_by_id!(mnesia_id) == :not_found
     end
 
-    test "rescues exceptions, logs error and returns socket unchanged", %{socket: socket} do
+    test "rotates ID and pushes init event when Mnesia delete fails", %{
+      socket: socket,
+      stash_id: stash_id
+    } do
+      socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
       broken_socket = put_in(socket.private.live_stash_context.secret, nil)
 
       log =
         capture_log(fn ->
-          assert %Socket{} = Mnesia.reset_stash(broken_socket)
+          reset_socket = Mnesia.reset_stash(broken_socket)
+
+          assert %Socket{} = reset_socket
+          assert reset_socket.private.live_stash_context.stash_fingerprint == nil
+
+          new_id = reset_socket.private.live_stash_context.id
+          assert new_id != stash_id
+
+          queued_events = get_in(reset_socket.private, [:live_temp, :push_events]) || []
+
+          assert Enum.any?(queued_events, fn
+                   ["live-stash:init-mnesia", payload] -> payload.stashId == new_id
+                   _other -> false
+                 end)
         end)
 
-      assert log =~ "Could not reset stash"
+      assert log =~ "Failed to delete stash during reset"
     end
   end
 end
