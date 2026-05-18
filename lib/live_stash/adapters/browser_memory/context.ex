@@ -26,7 +26,8 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
     stash_fingerprint: nil,
     secret: "live_stash",
     ttl: 5 * 60,
-    security_mode: :sign
+    security_mode: :sign,
+    version: nil
   ]
 
   @type t :: %__MODULE__{
@@ -35,7 +36,8 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
           stash_fingerprint: binary() | nil,
           secret: binary(),
           security_mode: :sign | :encrypt,
-          ttl: integer()
+          ttl: integer(),
+          version: term()
         }
 
   @allowed_keys [
@@ -44,7 +46,8 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
     :stash_fingerprint,
     :secret,
     :ttl,
-    :security_mode
+    :security_mode,
+    :version
   ]
 
   @doc """

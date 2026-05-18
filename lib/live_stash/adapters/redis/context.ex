@@ -27,7 +27,8 @@ defmodule LiveStash.Adapters.Redis.Context do
     :id,
     stash_fingerprint: nil,
     secret: "live_stash",
-    ttl: 5 * 60
+    ttl: 5 * 60,
+    version: nil
   ]
 
   @type t :: %__MODULE__{
@@ -36,7 +37,8 @@ defmodule LiveStash.Adapters.Redis.Context do
           stash_fingerprint: binary() | nil,
           secret: binary(),
           ttl: integer(),
-          id: binary()
+          id: binary(),
+          version: term()
         }
 
   @allowed_keys [
@@ -45,7 +47,8 @@ defmodule LiveStash.Adapters.Redis.Context do
     :stash_fingerprint,
     :secret,
     :ttl,
-    :id
+    :id,
+    :version
   ]
 
   @doc """

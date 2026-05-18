@@ -191,7 +191,7 @@ defmodule LiveStash.Adapters.RedisTest do
       assert %Socket{} = returned_socket
 
       assert {:ok, saved_binary} = Helpers.command(["HGET", redis_id, "payload"])
-      assert :erlang.binary_to_term(saved_binary) == %{username: "tester"}
+      assert %{version: nil, assigns: %{username: "tester"}} = :erlang.binary_to_term(saved_binary)
 
       assert {:ok, owner} = Helpers.command(["HGET", redis_id, "owner_id"])
       assert owner == :erlang.term_to_binary(self())
@@ -208,7 +208,7 @@ defmodule LiveStash.Adapters.RedisTest do
       assert %Socket{} = Redis.stash(socket_configured)
 
       assert {:ok, saved_binary} = Helpers.command(["HGET", redis_id, "payload"])
-      assert :erlang.binary_to_term(saved_binary) == %{username: "tester"}
+      assert %{version: nil, assigns: %{username: "tester"}} = :erlang.binary_to_term(saved_binary)
     end
 
     test "does not update Redis when only untracked assigns change - fingerprint remains the same",
@@ -241,7 +241,7 @@ defmodule LiveStash.Adapters.RedisTest do
       Redis.stash(updated_socket)
 
       assert {:ok, saved_binary} = Helpers.command(["HGET", redis_id, "payload"])
-      assert :erlang.binary_to_term(saved_binary) == %{username: "tester-2"}
+      assert %{version: nil, assigns: %{username: "tester-2"}} = :erlang.binary_to_term(saved_binary)
     end
 
     test "returns socket and logs error if attempting to stash to a record owned by a different PID",
@@ -285,7 +285,7 @@ defmodule LiveStash.Adapters.RedisTest do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
       state_to_recover = %{player_level: 42, theme: "dark"}
-      binary_state = :erlang.term_to_binary(state_to_recover)
+      binary_state = :erlang.term_to_binary(%{version: nil, assigns: state_to_recover}, [{:compressed, 1}])
 
       assert {:ok, "OK"} =
                Helpers.command([
@@ -310,7 +310,7 @@ defmodule LiveStash.Adapters.RedisTest do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
       fake_owner = "#PID<0.999.0>"
-      binary_state = :erlang.term_to_binary(socket.assigns)
+      binary_state = :erlang.term_to_binary(%{version: nil, assigns: socket.assigns}, [{:compressed, 1}])
       Helpers.command(["HSET", redis_id, "owner_id", fake_owner, "payload", binary_state])
 
       assert {:recovered, _recovered_socket} = Redis.recover_state(socket)
@@ -439,7 +439,7 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert %Socket{} = Redis.stash(socket)
       assert {:ok, payload} = Helpers.command(["HGET", redis_id, "payload"])
-      assert :erlang.binary_to_term(payload) == %{username: "tester"}
+      assert %{version: nil, assigns: %{username: "tester"}} = :erlang.binary_to_term(payload)
     end
 
     test "subsequent calls hit EVALSHA without falling back to EVAL", %{
@@ -454,7 +454,7 @@ defmodule LiveStash.Adapters.RedisTest do
       assert %Socket{} = Redis.stash(updated_socket)
 
       assert {:ok, payload} = Helpers.command(["HGET", redis_id, "payload"])
-      assert :erlang.binary_to_term(payload) == %{username: "tester-2"}
+      assert %{version: nil, assigns: %{username: "tester-2"}} = :erlang.binary_to_term(payload)
     end
 
     test "EVALSHA failures other than NOSCRIPT are not retried via EVAL", %{socket: socket} do

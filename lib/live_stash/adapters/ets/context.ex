@@ -29,7 +29,8 @@ defmodule LiveStash.Adapters.ETS.Context do
     stash_fingerprint: nil,
     secret: "live_stash",
     ttl: 5 * 60,
-    node_hint: nil
+    node_hint: nil,
+    version: nil
   ]
 
   @type t :: %__MODULE__{
@@ -39,7 +40,8 @@ defmodule LiveStash.Adapters.ETS.Context do
           secret: binary(),
           ttl: integer(),
           node_hint: atom() | nil,
-          id: binary()
+          id: binary(),
+          version: term()
         }
 
   @allowed_keys [
@@ -48,7 +50,8 @@ defmodule LiveStash.Adapters.ETS.Context do
     :stash_fingerprint,
     :secret,
     :ttl,
-    :id
+    :id,
+    :version
   ]
 
   @doc """
