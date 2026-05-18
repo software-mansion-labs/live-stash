@@ -10,7 +10,6 @@ defmodule Mix.Tasks.E2e do
   @phoenix_port 4000
 
   @impl Mix.Task
-  @impl Mix.Task
   def run(_args) do
     IO.puts("\n[E2E] Starting test suite...")
 
