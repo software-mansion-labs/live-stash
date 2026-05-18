@@ -9,6 +9,7 @@ defmodule LiveStash.Adapters.ETS.Cleaner do
   alias LiveStash.Utils
 
   @cleanup_interval Application.compile_env(:live_stash, :ets_cleanup_interval, 1 * 60 * 1_000)
+  @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -41,14 +42,22 @@ defmodule LiveStash.Adapters.ETS.Cleaner do
   """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do
-    now = System.os_time(:second)
+    if :ets.whereis(@table_name) == :undefined do
+      Logger.warning(
+        Utils.message(
+          "ETS table #{@table_name} not found during cleanup. Skipping cleanup cycle."
+        )
+      )
+    else
+      now = System.os_time(:second)
 
-    case State.get_batch!(now) do
-      {candidates, continuation} ->
-        do_clear!(candidates, continuation, now)
+      case State.get_batch!(now) do
+        {candidates, continuation} ->
+          do_clear!(candidates, continuation, now)
 
-      :"$end_of_table" ->
-        :ok
+        :"$end_of_table" ->
+          :ok
+      end
     end
   end
 
