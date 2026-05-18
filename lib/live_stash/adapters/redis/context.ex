@@ -9,6 +9,7 @@ defmodule LiveStash.Adapters.Redis.Context do
   * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the Redis database.
   * `:secret` - A binary string used as part of the record id in the Redis for security purposes.
   * `:ttl` - Time-to-live for the records kept in the Redis, specified in seconds.
+  * `:version` - An optional value used to validate stashed state on recovery. If set, the recovered payload must carry the same version or it is rejected and the Redis key is deleted. Defaults to `nil` (no version check).
   """
 
   alias Phoenix.LiveView

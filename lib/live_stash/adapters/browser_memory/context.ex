@@ -10,6 +10,7 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
   * `:ttl` - Time-to-live for the stored browser data in seconds.
   * `:security_mode` - Defines the security approach applied to the client-side data (`:sign` to prevent tampering, or `:encrypt` to hide contents). Defaults to `:sign`.
   * `:key_set` - A `MapSet` used internally to track which keys are currently stored in the browser's memory, ensuring accurate synchronization and cleanup.
+  * `:version` - An optional value used to validate stashed state on recovery. If set, the recovered payload must carry the same version or it is rejected and browser memory is cleared. Defaults to `nil` (no version check).
   """
 
   alias Phoenix.LiveView

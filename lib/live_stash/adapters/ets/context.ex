@@ -9,6 +9,7 @@ defmodule LiveStash.Adapters.ETS.Context do
   * `:secret` - A binary string used as part of the record id in the ETS for security purposes.
   * `:ttl` - Time-to-live for the records kept in the ETS table, specified in seconds.
   * `:node_hint` - Information about the Elixir node that currently holds stashed state in the ETS. This is used to optimize state retrieval in a distributed deployment.
+  * `:version` - Accepted for API consistency with other adapters but has no effect. ETS state is stored in memory and is cleared automatically when the node restarts, so version-based rejection is not needed.
   """
 
   alias LiveStash.Adapters.ETS.NodeHint

@@ -373,10 +373,8 @@ defmodule LiveStash.Adapters.RedisTest do
       socket: socket,
       redis_id: redis_id
     } do
-      socket =
-        socket
-        |> put_in([Access.key(:private), :live_stash_context, Access.key(:reconnected?)], true)
-        |> put_in([Access.key(:private), :live_stash_context, Access.key(:version)], 1)
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+      socket = put_in(socket.private.live_stash_context.version, 1)
 
       binary_state =
         :erlang.term_to_binary(%{version: 1, assigns: %{score: 100}}, [{:compressed, 1}])
@@ -399,10 +397,8 @@ defmodule LiveStash.Adapters.RedisTest do
       socket: socket,
       redis_id: redis_id
     } do
-      socket =
-        socket
-        |> put_in([Access.key(:private), :live_stash_context, Access.key(:reconnected?)], true)
-        |> put_in([Access.key(:private), :live_stash_context, Access.key(:version)], 2)
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+      socket = put_in(socket.private.live_stash_context.version, 2)
 
       binary_state =
         :erlang.term_to_binary(%{version: 1, assigns: %{score: 100}}, [{:compressed, 1}])

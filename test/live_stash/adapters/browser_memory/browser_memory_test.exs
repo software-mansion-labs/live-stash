@@ -219,10 +219,8 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     end
 
     test "recovers assigns when configured version matches stashed version", %{socket: socket} do
-      socket =
-        socket
-        |> put_in([Access.key(:private), :live_stash_context, Access.key(:reconnected?)], true)
-        |> put_in([Access.key(:private), :live_stash_context, Access.key(:version)], 1)
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+      socket = put_in(socket.private.live_stash_context.version, 1)
 
       settings = %{
         ttl: socket.private.live_stash_context.ttl,
@@ -241,10 +239,8 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     end
 
     test "rejects state and clears browser memory when versions do not match", %{socket: socket} do
-      socket =
-        socket
-        |> put_in([Access.key(:private), :live_stash_context, Access.key(:reconnected?)], true)
-        |> put_in([Access.key(:private), :live_stash_context, Access.key(:version)], 2)
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+      socket = put_in(socket.private.live_stash_context.version, 2)
 
       settings = %{
         ttl: socket.private.live_stash_context.ttl,
