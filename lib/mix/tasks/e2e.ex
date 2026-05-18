@@ -10,6 +10,7 @@ defmodule Mix.Tasks.E2e do
   @phoenix_port 4000
 
   @impl Mix.Task
+  @impl Mix.Task
   def run(_args) do
     IO.puts("\n[E2E] Starting test suite...")
 
@@ -17,21 +18,26 @@ defmodule Mix.Tasks.E2e do
 
     cleanup_resources(docker_cmd, down_args)
 
-    try do
-      IO.puts("[E2E] Booting Docker infrastructure...")
-      System.cmd(docker_cmd, up_args, cd: @app_dir)
+    exit_status =
+      try do
+        IO.puts("[E2E] Booting Docker infrastructure...")
+        System.cmd(docker_cmd, up_args, cd: @app_dir)
 
-      IO.puts("[E2E] Starting Phoenix server in test environment...")
-      start_phoenix_server()
+        IO.puts("[E2E] Starting Phoenix server in test environment...")
+        start_phoenix_server()
 
-      wait_for_services()
+        wait_for_services()
 
-      IO.puts("[E2E] Executing Playwright tests...")
-      run_playwright()
-    after
-      IO.puts("\n[E2E] Tearing down infrastructure and cleaning up...")
-      cleanup_resources(docker_cmd, down_args)
-      IO.puts("[E2E] Done.\n")
+        IO.puts("[E2E] Executing Playwright tests...")
+        run_playwright()
+      after
+        IO.puts("\n[E2E] Tearing down infrastructure and cleaning up...")
+        cleanup_resources(docker_cmd, down_args)
+        IO.puts("[E2E] Done.\n")
+      end
+
+    if exit_status != 0 do
+      System.halt(exit_status)
     end
   end
 
@@ -107,9 +113,12 @@ defmodule Mix.Tasks.E2e do
   end
 
   defp run_playwright do
-    System.cmd("sh", ["-c", "npx playwright test --project=firefox --workers=1"],
-      cd: @app_dir,
-      into: IO.stream(:stdio, :line)
-    )
+    {_stream, status} =
+      System.cmd("sh", ["-c", "npx playwright test --project=firefox --workers=1"],
+        cd: @app_dir,
+        into: IO.stream(:stdio, :line)
+      )
+
+    status
   end
 end
