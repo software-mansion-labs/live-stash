@@ -13,17 +13,16 @@ defmodule LiveStash.Adapters.BrowserMemory do
   alias LiveStash.Utils
   alias LiveStash.Adapters.BrowserMemory.Serializer
   alias LiveStash.Adapters.BrowserMemory.Context
+  alias LiveStash.Adapters.Common
 
   alias Phoenix.LiveView
   alias Phoenix.Component
 
   @impl true
   def init_stash(socket, session, opts) do
-    context = Context.new(socket, session, opts)
+    socket = Common.init_context(socket, session, opts, __MODULE__)
+    context = socket.private.live_stash_context
 
-    socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
-
-    # If mounts is set to 0 we are on a new connection and stashed state is no longer valid
     if context.reconnected? do
       socket
     else
@@ -92,7 +91,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
     error ->
       msg =
         Utils.exception_message(
-          "Could not recover stashed state due to an unexpected error.",
+          "Failed to recover stashed state due to an unexpected error.",
           error,
           __STACKTRACE__
         )

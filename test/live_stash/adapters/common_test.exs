@@ -2,7 +2,48 @@ defmodule LiveStash.Adapters.CommonTest do
   use ExUnit.Case, async: true
 
   alias LiveStash.Adapters.Common
+  alias LiveStash.Fakes
   alias Phoenix.LiveView.Socket
+
+  describe "rotate_id/1" do
+    test "replaces id with a new unique binary, preserving other context fields" do
+      socket =
+        Fakes.socket(
+          private: %{live_stash_context: %{id: "old-id", stash_fingerprint: "fp", ttl: 1}}
+        )
+
+      updated = Common.rotate_id(socket)
+
+      assert updated.private.live_stash_context.id != "old-id"
+      assert is_binary(updated.private.live_stash_context.id)
+      assert updated.private.live_stash_context.stash_fingerprint == "fp"
+      assert updated.private.live_stash_context.ttl == 1
+    end
+
+    test "generates a different id on each call" do
+      socket = Fakes.socket(private: %{live_stash_context: %{id: "old-id"}})
+
+      id1 = Common.rotate_id(socket).private.live_stash_context.id
+      id2 = Common.rotate_id(socket).private.live_stash_context.id
+
+      assert id1 != id2
+    end
+  end
+
+  describe "clear_fingerprint/1" do
+    test "sets stash_fingerprint to nil, preserving other context fields" do
+      socket =
+        Fakes.socket(
+          private: %{live_stash_context: %{id: "my-id", stash_fingerprint: "some-fp", ttl: 1}}
+        )
+
+      updated = Common.clear_fingerprint(socket)
+
+      assert updated.private.live_stash_context.stash_fingerprint == nil
+      assert updated.private.live_stash_context.id == "my-id"
+      assert updated.private.live_stash_context.ttl == 1
+    end
+  end
 
   describe "reconnected?/1" do
     test "returns true when _mounts is strictly greater than 0" do

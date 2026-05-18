@@ -1,17 +1,16 @@
-defmodule LiveStash.Adapters.ETS.Context do
+defmodule LiveStash.Adapters.Redis.Context do
   @moduledoc """
-  Holds the state and configuration for the ETS adapter.
+  Holds the state and configuration for the Redis adapter.
+
   ## Fields
   * `:stored_keys` - A list of assign keys to automatically stash on every update.
   * `:reconnected?` - A boolean indicating whether the LiveView socket has successfully reconnected vs. a fresh mount.
   * `:stash_fingerprint` - A binary string representing the fingerprint of the stashed state. This is used to determine if the state has changed and needs to be re-stashed.
-  * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the ETS table.
-  * `:secret` - A binary string used as part of the record id in the ETS for security purposes.
-  * `:ttl` - Time-to-live for the records kept in the ETS table, specified in seconds.
-  * `:node_hint` - Information about the Elixir node that currently holds stashed state in the ETS. This is used to optimize state retrieval in a distributed deployment.
+  * `:id` - A unique identifier (UUID) representing the specific stash instance stored in the Redis database.
+  * `:secret` - A binary string used as part of the record id in the Redis for security purposes.
+  * `:ttl` - Time-to-live for the records kept in the Redis, specified in seconds.
   """
 
-  alias LiveStash.Adapters.ETS.NodeHint
   alias Phoenix.LiveView
   alias LiveStash.Adapters.Common
   alias LiveStash.Utils
@@ -28,8 +27,7 @@ defmodule LiveStash.Adapters.ETS.Context do
     :id,
     stash_fingerprint: nil,
     secret: "live_stash",
-    ttl: 5 * 60,
-    node_hint: nil
+    ttl: 5 * 60
   ]
 
   @type t :: %__MODULE__{
@@ -38,7 +36,6 @@ defmodule LiveStash.Adapters.ETS.Context do
           stash_fingerprint: binary() | nil,
           secret: binary(),
           ttl: integer(),
-          node_hint: atom() | nil,
           id: binary()
         }
 
@@ -62,15 +59,10 @@ defmodule LiveStash.Adapters.ETS.Context do
 
     connect_params = Common.get_connect_params(socket) || %{}
 
-    context =
-      attrs
-      |> Keyword.put(:reconnected?, Common.reconnected?(connect_params))
-      |> Keyword.put(:id, get_in(connect_params, ["liveStash", "stashId"]) || Utils.generate_id())
-      |> Common.validate_attributes!(@allowed_keys)
-      |> then(&struct!(__MODULE__, &1))
-
-    node_hint = NodeHint.get_node_hint(socket, connect_params, context.secret)
-
-    %{context | node_hint: node_hint}
+    attrs
+    |> Keyword.put(:reconnected?, Common.reconnected?(connect_params))
+    |> Keyword.put(:id, get_in(connect_params, ["liveStash", "stashId"]) || Utils.generate_id())
+    |> Common.validate_attributes!(@allowed_keys)
+    |> then(&struct!(__MODULE__, &1))
   end
 end

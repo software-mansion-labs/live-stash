@@ -25,6 +25,8 @@ defmodule ShowcaseAppWeb.Router do
     live "/tic-tac-toe", HomeTicTacToeLive
     live "/tic-tac-toe/default", DefaultTicTacToeLive
     live "/tic-tac-toe/live_stash_server", LiveStashServerTicTacToeLive
+    live "/tic-tac-toe/live_stash_redis", LiveStashRedisTicTacToeLive
+
     live "/tic-tac-toe/comparison", ComparisonTicTacToeLive
 
     live "/counter/live_stash_default", LiveStashServerCounterLive
@@ -32,7 +34,7 @@ defmodule ShowcaseAppWeb.Router do
     live "/test/counter/live_stash_server", E2eTest.LiveStashServerCounterLive
     live "/test/counter/live_stash_client", E2eTest.LiveStashClientCounterLive
     live "/test/counter/live_stash_mnesia", E2eTest.LiveStashMnesiaCounterLive
-
+    live "/test/counter/live_stash_redis", E2eTest.LiveStashRedisCounterLive
   end
 
   scope "/test/mnesia", ShowcaseAppWeb.E2eTest do

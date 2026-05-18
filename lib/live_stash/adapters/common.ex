@@ -4,6 +4,28 @@ defmodule LiveStash.Adapters.Common do
   alias Phoenix.LiveView
   alias LiveStash.Utils
 
+  @spec init_context(Phoenix.LiveView.Socket.t(), any(), Keyword.t(), module()) ::
+          Phoenix.LiveView.Socket.t()
+  def init_context(socket, session, opts, adapter) do
+    context = Module.concat(adapter, Context).new(socket, session, opts)
+    LiveView.put_private(socket, :live_stash_context, context)
+  end
+
+  @spec rotate_id(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def rotate_id(socket) do
+    context = socket.private.live_stash_context
+    updated_context = %{context | id: Utils.generate_id()}
+    LiveView.put_private(socket, :live_stash_context, updated_context)
+  end
+
+  @spec clear_fingerprint(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  def clear_fingerprint(socket) do
+    context = socket.private.live_stash_context
+    updated_context = %{context | stash_fingerprint: nil}
+    LiveView.put_private(socket, :live_stash_context, updated_context)
+  end
+
+  @spec get_connect_params(Phoenix.LiveView.Socket.t()) :: any()
   def get_connect_params(socket) do
     try do
       LiveView.get_connect_params(socket)
@@ -20,16 +42,18 @@ defmodule LiveStash.Adapters.Common do
     end
   end
 
+  @spec reconnected?(term()) :: boolean()
   def reconnected?(%{"_mounts" => mounts}) when is_integer(mounts), do: mounts > 0
   def reconnected?(_params), do: false
 
+  @spec maybe_put_secret(Keyword.t(), binary() | nil, any()) :: Keyword.t()
   def maybe_put_secret(attrs, nil, _session), do: attrs
 
   def maybe_put_secret(attrs, session_key, session) do
-    Keyword.put(attrs, :secret, fetch_secret(session_key, session))
+    Keyword.put(attrs, :secret, fetch_secret!(session_key, session))
   end
 
-  defp fetch_secret(session_key, session) do
+  defp fetch_secret!(session_key, session) do
     secret =
       try do
         Map.fetch!(session, session_key)
@@ -55,6 +79,7 @@ defmodule LiveStash.Adapters.Common do
     |> Base.encode64(padding: false)
   end
 
+  @spec validate_attributes!(Keyword.t(), [atom()]) :: Keyword.t()
   def validate_attributes!(attrs, allowed_keys) do
     Enum.each(attrs, fn {key, _value} = attr ->
       error_msg =

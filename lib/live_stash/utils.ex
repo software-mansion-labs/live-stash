@@ -7,17 +7,8 @@ defmodule LiveStash.Utils do
           stacktrace :: Exception.stacktrace()
         ) ::
           String.t()
-  def exception_message(message, error, stacktrace) do
+  def exception_message(message, error, stacktrace \\ []) do
     "[LiveStash] #{message} - report issue to LiveStash maintainers:\n#{Exception.format(:error, error, stacktrace)}"
-  end
-
-  @spec exception_message(
-          message :: String.t(),
-          error :: Exception.t()
-        ) ::
-          String.t()
-  def exception_message(message, error) do
-    "[LiveStash] #{message} - report issue to LiveStash maintainers:\n#{Exception.format(:error, error)}"
   end
 
   @spec reason_message(message :: String.t(), reason :: term()) :: String.t()
@@ -33,5 +24,10 @@ defmodule LiveStash.Utils do
   @spec hash_term(term :: term()) :: binary()
   def hash_term(term) do
     :crypto.hash(:sha256, :erlang.term_to_binary(term))
+  end
+
+  @spec generate_id() :: binary()
+  def generate_id() do
+    Uniq.UUID.uuid4()
   end
 end

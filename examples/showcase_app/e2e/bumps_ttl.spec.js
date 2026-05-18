@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const { reconnect, routes, waitForConnected } = require("./helpers");
 
-test.describe("All adapters - state recovery after reconnect", () => {
+test.describe("All adapters - bumps ttl", () => {
   test.use({ baseURL: "http://localhost:4000" });
 
   routes.forEach((route) => {
@@ -18,10 +18,12 @@ test.describe("All adapters - state recovery after reconnect", () => {
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");
 
+      await page.waitForTimeout(700);
+
       await incrementBtn.click();
       await expect(counterValue).toHaveText("2");
 
-      await reconnect(page);
+      await reconnect(page, { delayMs: 400 });
 
       await expect(counterValue).toHaveText("2");
     });

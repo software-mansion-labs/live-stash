@@ -21,6 +21,14 @@ defmodule ShowcaseAppWeb.HomeTicTacToeLive do
           </.feature_card>
 
           <.feature_card
+            title="LiveStash Redis"
+            navigate={~p"/tic-tac-toe/live_stash_redis"}
+            button_text="View Redis Tic Tac Toe"
+          >
+            A Tic Tac Toe game using LiveStash Redis mode that persists state across redeploys and page refreshes.
+          </.feature_card>
+
+          <.feature_card
             title="LiveStash Server"
             navigate={~p"/tic-tac-toe/live_stash_server"}
             button_text="View Server Tic Tac Toe"

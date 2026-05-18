@@ -1,7 +1,7 @@
 defmodule LiveStash.MixProject do
   use Mix.Project
 
-  @version "0.3.0-dev"
+  @version "0.4.0-dev"
 
   def project do
     [
@@ -33,6 +33,8 @@ defmodule LiveStash.MixProject do
       {:memento, "~> 0.5.0"},
       {:phoenix_live_view, "~> 1.0"},
       {:uniq, "~> 0.6"},
+      {:redix, "~> 1.1", optional: true},
+      {:castore, ">= 0.0.0", optional: true},
       {:ex_doc, "~> 0.40", only: :dev, runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:makeup_js, "~> 0.1.0", only: :dev, runtime: false},
@@ -56,6 +58,7 @@ defmodule LiveStash.MixProject do
         "docs/browser_memory.md",
         "docs/ets.md",
         "docs/mnesia.md",
+        "docs/redis.md",
         "docs/adapters.md",
         "docs/example.md"
       ],
@@ -64,6 +67,7 @@ defmodule LiveStash.MixProject do
           "docs/browser_memory.md",
           "docs/ets.md",
           "docs/mnesia.md",
+          "docs/redis.md",
           "docs/adapters.md"
         ]
       ],
