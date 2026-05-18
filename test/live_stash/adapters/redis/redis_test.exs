@@ -357,6 +357,64 @@ defmodule LiveStash.Adapters.RedisTest do
 
       assert log =~ "Failed to recover state"
     end
+
+    test "recovers state when configured version matches stashed version", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      socket =
+        socket
+        |> put_in([Access.key(:private), :live_stash_context, Access.key(:reconnected?)], true)
+        |> put_in([Access.key(:private), :live_stash_context, Access.key(:version)], 1)
+
+      binary_state =
+        :erlang.term_to_binary(%{version: 1, assigns: %{score: 100}}, [{:compressed, 1}])
+
+      assert {:ok, "OK"} =
+               Helpers.command([
+                 "HSET",
+                 redis_id,
+                 "owner_id",
+                 :erlang.term_to_binary(self()),
+                 "payload",
+                 binary_state
+               ])
+
+      assert {:recovered, recovered_socket} = Redis.recover_state(socket)
+      assert recovered_socket.assigns.score == 100
+    end
+
+    test "rejects state and deletes Redis key when versions do not match", %{
+      socket: socket,
+      redis_id: redis_id
+    } do
+      socket =
+        socket
+        |> put_in([Access.key(:private), :live_stash_context, Access.key(:reconnected?)], true)
+        |> put_in([Access.key(:private), :live_stash_context, Access.key(:version)], 2)
+
+      binary_state =
+        :erlang.term_to_binary(%{version: 1, assigns: %{score: 100}}, [{:compressed, 1}])
+
+      assert {:ok, "OK"} =
+               Helpers.command([
+                 "HSET",
+                 redis_id,
+                 "owner_id",
+                 :erlang.term_to_binary(self()),
+                 "payload",
+                 binary_state
+               ])
+
+      log =
+        capture_log(fn ->
+          assert {:error, returned_socket} = Redis.recover_state(socket)
+          assert returned_socket == socket
+        end)
+
+      assert log =~ ":version_mismatch"
+      assert LiveStash.TestRedisConn.snapshot().store[redis_id] == nil
+    end
   end
 
   describe "reset_stash/1" do

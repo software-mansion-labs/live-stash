@@ -132,7 +132,7 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
         security_mode: context.security_mode
       }
 
-      assert {:ok, recovered_assigns} =
+      assert {:ok, %{version: nil, assigns: recovered_assigns}} =
                Serializer.decode_token(socket, payload["assigns"], settings)
 
       assert recovered_assigns == %{username: "tester"}
@@ -150,7 +150,8 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
         security_mode: :sign
       }
 
-      stashed_state = Serializer.encode_token(socket, %{player_id: 999}, settings)
+      stashed_state =
+        Serializer.encode_token(socket, %{version: nil, assigns: %{player_id: 999}}, settings)
 
       params = %{
         "liveStash" => %{
@@ -215,6 +216,61 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     test "returns :new and socket when reconnected? is false", %{socket: socket} do
       assert {:new, returned_socket} = BrowserMemory.recover_state(socket)
       assert returned_socket == socket
+    end
+
+    test "recovers assigns when configured version matches stashed version", %{socket: socket} do
+      socket =
+        socket
+        |> put_in([Access.key(:private), :live_stash_context, Access.key(:reconnected?)], true)
+        |> put_in([Access.key(:private), :live_stash_context, Access.key(:version)], 1)
+
+      settings = %{
+        ttl: socket.private.live_stash_context.ttl,
+        secret: socket.private.live_stash_context.secret,
+        security_mode: socket.private.live_stash_context.security_mode
+      }
+
+      stashed_state =
+        Serializer.encode_token(socket, %{version: 1, assigns: %{player_id: 42}}, settings)
+
+      params = %{"liveStash" => %{"stashedState" => stashed_state}}
+      socket_with_params = put_in(socket.private.connect_params, params)
+
+      assert {:recovered, recovered_socket} = BrowserMemory.recover_state(socket_with_params)
+      assert recovered_socket.assigns.player_id == 42
+    end
+
+    test "rejects state and clears browser memory when versions do not match", %{socket: socket} do
+      socket =
+        socket
+        |> put_in([Access.key(:private), :live_stash_context, Access.key(:reconnected?)], true)
+        |> put_in([Access.key(:private), :live_stash_context, Access.key(:version)], 2)
+
+      settings = %{
+        ttl: socket.private.live_stash_context.ttl,
+        secret: socket.private.live_stash_context.secret,
+        security_mode: socket.private.live_stash_context.security_mode
+      }
+
+      stashed_state =
+        Serializer.encode_token(socket, %{version: 1, assigns: %{player_id: 42}}, settings)
+
+      params = %{"liveStash" => %{"stashedState" => stashed_state}}
+      socket_with_params = put_in(socket.private.connect_params, params)
+
+      log =
+        capture_log(fn ->
+          assert {:error, returned_socket} = BrowserMemory.recover_state(socket_with_params)
+
+          queued_events = get_in(returned_socket.private, [:live_temp, :push_events]) || []
+
+          assert Enum.any?(queued_events, fn
+                   ["live-stash:init-browser-memory", payload] -> payload == %{}
+                   _other -> false
+                 end)
+        end)
+
+      assert log =~ ":version_mismatch"
     end
   end
 
