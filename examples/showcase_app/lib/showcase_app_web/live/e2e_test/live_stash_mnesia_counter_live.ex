@@ -1,6 +1,6 @@
 defmodule ShowcaseAppWeb.E2eTest.LiveStashMnesiaCounterLive do
   use ShowcaseAppWeb, :live_view
-  use LiveStash, adapter: LiveStash.Adapters.Mnesia, ttl: 60, stored_keys: [:count]
+  use LiveStash, adapter: LiveStash.Adapters.Mnesia, ttl: 1, stored_keys: [:count]
 
   def mount(_params, _session, socket) do
     socket
