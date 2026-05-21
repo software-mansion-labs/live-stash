@@ -170,7 +170,7 @@ defmodule LiveStash.Adapters.Redis do
             :version_mismatch
           )
 
-        Logger.warning(msg)
+        Logger.info(msg)
 
         with {:error, err} <- Helpers.delete(get_redis_key(socket)) do
           Logger.error(err)

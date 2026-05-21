@@ -80,7 +80,9 @@ defmodule LiveStash.Adapters.ETS do
     new_fingerprint = Utils.hash_term(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
-      State.put!(get_ets_id(socket), assigns_to_stash, get_opts(socket))
+      wrapped = %{version: context.version, assigns: assigns_to_stash}
+
+      State.put!(get_ets_id(socket), wrapped, get_opts(socket))
 
       new_context = %{context | stash_fingerprint: new_fingerprint}
 
@@ -97,7 +99,8 @@ defmodule LiveStash.Adapters.ETS do
     node_hint = socket.private.live_stash_context.node_hint
 
     case StateFinder.get_from_cluster(id, node_hint) do
-      {:ok, recovered_state} ->
+      {:ok, %{version: v, assigns: recovered_state}}
+      when v == socket.private.live_stash_context.version ->
         id
         |> State.new(recovered_state, get_opts(socket))
         |> State.insert!()

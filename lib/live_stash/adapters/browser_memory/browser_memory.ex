@@ -75,6 +75,19 @@ defmodule LiveStash.Adapters.BrowserMemory do
       |> LiveView.put_private(:live_stash_context, updated_context)
       |> then(&{:recovered, &1})
     else
+      {:error, :version_mismatch} ->
+        msg =
+          Utils.reason_message(
+            "Rejected recovered state.",
+            :version_mismatch
+          )
+
+        Logger.info(msg)
+
+        socket
+        |> LiveView.push_event("live-stash:init-browser-memory", %{})
+        |> then(&{:error, &1})
+
       {:error, reason} ->
         msg =
           Utils.reason_message(
