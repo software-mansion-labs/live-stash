@@ -78,7 +78,7 @@ defmodule LiveStash.Adapters.BrowserMemory do
       {:error, :version_mismatch} ->
         msg =
           Utils.reason_message(
-            "Rejected recovered state.",
+            "Rejecting stashed state due to version mismatch.",
             :version_mismatch
           )
 

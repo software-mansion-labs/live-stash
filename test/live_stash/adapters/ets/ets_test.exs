@@ -254,10 +254,8 @@ defmodule LiveStash.Adapters.ETSTest do
       assert log =~ "Failed to recover state"
     end
 
-    test "returns error when stored version does not match context version", %{
-      socket: socket,
-      ets_id: ets_id
-    } do
+    test "returns error and deletes stashed state when stored version does not match context version",
+         %{socket: socket, ets_id: ets_id} do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
 
       State.insert!(
@@ -269,7 +267,8 @@ defmodule LiveStash.Adapters.ETSTest do
           assert {:error, _socket} = ETS.recover_state(socket)
         end)
 
-      assert log =~ "Rejected recovered state"
+      assert log =~ "version_mismatch"
+      assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
     end
 
     test "returns :new and socket when reconnected? is false", %{socket: socket} do

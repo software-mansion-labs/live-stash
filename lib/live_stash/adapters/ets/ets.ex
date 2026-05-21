@@ -115,7 +115,16 @@ defmodule LiveStash.Adapters.ETS do
         |> then(&{:recovered, &1})
 
       {:ok, _} ->
-        Logger.info(Utils.reason_message("Rejected recovered state", :version_mismatch))
+        Logger.info(
+          Utils.reason_message(
+            "Rejecting stashed state due to version mismatch.",
+            :version_mismatch
+          )
+        )
+
+        socket
+        |> get_ets_id()
+        |> State.delete_by_id!()
 
         {:error, socket}
 
