@@ -80,9 +80,7 @@ defmodule LiveStash.Adapters.ETS do
     new_fingerprint = Utils.hash_term(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
-      wrapped = %{version: context.version, assigns: assigns_to_stash}
-
-      State.put!(get_ets_id(socket), wrapped, get_opts(socket))
+      State.put!(get_ets_id(socket), assigns_to_stash, get_opts(socket))
 
       new_context = %{context | stash_fingerprint: new_fingerprint}
 
@@ -99,13 +97,13 @@ defmodule LiveStash.Adapters.ETS do
     node_hint = socket.private.live_stash_context.node_hint
 
     case StateFinder.get_from_cluster(id, node_hint) do
-      {:ok, %{version: v, assigns: recovered_state}}
+      {:ok, recovered_state, v}
       when v == socket.private.live_stash_context.version ->
-        id
-        |> State.new(recovered_state, get_opts(socket))
+        context = socket.private.live_stash_context
+
+        State.new(id, recovered_state, get_opts(socket), context.version)
         |> State.insert!()
 
-        context = socket.private.live_stash_context
         fingerprint = Utils.hash_term(recovered_state)
         updated_context = %{context | stash_fingerprint: fingerprint}
 
@@ -114,7 +112,7 @@ defmodule LiveStash.Adapters.ETS do
         |> LiveView.put_private(:live_stash_context, updated_context)
         |> then(&{:recovered, &1})
 
-      {:ok, _} ->
+      {:ok, _state, _v} ->
         Logger.info(
           Utils.reason_message(
             "Rejecting stashed state due to version mismatch.",
@@ -181,6 +179,7 @@ defmodule LiveStash.Adapters.ETS do
   end
 
   defp get_opts(socket) do
-    [ttl: socket.private.live_stash_context.ttl]
+    context = socket.private.live_stash_context
+    [ttl: context.ttl, version: context.version]
   end
 end

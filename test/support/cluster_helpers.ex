@@ -65,7 +65,7 @@ defmodule LiveStash.TestSupport.ClusterHelpers do
     state = Keyword.fetch!(opts, :state)
     ttl = Keyword.get(opts, :ttl, 60)
 
-    record = :erpc.call(peer_node, State, :new, [id, state, [ttl: ttl]])
+    record = :erpc.call(peer_node, State, :new, [id, state, [ttl: ttl], nil])
     true = :erpc.call(peer_node, :ets, :insert, [table_name, record])
     :ok
   end

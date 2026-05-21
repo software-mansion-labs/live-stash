@@ -16,15 +16,15 @@ defmodule LiveStash.Adapters.ETS.StateTest do
     :ok
   end
 
-  describe "new/3" do
+  describe "new/4" do
     test "creates a new state record with correct fields" do
       id = "test_id"
       state_map = %{key1: "value1", key2: "value2"}
       opts = [ttl: 1]
 
-      record = State.new(id, state_map, opts)
+      record = State.new(id, state_map, opts, nil)
 
-      assert {:state, ^id, pid, delete_at, ttl, ^state_map} = record
+      assert {:state, ^id, pid, delete_at, ttl, ^state_map, nil} = record
       assert pid == self()
       assert ttl == 1
       assert is_integer(delete_at)
@@ -32,17 +32,17 @@ defmodule LiveStash.Adapters.ETS.StateTest do
 
     test "raises when ttl is missing from opts" do
       assert_raise KeyError, fn ->
-        State.new("test_id", %{}, [])
+        State.new("test_id", %{}, [], nil)
       end
     end
   end
 
   describe "insert!/1" do
     test "inserts a record into the ETS table" do
-      record = State.new("test_id", %{key: "value"}, ttl: 1)
+      record = State.new("test_id", %{key: "value"}, [ttl: 1], nil)
       assert State.insert!(record) == :ok
 
-      assert [{:state, "test_id", _pid, _delete_at, _ttl, %{key: "value"}}] =
+      assert [{:state, "test_id", _pid, _delete_at, _ttl, %{key: "value"}, _version}] =
                :ets.lookup(@table_name, "test_id")
     end
   end
@@ -52,7 +52,7 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       id = "new_id"
       assert State.put!(id, %{key: "value"}, ttl: 1) == :ok
 
-      assert {:ok, %{key: "value"}} = State.get_by_id!(id)
+      assert {:ok, %{key: "value"}, _} = State.get_by_id!(id)
     end
 
     test "replaces existing state map when id exists and is owned by the current process" do
@@ -62,10 +62,10 @@ defmodule LiveStash.Adapters.ETS.StateTest do
 
       assert :ok = State.put!(id, %{key2: "new_value"}, ttl: 2)
 
-      assert {:ok, state} = State.get_by_id!(id)
+      assert {:ok, state, _} = State.get_by_id!(id)
       assert state == %{key2: "new_value"}
 
-      [{:state, ^id, _pid, _delete_at, ttl, _state}] = :ets.lookup(@table_name, id)
+      [{:state, ^id, _pid, _delete_at, ttl, _state, _version}] = :ets.lookup(@table_name, id)
       assert ttl == 2
     end
 
@@ -88,10 +88,10 @@ defmodule LiveStash.Adapters.ETS.StateTest do
     test "returns {:ok, state} when record exists" do
       id = "get_id"
       state_map = %{key: "value"}
-      record = State.new(id, state_map, ttl: 1)
+      record = State.new(id, state_map, [ttl: 1], nil)
       State.insert!(record)
 
-      assert {:ok, state_map} == State.get_by_id!(id)
+      assert {:ok, ^state_map, nil} = State.get_by_id!(id)
     end
 
     test "returns :not_found when record doesn't exist" do
@@ -102,7 +102,7 @@ defmodule LiveStash.Adapters.ETS.StateTest do
   describe "delete_by_id!/1" do
     test "deletes an existing record" do
       id = "delete_id"
-      record = State.new(id, %{key: "value"}, ttl: 1)
+      record = State.new(id, %{key: "value"}, [ttl: 1], nil)
       State.insert!(record)
 
       assert State.delete_by_id!(id) == :ok
@@ -120,12 +120,12 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       state_map = %{key: "value"}
       opts = [ttl: 5]
 
-      record = State.new(id, state_map, opts)
+      record = State.new(id, state_map, opts, nil)
       State.insert!(record)
 
-      assert {:ok, ^state_map} = State.get_by_id!(id)
+      assert {:ok, ^state_map, _} = State.get_by_id!(id)
 
-      assert {:ok, popped_state} = State.pop_by_id!(id)
+      assert {:ok, popped_state, _} = State.pop_by_id!(id)
 
       assert popped_state == state_map
 
@@ -144,15 +144,15 @@ defmodule LiveStash.Adapters.ETS.StateTest do
   describe "bump_delete_at!/2" do
     test "updates delete_at time for existing record" do
       id = "bump_id"
-      record = State.new(id, %{key: "value"}, ttl: 1)
+      record = State.new(id, %{key: "value"}, [ttl: 1], nil)
       State.insert!(record)
 
-      [{:state, ^id, _pid, original_delete_at, _ttl, _state}] = :ets.lookup(@table_name, id)
+      [{:state, ^id, _pid, original_delete_at, _ttl, _state, _version}] = :ets.lookup(@table_name, id)
       new_time = original_delete_at + 5
 
       assert State.bump_delete_at!(id, new_time) == :ok
 
-      [{:state, ^id, _pid, delete_at, _ttl, _state}] = :ets.lookup(@table_name, id)
+      [{:state, ^id, _pid, delete_at, _ttl, _state, _version}] = :ets.lookup(@table_name, id)
       assert delete_at == new_time
     end
 
@@ -191,7 +191,7 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       State.insert!(expired_record2)
 
       future_id = "future_id"
-      future_record = State.new("future_id", %{key: "value"}, ttl: 1)
+      future_record = State.new("future_id", %{key: "value"}, [ttl: 1], nil)
       State.insert!(future_record)
 
       assert {candidates, _continuation} = State.get_batch!(now)
@@ -206,7 +206,7 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       now = System.os_time(:second)
       future_time = now + 5
 
-      future_record = State.new("future_id", %{key: "value"}, ttl: 1)
+      future_record = State.new("future_id", %{key: "value"}, [ttl: 1], nil)
       future_record = put_elem(future_record, 3, future_time)
       State.insert!(future_record)
 

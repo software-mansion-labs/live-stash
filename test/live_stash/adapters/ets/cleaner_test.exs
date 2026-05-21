@@ -56,7 +56,7 @@ defmodule LiveStash.Server.CleanerTest do
 
       Cleaner.clean_expired_states!()
 
-      assert [{:state, "alive_expired", _pid, delete_at, _ttl, _state}] =
+      assert [{:state, "alive_expired", _pid, delete_at, _ttl, _state, _version}] =
                :ets.lookup(@table_name, "alive_expired")
 
       assert delete_at >= now + ttl
@@ -133,7 +133,7 @@ defmodule LiveStash.Server.CleanerTest do
 
       assert length(:ets.tab2list(@table_name)) == 1
 
-      assert [{:state, "alive_mixed", _pid, delete_at, _ttl, _state}] =
+      assert [{:state, "alive_mixed", _pid, delete_at, _ttl, _state, _version}] =
                :ets.lookup(@table_name, "alive_mixed")
 
       assert delete_at >= now + ttl
@@ -185,7 +185,7 @@ defmodule LiveStash.Server.CleanerTest do
 
       for i <- 1..150 do
         id = "batch_#{i}"
-        [{:state, ^id, _pid, delete_at, _ttl, _state}] = :ets.lookup(@table_name, id)
+        [{:state, ^id, _pid, delete_at, _ttl, _state, _version}] = :ets.lookup(@table_name, id)
 
         assert delete_at >= now + ttl
       end
