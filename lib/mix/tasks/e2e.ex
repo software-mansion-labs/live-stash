@@ -13,6 +13,8 @@ defmodule Mix.Tasks.E2e do
   def run(_args) do
     IO.puts("\n[E2E] Starting test suite...")
 
+    install_npm_deps()
+
     {docker_cmd, up_args, down_args} = docker_config()
 
     cleanup_resources(docker_cmd, down_args)
@@ -119,5 +121,19 @@ defmodule Mix.Tasks.E2e do
       )
 
     status
+  end
+
+  defp install_npm_deps do
+    {_stream, status} =
+      System.cmd(
+        "npm",
+        ["install", "--no-fund", "--no-audit"],
+        cd: @app_dir,
+        into: IO.stream(:stdio, :line)
+      )
+
+    if status != 0 do
+      Mix.raise("[E2E ERROR] Failed to install NPM dependencies. Please check the logs above.")
+    end
   end
 end
