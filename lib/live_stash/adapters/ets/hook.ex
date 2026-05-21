@@ -30,7 +30,7 @@ defmodule LiveStash.Adapters.ETS.Hook do
 
     try do
       State.bump_delete_at!(id, ttl)
-    catch
+    rescue
       _ ->
         msg = Utils.reason_message("Failed to bump TTL for ETS stash with id #{id}", :error)
         Logger.error(msg)
