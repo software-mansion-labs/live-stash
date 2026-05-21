@@ -147,7 +147,9 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       record = State.new(id, %{key: "value"}, [ttl: 1], nil)
       State.insert!(record)
 
-      [{:state, ^id, _pid, original_delete_at, _ttl, _state, _version}] = :ets.lookup(@table_name, id)
+      [{:state, ^id, _pid, original_delete_at, _ttl, _state, _version}] =
+        :ets.lookup(@table_name, id)
+
       new_time = original_delete_at + 5
 
       assert State.bump_delete_at!(id, new_time) == :ok
