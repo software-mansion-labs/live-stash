@@ -114,6 +114,11 @@ defmodule LiveStash.Adapters.ETS do
         |> LiveView.put_private(:live_stash_context, updated_context)
         |> then(&{:recovered, &1})
 
+      {:ok, _} ->
+        Logger.info(Utils.reason_message("Rejected recovered state", :version_mismatch))
+
+        {:error, socket}
+
       :not_found ->
         {:not_found, socket}
     end
