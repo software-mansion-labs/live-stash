@@ -6,7 +6,6 @@ defmodule LiveStash.Adapters.Mnesia.MnesiaCleanerTest do
 
   setup_all do
     State.setup_cluster_state!()
-    on_exit(fn -> Memento.stop() end)
     :ok
   end
 

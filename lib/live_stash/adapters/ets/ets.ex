@@ -89,6 +89,14 @@ defmodule LiveStash.Adapters.ETS do
     else
       socket
     end
+  rescue
+    error in RuntimeError ->
+      Logger.error(Exception.message(error))
+      socket
+
+    error ->
+      Logger.error(Utils.exception_message("Failed to stash assigns", error, __STACKTRACE__))
+      socket
   end
 
   @impl true

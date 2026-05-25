@@ -32,6 +32,19 @@ defmodule LiveStash.Adapters.Mnesia do
 
   @doc false
   def start_link(opts \\ []) do
+    unless Code.ensure_loaded?(Memento) do
+      msg =
+        Utils.reason_message(
+          """
+          To use the Mnesia adapter, please add the following to your mix.exs dependencies:
+          {:memento, "~> 0.5.0"}
+          """,
+          :missing_dependency
+        )
+
+      raise RuntimeError, msg
+    end
+
     children = [
       {LiveStash.Adapters.Mnesia.Storage, opts},
       {LiveStash.Adapters.Mnesia.Cleaner, opts}
@@ -84,7 +97,9 @@ defmodule LiveStash.Adapters.Mnesia do
     new_fingerprint = Utils.hash_term(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
-      State.put!(get_mnesia_id(socket), assigns_to_stash, get_opts(socket))
+      socket
+      |> get_mnesia_id()
+      |> State.put!(assigns_to_stash, get_opts(socket))
 
       new_context = %{context | stash_fingerprint: new_fingerprint}
 
@@ -93,6 +108,10 @@ defmodule LiveStash.Adapters.Mnesia do
     else
       socket
     end
+  rescue
+    error ->
+      Logger.error(Exception.message(error))
+      socket
   end
 
   @impl true

@@ -93,6 +93,17 @@ defmodule LiveStash.Adapters.Redis do
         Logger.error(err)
         socket
     end
+  rescue
+    error ->
+      msg =
+        Utils.exception_message(
+          "Failed to stash assigns. Stash may be temporarily unavailable.",
+          error,
+          __STACKTRACE__
+        )
+
+      Logger.error(msg)
+      socket
   end
 
   @impl true

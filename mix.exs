@@ -30,7 +30,7 @@ defmodule LiveStash.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:memento, "~> 0.5.0"},
+      {:memento, "~> 0.5.0", optional: true},
       {:phoenix_live_view, "~> 1.0"},
       {:uniq, "~> 0.6"},
       {:redix, "~> 1.1", optional: true},

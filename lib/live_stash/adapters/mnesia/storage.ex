@@ -17,7 +17,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
           retries_left: non_neg_integer(),
           auto_heal?: boolean()
         }
-  defstruct healing?: false, retries_left: @max_retries, auto_heal?: false
+  defstruct healing?: false, retries_left: @max_retries, auto_heal?: true
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -25,10 +25,11 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
 
   @impl true
   def init(_opts) do
-    State.setup_cluster_state!()
+    Memento.start()
     {:ok, _node} = :mnesia.subscribe(:system)
+    State.setup_cluster_state!()
 
-    auto_heal? = Application.get_env(:live_stash, :auto_heal_mnesia, false)
+    auto_heal? = Application.get_env(:live_stash, :auto_heal_mnesia, true)
     {:ok, %__MODULE__{auto_heal?: auto_heal?}}
   end
 
@@ -59,7 +60,9 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
 
       true ->
         Logger.info(
-          Utils.message("Attempting to reclaim state from #{remote_node}. Attempting auto-heal.")
+          Utils.message(
+            "This node's state was selected over #{remote_node}. Node #{remote_node} is attempting auto-heal."
+          )
         )
 
         {:noreply, state}

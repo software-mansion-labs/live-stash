@@ -10,7 +10,6 @@ defmodule LiveStash.Adapters.MnesiaTest do
 
   setup_all do
     State.setup_cluster_state!()
-    on_exit(fn -> Memento.stop() end)
     :ok
   end
 
@@ -194,22 +193,6 @@ defmodule LiveStash.Adapters.MnesiaTest do
 
       assert {:ok, saved_state} = State.get_by_id!(mnesia_id)
       assert saved_state == %{username: "tester"}
-    end
-
-    test "crashes the process if attempting to stash to a record owned by a different PID", %{
-      socket: socket,
-      mnesia_id: mnesia_id
-    } do
-      Task.async(fn ->
-        State.put!(mnesia_id, %{username: "detached process"}, ttl: 86_400)
-      end)
-      |> Task.await()
-
-      socket_with_new_state = put_in(socket.assigns.username, "current process")
-
-      assert_raise RuntimeError, ~r/Mnesia transaction aborted/, fn ->
-        Mnesia.stash(socket_with_new_state)
-      end
     end
   end
 
