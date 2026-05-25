@@ -50,9 +50,7 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
       :ok
     else
       Logger.warning(
-        Utils.message(
-          "Mnesia State table not available during cleanup. Skipping cleanup cycle."
-        )
+        Utils.message("Mnesia State table not available during cleanup. Skipping cleanup cycle.")
       )
 
       :ok
