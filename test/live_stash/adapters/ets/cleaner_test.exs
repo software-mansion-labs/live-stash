@@ -20,7 +20,7 @@ defmodule LiveStash.Server.CleanerTest do
 
   describe "clean_expired_states!/0" do
     test "does not clear records that are not expired" do
-      future_record = State.new("future_id", %{key: "value"}, ttl: 60)
+      future_record = State.new("future_id", %{key: "value"}, [ttl: 60], nil)
       State.insert!(future_record)
 
       assert Cleaner.clean_expired_states!() == :ok
@@ -36,7 +36,8 @@ defmodule LiveStash.Server.CleanerTest do
           id: "alive_expired",
           pid: self(),
           delete_at: past_time,
-          state: %{key: "alive"}
+          state: %{key: "alive"},
+          version: nil
         )
 
       dead_pid =
@@ -67,14 +68,26 @@ defmodule LiveStash.Server.CleanerTest do
 
     test "deletes only expired records when mixed with non-expired ones" do
       now = System.os_time(:second)
+      past_time = now - 5
 
       expired_record =
-        State.insert!(fresh_record)
+        State.state(
+          id: "expired",
+          pid: self(),
+          delete_at: past_time,
+          state: %{key: "expired"},
+          version: nil
+        )
+
+      fresh_record = State.new("fresh", %{key: "fresh"}, [ttl: 60], nil)
+
+      State.insert!(expired_record)
+      State.insert!(fresh_record)
 
       assert Cleaner.clean_expired_states!() == :ok
 
       assert :not_found == State.get_by_id!("expired")
-      assert {:ok, %{key: "fresh"}} = State.get_by_id!("fresh")
+      assert {:ok, %{key: "fresh"}, _} = State.get_by_id!("fresh")
     end
   end
 end

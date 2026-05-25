@@ -60,12 +60,12 @@ defmodule LiveStash.Adapters.ETS.HookTest do
       context = attached.private.live_stash_context
       ets_id = Helpers.ets_id(context.id, context.secret)
 
-      State.insert!(State.state(id: ets_id, pid: self(), delete_at: 0, state: %{}))
+      State.insert!(State.state(id: ets_id, pid: self(), delete_at: 0, state: %{}, version: nil))
 
       assert {:halt, _socket} = callback.(:live_stash_keep_alive, attached)
 
       now = System.os_time(:second)
-      [{:state, ^ets_id, _pid, delete_at, _}] = :ets.lookup(@table_name, ets_id)
+      [{:state, ^ets_id, _pid, delete_at, _, _}] = :ets.lookup(@table_name, ets_id)
       assert delete_at >= now
     end
 
