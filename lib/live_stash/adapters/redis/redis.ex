@@ -71,7 +71,8 @@ defmodule LiveStash.Adapters.Redis do
     with true <- new_fingerprint != context.stash_fingerprint,
          redis_key = get_redis_key(socket),
          owner_id = :erlang.term_to_binary(self()),
-         payload = :erlang.term_to_binary(assigns_to_stash, [{:compressed, 1}]),
+         wrapped = %{version: context.version, assigns: assigns_to_stash},
+         payload = :erlang.term_to_binary(wrapped, [{:compressed, 1}]),
          :ok <- Helpers.save(redis_key, owner_id, payload, context.ttl) do
       new_context = %{context | stash_fingerprint: new_fingerprint}
       LiveView.put_private(socket, :live_stash_context, new_context)
@@ -150,15 +151,33 @@ defmodule LiveStash.Adapters.Redis do
   end
 
   defp apply_recovered_state(socket, binary_state) do
-    recovered_state = :erlang.binary_to_term(binary_state)
     context = socket.private.live_stash_context
-    fingerprint = Utils.hash_term(recovered_state)
-    updated_context = %{context | stash_fingerprint: fingerprint}
 
-    socket
-    |> Component.assign(recovered_state)
-    |> LiveView.put_private(:live_stash_context, updated_context)
-    |> then(&{:recovered, &1})
+    case :erlang.binary_to_term(binary_state) do
+      %{version: v, assigns: recovered_state} when v == context.version ->
+        fingerprint = Utils.hash_term(recovered_state)
+        updated_context = %{context | stash_fingerprint: fingerprint}
+
+        socket
+        |> Component.assign(recovered_state)
+        |> LiveView.put_private(:live_stash_context, updated_context)
+        |> then(&{:recovered, &1})
+
+      _ ->
+        msg =
+          Utils.reason_message(
+            "Rejecting stashed state due to version mismatch.",
+            :version_mismatch
+          )
+
+        Logger.info(msg)
+
+        with {:error, err} <- Helpers.delete(get_redis_key(socket)) do
+          Logger.error(err)
+        end
+
+        {:error, socket}
+    end
   rescue
     error in ArgumentError ->
       err =

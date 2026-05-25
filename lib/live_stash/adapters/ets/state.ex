@@ -15,14 +15,15 @@ defmodule LiveStash.Adapters.ETS.State do
 
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
 
-  Record.defrecord(:state, [:id, :pid, :delete_at, :state])
+  Record.defrecord(:state, [:id, :pid, :delete_at, :state, :version])
 
   @type t ::
           record(:state,
             id: term(),
             pid: pid(),
             delete_at: integer(),
-            state: map()
+            state: map(),
+            version: term()
           )
 
   @doc """
@@ -44,15 +45,16 @@ defmodule LiveStash.Adapters.ETS.State do
   @doc """
   Creates a new state record for a LiveView.
   """
-  @spec new(id :: term(), state :: map(), opts :: Keyword.t()) :: t()
-  def new(id, state, opts) do
+  @spec new(id :: term(), state :: map(), opts :: Keyword.t(), version :: term()) :: t()
+  def new(id, state, opts, version) do
     ttl = Keyword.fetch!(opts, :ttl)
 
     state(
       id: id,
       pid: self(),
       delete_at: System.os_time(:second) + ttl,
-      state: state
+      state: state,
+      version: version
     )
   end
 
@@ -71,10 +73,11 @@ defmodule LiveStash.Adapters.ETS.State do
   @spec put!(id :: term(), state :: map(), opts :: Keyword.t()) :: :ok
   def put!(id, state, opts) do
     pid = self()
-    new_record = new(id, state, opts)
+    version = Keyword.get(opts, :version, nil)
+    new_record = new(id, state, opts, version)
 
     match_spec = [
-      {{:state, id, pid, :_, :_}, [], [{new_record}]}
+      {{:state, id, pid, :_, :_, :_}, [], [{new_record}]}
     ]
 
     if :ets.select_replace(@table_name, match_spec) == 0 do
@@ -95,12 +98,12 @@ defmodule LiveStash.Adapters.ETS.State do
   @doc """
   Gets the state of a LiveView from the ETS table.
   """
-  @spec get_by_id!(id :: term()) :: {:ok, map()} | :not_found
+  @spec get_by_id!(id :: term()) :: {:ok, map(), term()} | :not_found
   def get_by_id!(id) do
     @table_name
     |> :ets.lookup(id)
     |> case do
-      [{:state, ^id, _pid, _delete_at, state}] -> {:ok, state}
+      [{:state, ^id, _pid, _delete_at, state, version}] -> {:ok, state, version}
       [] -> :not_found
     end
   end
@@ -117,12 +120,12 @@ defmodule LiveStash.Adapters.ETS.State do
   @doc """
   Pops the state of a LiveView from the ETS table, returning it and deleting the record.
   """
-  @spec pop_by_id!(id :: term()) :: :not_found | {:ok, map()}
+  @spec pop_by_id!(id :: term()) :: :not_found | {:ok, map(), term()}
   def pop_by_id!(id) do
     @table_name
     |> :ets.take(id)
     |> case do
-      [{:state, ^id, _pid, _delete_at, state}] -> {:ok, state}
+      [{:state, ^id, _pid, _delete_at, state, version}] -> {:ok, state, version}
       [] -> :not_found
     end
   end
@@ -149,7 +152,7 @@ defmodule LiveStash.Adapters.ETS.State do
   def delete_expired!(now) when is_integer(now) do
     match_spec = [
       {
-        {:state, :_, :_, :"$1", :_},
+        {:state, :_, :_, :"$1", :_, :_},
         [{:<, :"$1", now}],
         [true]
       }

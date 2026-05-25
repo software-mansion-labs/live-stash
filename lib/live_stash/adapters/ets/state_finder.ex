@@ -12,7 +12,7 @@ defmodule LiveStash.Adapters.ETS.StateFinder do
   Looks up state by id, trying current node, then node_hint (if any), then other nodes.
   Returns `{:ok, state}` or `:not_found`.
   """
-  @spec get_from_cluster(term(), node() | nil) :: {:ok, map()} | :not_found
+  @spec get_from_cluster(term(), node() | nil) :: {:ok, map(), term()} | :not_found
   def get_from_cluster(id, node_hint) do
     with :not_found <- get_local(id),
          :not_found <- get_from_node_hint(id, node_hint) do
@@ -63,7 +63,7 @@ defmodule LiveStash.Adapters.ETS.StateFinder do
     end
   end
 
-  defp handle_search_result({_node, {:ok, {:ok, state}}}, _id), do: {:ok, state}
+  defp handle_search_result({_node, {:ok, {:ok, state, version}}}, _id), do: {:ok, state, version}
   defp handle_search_result({_node, {:ok, :not_found}}, _id), do: nil
 
   defp handle_search_result({node, error_payload}, id) do

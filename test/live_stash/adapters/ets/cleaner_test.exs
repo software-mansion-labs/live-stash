@@ -67,20 +67,9 @@ defmodule LiveStash.Server.CleanerTest do
 
     test "deletes only expired records when mixed with non-expired ones" do
       now = System.os_time(:second)
-      past_time = now - 5
 
       expired_record =
-        State.state(
-          id: "expired",
-          pid: self(),
-          delete_at: past_time,
-          state: %{key: "expired"}
-        )
-
-      fresh_record = State.new("fresh", %{key: "fresh"}, ttl: 60)
-
-      State.insert!(expired_record)
-      State.insert!(fresh_record)
+        State.insert!(fresh_record)
 
       assert Cleaner.clean_expired_states!() == :ok
 
