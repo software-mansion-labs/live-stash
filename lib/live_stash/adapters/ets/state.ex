@@ -17,7 +17,7 @@ defmodule LiveStash.Adapters.ETS.State do
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
   @batch_size Application.compile_env(:live_stash, :ets_cleanup_batch_size, 100)
 
-  Record.defrecord(:state, [:id, :pid, :delete_at, :ttl, :state])
+  Record.defrecord(:state, [:id, :pid, :delete_at, :ttl, :state, :version])
 
   @type t ::
           record(:state,
@@ -25,7 +25,8 @@ defmodule LiveStash.Adapters.ETS.State do
             pid: pid(),
             delete_at: integer(),
             ttl: integer(),
-            state: map()
+            state: map(),
+            version: term()
           )
 
   @typep continuation :: tuple() | :"$end_of_table"
@@ -49,8 +50,8 @@ defmodule LiveStash.Adapters.ETS.State do
   @doc """
   Creates a new state record for a LiveView.
   """
-  @spec new(id :: term(), state :: map(), opts :: Keyword.t()) :: t()
-  def new(id, state, opts) do
+  @spec new(id :: term(), state :: map(), opts :: Keyword.t(), version :: term()) :: t()
+  def new(id, state, opts, version) do
     ttl = Keyword.fetch!(opts, :ttl)
 
     state(
@@ -58,7 +59,8 @@ defmodule LiveStash.Adapters.ETS.State do
       pid: self(),
       delete_at: System.os_time(:second) + ttl,
       ttl: ttl,
-      state: state
+      state: state,
+      version: version
     )
   end
 
@@ -77,10 +79,11 @@ defmodule LiveStash.Adapters.ETS.State do
   @spec put!(id :: term(), state :: map(), opts :: Keyword.t()) :: :ok
   def put!(id, state, opts) do
     pid = self()
-    new_record = new(id, state, opts)
+    version = Keyword.get(opts, :version, nil)
+    new_record = new(id, state, opts, version)
 
     match_spec = [
-      {{:state, id, pid, :_, :_, :_}, [], [{new_record}]}
+      {{:state, id, pid, :_, :_, :_, :_}, [], [{new_record}]}
     ]
 
     if :ets.select_replace(@table_name, match_spec) == 0 do
@@ -101,12 +104,12 @@ defmodule LiveStash.Adapters.ETS.State do
   @doc """
   Gets the state of a LiveView from the ETS table.
   """
-  @spec get_by_id!(id :: term()) :: {:ok, map()} | :not_found
+  @spec get_by_id!(id :: term()) :: {:ok, map(), term()} | :not_found
   def get_by_id!(id) do
     @table_name
     |> :ets.lookup(id)
     |> case do
-      [{:state, ^id, _pid, _delete_at, _ttl, state}] -> {:ok, state}
+      [{:state, ^id, _pid, _delete_at, _ttl, state, version}] -> {:ok, state, version}
       [] -> :not_found
     end
   end
@@ -123,12 +126,12 @@ defmodule LiveStash.Adapters.ETS.State do
   @doc """
   Pops the state of a LiveView from the ETS table, returning it and deleting the record.
   """
-  @spec pop_by_id!(id :: term()) :: :not_found | {:ok, map()}
+  @spec pop_by_id!(id :: term()) :: :not_found | {:ok, map(), term()}
   def pop_by_id!(id) do
     @table_name
     |> :ets.take(id)
     |> case do
-      [{:state, ^id, _pid, _delete_at, _ttl, state}] -> {:ok, state}
+      [{:state, ^id, _pid, _delete_at, _ttl, state, version}] -> {:ok, state, version}
       [] -> :not_found
     end
   end
@@ -141,8 +144,8 @@ defmodule LiveStash.Adapters.ETS.State do
   def get_batch!(now) when is_integer(now) do
     spec = [
       {
-        # Pattern: {:state, id, pid, delete_at, ttl, _state}
-        {:state, :"$1", :"$2", :"$3", :"$4", :_},
+        # Pattern: {:state, id, pid, delete_at, ttl, _state, _version}
+        {:state, :"$1", :"$2", :"$3", :"$4", :_, :_},
         # Guard: delete_at < now
         [{:<, :"$3", now}],
         # Return: {id, pid, ttl}

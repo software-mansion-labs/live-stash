@@ -112,7 +112,7 @@ defmodule LiveStash.Adapters.ETSTest do
                  false
              end)
 
-      assert {:ok, %{recovered: true}} = StateFinder.get_from_cluster(ets_id, Node.self())
+      assert {:ok, %{recovered: true}, _} = StateFinder.get_from_cluster(ets_id, Node.self())
     end
   end
 
@@ -122,7 +122,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
       assert %Socket{} = returned_socket
 
-      assert {:ok, saved_state} = StateFinder.get_from_cluster(ets_id, Node.self())
+      assert {:ok, saved_state, _} = StateFinder.get_from_cluster(ets_id, Node.self())
       assert saved_state == %{username: "tester"}
     end
 
@@ -145,7 +145,9 @@ defmodule LiveStash.Adapters.ETSTest do
       [record_after] = :ets.lookup(@table_name, ets_id)
 
       assert record_before == record_after
-      assert {:ok, %{username: "tester"}} = StateFinder.get_from_cluster(ets_id, Node.self())
+
+      assert {:ok, %{username: "tester"}, _} =
+               StateFinder.get_from_cluster(ets_id, Node.self())
     end
 
     test "updates state when stashed assigns fingerprint changes", %{
@@ -158,7 +160,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
       ETS.stash(updated_socket)
 
-      assert {:ok, saved_state} = StateFinder.get_from_cluster(ets_id, Node.self())
+      assert {:ok, saved_state, _} = StateFinder.get_from_cluster(ets_id, Node.self())
       assert saved_state == %{username: "tester-2"}
     end
 
@@ -172,7 +174,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
       assert %Socket{} = ETS.stash(socket_configured)
 
-      assert {:ok, saved_state} = StateFinder.get_from_cluster(ets_id, Node.self())
+      assert {:ok, saved_state, _} = StateFinder.get_from_cluster(ets_id, Node.self())
 
       assert saved_state == %{username: "tester"}
     end
@@ -203,7 +205,7 @@ defmodule LiveStash.Adapters.ETSTest do
 
       state_to_recover = %{player_level: 42, theme: "dark"}
 
-      State.insert!(State.new(ets_id, state_to_recover, ttl: 86_400))
+      State.insert!(State.new(ets_id, state_to_recover, [ttl: 86_400], nil))
 
       assert {:recovered, recovered_socket} = ETS.recover_state(socket)
 
@@ -252,6 +254,21 @@ defmodule LiveStash.Adapters.ETSTest do
       assert log =~ "Failed to recover state"
     end
 
+    test "returns error and deletes stashed state when stored version does not match context version",
+         %{socket: socket, ets_id: ets_id} do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+
+      State.insert!(State.new(ets_id, %{player_level: 1}, [ttl: 86_400], "old_version"))
+
+      log =
+        capture_log(fn ->
+          assert {:error, _socket} = ETS.recover_state(socket)
+        end)
+
+      assert log =~ "version_mismatch"
+      assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
+    end
+
     test "returns :new and socket when reconnected? is false", %{socket: socket} do
       assert {:new, returned_socket} = ETS.recover_state(socket)
       assert returned_socket == socket
@@ -262,9 +279,9 @@ defmodule LiveStash.Adapters.ETSTest do
     test "deletes the state from ETS and clears fingerprint", %{socket: socket, ets_id: ets_id} do
       socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
 
-      State.insert!(State.new(ets_id, %{data: "to_be_deleted"}, ttl: 86_400))
+      State.insert!(State.new(ets_id, %{data: "to_be_deleted"}, [ttl: 86_400], nil))
 
-      assert {:ok, _} = StateFinder.get_from_cluster(ets_id, Node.self())
+      assert {:ok, _, _} = StateFinder.get_from_cluster(ets_id, Node.self())
 
       reset_socket = ETS.reset_stash(socket)
 
