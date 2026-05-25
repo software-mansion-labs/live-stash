@@ -23,15 +23,6 @@ defmodule LiveStash.Adapters.Mnesia do
   @doc false
   @impl true
   def child_spec(opts \\ []) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
-      type: :supervisor
-    }
-  end
-
-  @doc false
-  def start_link(opts \\ []) do
     unless Code.ensure_loaded?(Memento) do
       msg =
         Utils.reason_message(
@@ -45,6 +36,15 @@ defmodule LiveStash.Adapters.Mnesia do
       raise RuntimeError, msg
     end
 
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, [opts]},
+      type: :supervisor
+    }
+  end
+
+  @doc false
+  def start_link(opts \\ []) do
     children = [
       {LiveStash.Adapters.Mnesia.Storage, opts},
       {LiveStash.Adapters.Mnesia.Cleaner, opts}

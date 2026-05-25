@@ -67,7 +67,14 @@ defmodule LiveStash.Adapters.Mnesia.State do
   defp init_table(nodes) do
     case Memento.add_nodes(nodes) do
       {:ok, []} ->
-        {:error, {:no_peers_reached, nodes}}
+        Logger.warning(
+          Utils.reason_message(
+            "Could not reach any Mnesia peer",
+            {:requested_nodes, nodes}
+          )
+        )
+
+        Memento.Table.create_copy(__MODULE__, node(), :ram_copies)
 
       {:ok, connected} ->
         missing = nodes -- connected
@@ -90,14 +97,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
   defp handle_create_result!(:ok), do: :ok
   defp handle_create_result!({:error, {:already_exists, _}}), do: :ok
   defp handle_create_result!({:error, {:already_exists, _, _}}), do: :ok
-
-  defp handle_create_result!({:error, {:no_peers_reached, nodes}}) do
-    raise RuntimeError,
-          Utils.reason_message(
-            "Could not reach any Mnesia peer",
-            {:requested_nodes, nodes}
-          )
-  end
 
   defp handle_create_result!({:error, {:add_nodes_failed, reason}}) do
     raise RuntimeError, Utils.reason_message("Failed to join Mnesia cluster", reason)

@@ -62,7 +62,7 @@ config :live_stash, adapters: [LiveStash.Adapters.Mnesia], mnesia_cleanup_interv
 
 ### Split brain resolution strategy
 
-By default, in reaction to `:inconsistent_database` event from Mnesia, LiveStash deletes the state on the node larger lexicographically (`nodeA > nodeB`). You can pass `auto_heal_mnesia: false` and implement your own strategy.
+By default, in reaction to `:inconsistent_database` event from Mnesia, the lexicographically larger node yields and copies state from the smaller node (`nodeA > nodeB`). You can pass `auto_heal_mnesia: false` and implement your own strategy.
 
 ```elixir
 config :live_stash, adapters: [LiveStash.Adapters.Mnesia], auto_heal_mnesia: false
