@@ -5,8 +5,7 @@ defmodule LiveStash.Adapters.ETS.State do
   The state is stored in the following format:
   - id: the id of the LiveView
   - pid: the pid of the LiveView
-  - delete_at: the timestamp when the state should be deleted
-  - ttl: the time to live of the state
+  - delete_at: the timestamp (in seconds) when the state should be deleted
   - state: the state of the LiveView
   """
 
@@ -15,21 +14,17 @@ defmodule LiveStash.Adapters.ETS.State do
   alias LiveStash.Utils
 
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
-  @batch_size Application.compile_env(:live_stash, :ets_cleanup_batch_size, 100)
 
-  Record.defrecord(:state, [:id, :pid, :delete_at, :ttl, :state, :version])
+  Record.defrecord(:state, [:id, :pid, :delete_at, :state, :version])
 
   @type t ::
           record(:state,
             id: term(),
             pid: pid(),
             delete_at: integer(),
-            ttl: integer(),
             state: map(),
             version: term()
           )
-
-  @typep continuation :: tuple() | :"$end_of_table"
 
   @doc """
   Creates the ETS table for storing the state of LiveViews.
@@ -58,7 +53,6 @@ defmodule LiveStash.Adapters.ETS.State do
       id: id,
       pid: self(),
       delete_at: System.os_time(:second) + ttl,
-      ttl: ttl,
       state: state,
       version: version
     )
@@ -83,7 +77,7 @@ defmodule LiveStash.Adapters.ETS.State do
     new_record = new(id, state, opts, version)
 
     match_spec = [
-      {{:state, id, pid, :_, :_, :_, :_}, [], [{new_record}]}
+      {{:state, id, pid, :_, :_, :_}, [], [{new_record}]}
     ]
 
     if :ets.select_replace(@table_name, match_spec) == 0 do
@@ -109,7 +103,7 @@ defmodule LiveStash.Adapters.ETS.State do
     @table_name
     |> :ets.lookup(id)
     |> case do
-      [{:state, ^id, _pid, _delete_at, _ttl, state, version}] -> {:ok, state, version}
+      [{:state, ^id, _pid, _delete_at, state, version}] -> {:ok, state, version}
       [] -> :not_found
     end
   end
@@ -131,45 +125,39 @@ defmodule LiveStash.Adapters.ETS.State do
     @table_name
     |> :ets.take(id)
     |> case do
-      [{:state, ^id, _pid, _delete_at, _ttl, state, version}] -> {:ok, state, version}
+      [{:state, ^id, _pid, _delete_at, state, version}] -> {:ok, state, version}
       [] -> :not_found
     end
   end
 
   @doc """
-  Gets a batch of state records from the ETS table.
-  """
-  @spec get_batch!(now :: integer()) ::
-          {[{term(), pid(), integer()}], continuation()} | :"$end_of_table"
-  def get_batch!(now) when is_integer(now) do
-    spec = [
-      {
-        # Pattern: {:state, id, pid, delete_at, ttl, _state, _version}
-        {:state, :"$1", :"$2", :"$3", :"$4", :_, :_},
-        # Guard: delete_at < now
-        [{:<, :"$3", now}],
-        # Return: {id, pid, ttl}
-        [{{:"$1", :"$2", :"$4"}}]
-      }
-    ]
+  Refreshes the `delete_at` of a state record to `now + ttl`.
 
-    :ets.select(@table_name, spec, @batch_size)
+  No-op if the record does not exist.
+  """
+  @spec bump_delete_at!(id :: term(), ttl :: integer()) :: :ok
+  def bump_delete_at!(id, ttl) when is_integer(ttl) do
+    :ets.update_element(@table_name, id, {4, System.os_time(:second) + ttl})
+    :ok
   end
 
   @doc """
-  Gets the next batch of state records from the ETS table.
-  """
-  @spec get_next_batch!(continuation :: continuation()) ::
-          {[{term(), pid(), integer()}], continuation()} | :"$end_of_table"
-  def get_next_batch!(:"$end_of_table"), do: :"$end_of_table"
-  def get_next_batch!(continuation), do: :ets.select(continuation)
+  Deletes every record whose `delete_at` is strictly less than `now`.
 
-  @doc """
-  Bumps the delete_at time of a state record in the ETS table.
+  Uses `:ets.select_delete/2` with a guard so the whole sweep happens inside
+  ETS as a single atomic operation per row, without copying records to the
+  caller's heap.
   """
-  @spec bump_delete_at!(id :: term(), time :: integer()) :: :ok
-  def bump_delete_at!(id, time) when is_integer(time) do
-    :ets.update_element(@table_name, id, {4, time})
-    :ok
+  @spec delete_expired!(now :: integer()) :: non_neg_integer()
+  def delete_expired!(now) when is_integer(now) do
+    match_spec = [
+      {
+        {:state, :_, :_, :"$1", :_, :_},
+        [{:<, :"$1", now}],
+        [true]
+      }
+    ]
+
+    :ets.select_delete(@table_name, match_spec)
   end
 end
