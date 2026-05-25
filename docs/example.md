@@ -4,7 +4,7 @@ We are going to take a look at an example of a tic tac toe game that you can exa
 
 The state that should survive reconnects is declared up front with `stored_keys: [:board, :current_player, :winner, :winning_line]`, and `LiveStash.stash/1` only emits a new browser event when that configured subset changes.
 
-For a complete project example go to our [repository](https://github.com/software-mansion-labs/live-stash/blob/v0.2.0/examples/showcase_app/README.md).
+For a complete project example go to our [repository](https://github.com/software-mansion-labs/live-stash/blob/v0.3.0/examples/showcase_app/README.md).
 
 ## Initialization
 
@@ -119,7 +119,7 @@ end
 
 This section handles the core game logic and user actions. The `handle_event/3` callbacks listen for the actions triggered from the UI. When a player makes a move, the board is updated, checked for a win or draw, and the turn shifts to the next player.
 
-Crucially, after updating the socket assigns, we pipe it into `stash()`. The assigns to persist are declared in `use LiveStash`, so LiveStash securely persists that configured state when the connection drops.
+If you pass `auto_stash: true`, you can remove these explicit `LiveStash.stash/1` calls.
 
 ## State recovery
 

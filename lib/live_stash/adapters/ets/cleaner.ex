@@ -29,7 +29,7 @@ defmodule LiveStash.Adapters.ETS.Cleaner do
     {:noreply, state}
   rescue
     error ->
-      err = Utils.exception_message("Could not clean up expired states", error, __STACKTRACE__)
+      err = Utils.exception_message("Failed to clean up expired states", error, __STACKTRACE__)
       Logger.error(err)
 
       {:noreply, state}

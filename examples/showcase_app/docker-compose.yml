@@ -1,4 +1,14 @@
 services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+
   node_a:
     build: .
     hostname: node_a
@@ -6,6 +16,7 @@ services:
     command: sh -c "mix deps.get && epmd -daemon && elixir --sname a@node_a --cookie livestashexamplecluster -S mix phx.server"
     environment:
       - PORT=4000
+      - LIVE_STASH_REDIS_URL=redis://redis:6379
     ports:
       - "4002:4000"
     volumes:
@@ -14,6 +25,9 @@ services:
       - /workspace/examples/showcase_app/deps
       - /workspace/_build
       - /workspace/deps
+    depends_on:
+      redis:
+        condition: service_healthy
 
   node_b:
     build: .
@@ -22,6 +36,7 @@ services:
     command: sh -c "mix deps.get && epmd -daemon && elixir --sname b@node_b --cookie livestashexamplecluster -S mix phx.server"
     environment:
       - PORT=4000
+      - LIVE_STASH_REDIS_URL=redis://redis:6379
     ports:
       - "4001:4000"
     volumes:
@@ -30,6 +45,9 @@ services:
       - /workspace/examples/showcase_app/deps
       - /workspace/_build
       - /workspace/deps
+    depends_on:
+      redis:
+        condition: service_healthy
 
   nginx:
     image: nginx:alpine

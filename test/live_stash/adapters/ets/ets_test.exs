@@ -54,7 +54,7 @@ defmodule LiveStash.Adapters.ETSTest do
   end
 
   describe "init_stash/3" do
-    test "reuses existing stashId, pushes init event and clears ETS when not reconnected", %{
+    test "rotates stashId, pushes init event and clears ETS when not reconnected", %{
       socket: socket,
       ets_id: ets_id,
       delete_at: delete_at
@@ -65,7 +65,8 @@ defmodule LiveStash.Adapters.ETSTest do
 
       generated_id = initialized_socket.private.live_stash_context.id
 
-      assert generated_id == "test_uuid_1234"
+      assert generated_id != "test_uuid_1234"
+      assert is_binary(generated_id)
 
       assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
 
@@ -246,7 +247,7 @@ defmodule LiveStash.Adapters.ETSTest do
           assert {:error, _socket} = ETS.recover_state(broken_socket)
         end)
 
-      assert log =~ "Could not recover state"
+      assert log =~ "Failed to recover state"
     end
 
     test "returns :new and socket when reconnected? is false", %{socket: socket} do
@@ -270,15 +271,30 @@ defmodule LiveStash.Adapters.ETSTest do
       assert StateFinder.get_from_cluster(ets_id, Node.self()) == :not_found
     end
 
-    test "rescues exceptions, logs error and returns socket unchanged", %{socket: socket} do
-      broken_socket = put_in(socket.private.live_stash_context, nil)
+    test "rotates ID and pushes init event when ETS delete fails", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.stash_fingerprint, "some_hash_to_clear")
+
+      :ets.delete(@table_name)
 
       log =
         capture_log(fn ->
-          assert %Socket{} = ETS.reset_stash(broken_socket)
+          reset_socket = ETS.reset_stash(socket)
+
+          assert %Socket{} = reset_socket
+          assert reset_socket.private.live_stash_context.stash_fingerprint == nil
+
+          new_id = reset_socket.private.live_stash_context.id
+          assert new_id != "test_uuid_1234"
+
+          queued_events = get_in(reset_socket.private, [:live_temp, :push_events]) || []
+
+          assert Enum.any?(queued_events, fn
+                   ["live-stash:init-ets", payload] -> payload.stashId == new_id
+                   _other -> false
+                 end)
         end)
 
-      assert log =~ "Could not reset stash"
+      assert log =~ "Failed to delete stash during reset"
     end
   end
 end

@@ -19,40 +19,52 @@ defmodule LiveStash.Adapters.ETS do
   alias LiveStash.Adapters.ETS.StateFinder
   alias LiveStash.Adapters.ETS.Context
   alias LiveStash.Utils
+  alias LiveStash.Adapters.Common
 
   alias Phoenix.LiveView
 
   @doc false
   @impl true
   def child_spec(opts \\ []) do
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
-      type: :supervisor
-    }
-  end
-
-  @doc false
-  def start_link(opts \\ []) do
     children = [
       {LiveStash.Adapters.ETS.Storage, opts},
       {LiveStash.Adapters.ETS.Cleaner, opts}
     ]
 
-    Supervisor.start_link(children, strategy: :one_for_one, name: __MODULE__.Supervisor)
+    %{
+      id: __MODULE__,
+      start: {Supervisor, :start_link, [children, [strategy: :one_for_one]]},
+      type: :supervisor
+    }
   end
 
   @impl true
   def init_stash(socket, session, opts) do
-    context = Context.new(socket, session, opts)
+    socket = Common.init_context(socket, session, opts, __MODULE__)
+    context = socket.private.live_stash_context
 
-    socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
+    socket =
+      if context.reconnected? do
+        socket
+      else
+        try do
+          socket
+          |> get_ets_id()
+          |> State.delete_by_id!()
+        rescue
+          error ->
+            err =
+              Utils.exception_message(
+                "Failed to clear existing stash on new connection",
+                error,
+                __STACKTRACE__
+              )
 
-    if not context.reconnected? do
-      socket
-      |> get_ets_id()
-      |> State.delete_by_id!()
-    end
+            Logger.error(err)
+        end
+
+        Common.rotate_id(socket)
+      end
 
     node_hint = NodeHint.create_node_hint(socket)
 
@@ -60,7 +72,7 @@ defmodule LiveStash.Adapters.ETS do
     |> Hook.attach()
     |> LiveView.push_event("live-stash:init-ets", %{
       node: node_hint,
-      stashId: context.id
+      stashId: socket.private.live_stash_context.id
     })
   end
 
@@ -108,7 +120,7 @@ defmodule LiveStash.Adapters.ETS do
     end
   rescue
     error ->
-      err = Utils.exception_message("Could not recover state", error, __STACKTRACE__)
+      err = Utils.exception_message("Failed to recover state", error, __STACKTRACE__)
       Logger.error(err)
 
       {:error, socket}
@@ -118,20 +130,31 @@ defmodule LiveStash.Adapters.ETS do
 
   @impl true
   def reset_stash(socket) do
-    context = socket.private.live_stash_context
-    updated_context = %{context | stash_fingerprint: nil}
-
     socket
     |> get_ets_id()
     |> State.delete_by_id!()
 
-    LiveView.put_private(socket, :live_stash_context, updated_context)
+    Common.clear_fingerprint(socket)
   rescue
     error ->
-      err = Utils.exception_message("Could not reset stash", error, __STACKTRACE__)
-      Logger.error(err)
+      msg =
+        Utils.exception_message(
+          "Failed to delete stash during reset. Rotating ID as fallback.",
+          error,
+          __STACKTRACE__
+        )
 
-      socket
+      Logger.error(msg)
+
+      socket =
+        socket
+        |> Common.rotate_id()
+        |> Common.clear_fingerprint()
+
+      LiveView.push_event(socket, "live-stash:init-ets", %{
+        node: socket.private.live_stash_context.node_hint,
+        stashId: socket.private.live_stash_context.id
+      })
   end
 
   defp get_ets_id(socket) do

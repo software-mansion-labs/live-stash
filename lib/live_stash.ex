@@ -71,6 +71,7 @@ defmodule LiveStash do
   alias Phoenix.LiveView.Socket
   alias Phoenix.LiveView
   alias LiveStash.Utils
+  alias LiveStash.OptsHelpers
 
   require Logger
 
@@ -113,6 +114,10 @@ defmodule LiveStash do
   It initializes stash handling for the current socket and continues the mount
   lifecycle.
   """
+  def on_mount(_opts, :not_mounted_at_router, _session, _socket) do
+    raise ArgumentError, "LiveStash does not support nested LiveViews."
+  end
+
   def on_mount(opts, _params, session, socket) do
     socket = init_stash(socket, session, opts)
 
@@ -133,19 +138,11 @@ defmodule LiveStash do
   def init_stash(socket, session, opts \\ []) do
     {adapter, opts} = Keyword.pop(opts, :adapter, LiveStash.Adapter.default())
 
-    active_adapters = Application.get_env(:live_stash, :adapters, [LiveStash.Adapter.default()])
-
-    if adapter not in active_adapters do
-      msg =
-        Utils.reason_message(
-          "The adapter #{inspect(adapter)} is not active. Please add it to the :adapters list in your :live_stash config.",
-          :invalid
-        )
-
-      raise ArgumentError, msg
-    end
+    OptsHelpers.ensure_stored_keys!(opts)
+    OptsHelpers.ensure_adapter_active!(adapter)
 
     socket
+    |> OptsHelpers.handle_auto_stash(opts)
     |> LiveView.put_private(:live_stash_adapter, adapter)
     |> adapter.init_stash(session, opts)
   end

@@ -20,7 +20,7 @@ defmodule ShowcaseAppWeb.CounterLive do
   use LiveStash, stored_keys: [:count, :user_id]
 ```
 
-2. Update your assigns and call `LiveStash.stash/1`. The assigns you declared in the previous step will be persisted. LiveStash avoids redundant stash writes when the values have not changed.
+2. Update your assigns. By default, LiveStash requires you to call `LiveStash.stash/1` manually, and only writes when the configured `stored_keys` values change.
 
 ```elixir
   def handle_event("increment", _, socket) do
@@ -30,6 +30,19 @@ defmodule ShowcaseAppWeb.CounterLive do
     |> LiveStash.stash()
     |> then(&{:noreply, &1})
   end
+```
+
+You can pass `auto_stash: true` when you want auto-stashes after each render, but we recommend using it only if you have a very specific use case that requires it. In most cases, manual stashing is more efficient and gives you better control over when the state is saved:
+
+```elixir
+use LiveStash, stored_keys: [:count, :user_id], auto_stash: true
+
+def handle_event("increment", _, socket) do
+  socket
+  |> assign(:count, socket.assigns.count + 1)
+  |> assign(:user_id, 123)
+  |> then(&{:noreply, &1})
+end
 ```
 
 3. Call `recover_state(socket)` in your `mount/3` function call. It will automatically restore assigns to your socket.
@@ -58,7 +71,7 @@ Add `live_stash` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:live_stash, "~> 0.2.0"}
+    {:live_stash, "~> 0.3.0"}
   ]
 end
 ```
@@ -80,6 +93,7 @@ You can control where the stashed data is kept by passing appropriate adapter mo
 
 - **ETS** - (default) The data is kept on the server side in the ETS table.
 - **Browser memory** - The data is saved in the client browser.
+- **Redis** - The data is kept on the server side in Redis.
 
 ```elixir
 use LiveStash, adapter: LiveStash.Adapters.ETS, stored_keys: [:count, :user_id]
@@ -88,12 +102,12 @@ use LiveStash, adapter: LiveStash.Adapters.ETS, stored_keys: [:count, :user_id]
 Remember to define adapters you would like to activate in your `config.exs` file.
 
 ```elixir
-config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory]
+config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis]
 ```
 
 The default adapter is `LiveStash.Adapters.ETS` and it is always activated.
 
-See [ETS Adapter Guide](https://hexdocs.pm/live_stash/ets.html) and [Browser Memory Adapter Guide](https://hexdocs.pm/live_stash/browser_memory.html) for details on how to customize LiveStash to your needs.
+See [ETS Adapter Guide](https://hexdocs.pm/live_stash/ets.html), [Redis Adapter Guide](https://hexdocs.pm/live_stash/redis.html) and [Browser Memory Adapter Guide](https://hexdocs.pm/live_stash/browser_memory.html) for details on how to customize LiveStash to your needs.
 
 ## When not to use
 

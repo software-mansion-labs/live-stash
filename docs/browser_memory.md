@@ -6,6 +6,12 @@ In this mode, the stashed state is kept in the browser's memory. Each call to `s
 
 The assigns you want to persist are declared once at the module level with `stored_keys: [...]`, and `stash/1` only sends the state to the client if those values have changed since the last stash.
 
+LiveStash requires you to call `LiveStash.stash/1` manually by default (`auto_stash: false`). Set `auto_stash: true` if you prefer to auto-stash after each render.
+
+> #### Warning {: .warning}
+>
+> Auto-stashing can lead to increased network traffic and potential performance issues if used irresponsibly, for example with input fields.
+
 ## When to use
 
 Choose the Browser Memory mode when:
@@ -24,6 +30,14 @@ An updated socket is returned from `LiveStash.recover_state/1` only if the store
 The stash is always cleared after a LiveView using this mode is rendered for the first time. You can also do it manually with `LiveStash.reset_stash/1`. Naturally, refreshing the browser tab clears this state as well.
 
 ## Configuration
+
+### Activating the adapter
+
+Remember to define adapters you would like to activate in your `config.exs` file.
+
+```elixir
+config :live_stash, adapters: [LiveStash.Adapters.BrowserMemory]
+```
 
 ### Expiration (TTL)
 
