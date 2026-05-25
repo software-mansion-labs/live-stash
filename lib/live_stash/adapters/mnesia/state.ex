@@ -21,6 +21,8 @@ defmodule LiveStash.Adapters.Mnesia.State do
   # but in reality returns :ok. The `:ok ->` branch in `put!/3` is therefore reachable.
   @dialyzer {:no_match, put!: 3}
 
+  @batch_size Application.compile_env(:live_stash, :mnesia_cleanup_batch_size, 100)
+
   @type t :: %__MODULE__{
           id: term(),
           pid: pid(),
@@ -214,20 +216,25 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   @doc """
-  Deletes every record whose `delete_at` is strictly less than `now`.
+  Deletes every record whose `delete_at` is strictly less than `now` in batches.
   """
-  @spec delete_expired!(now :: integer()) :: integer()
-  def delete_expired!(now) when is_integer(now) do
-    Memento.transaction!(fn ->
-      match_head = {__MODULE__, :"$1", :_, :"$2", :_}
-      guards = [{:<, :"$2", now}]
-      projection = [:"$1"]
+  @spec delete_expired!(now :: integer(), batch_size :: pos_integer()) :: integer()
+  def delete_expired!(now, batch_size \\ @batch_size) when is_integer(now) do
+    deleted_in_batch =
+      Memento.transaction!(fn ->
+        guard = {:<, :delete_at, now}
 
-      ids = :mnesia.select(__MODULE__, [{match_head, guards, projection}])
+        records = Memento.Query.select(__MODULE__, guard, limit: batch_size)
 
-      Enum.each(ids, &Memento.Query.delete(__MODULE__, &1))
+        Enum.each(records, &Memento.Query.delete_record/1)
 
-      length(ids)
-    end)
+        length(records)
+      end)
+
+    if deleted_in_batch == batch_size do
+      deleted_in_batch + delete_expired!(now, batch_size)
+    else
+      deleted_in_batch
+    end
   end
 end

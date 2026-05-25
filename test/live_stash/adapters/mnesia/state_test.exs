@@ -112,7 +112,7 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
     end
   end
 
-  describe "delete_expired!/1" do
+  describe "delete_expired!/1 and /2" do
     test "deletes only records whose delete_at is strictly less than now" do
       assert :ok = State.put!("expired_1", %{key: "value1"}, ttl: 1)
       assert :ok = State.put!("expired_2", %{key: "value2"}, ttl: 1)
@@ -125,6 +125,7 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
         end
       end)
 
+      # Relies on the default batch_size (which is larger than 2)
       assert State.delete_expired!(System.os_time(:second)) == 2
 
       assert :not_found == State.get_by_id!("expired_1")
@@ -137,6 +138,35 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
 
       assert State.delete_expired!(System.os_time(:second)) == 0
       assert {:ok, _} = State.get_by_id!("fresh")
+    end
+
+    test "deletes records in batches when expired records exceed batch_size" do
+      for i <- 1..5 do
+        assert :ok = State.put!("batch_expired_#{i}", %{key: "val"}, ttl: 1)
+      end
+
+      # 2. Create 2 fresh records
+      for i <- 1..2 do
+        assert :ok = State.put!("batch_fresh_#{i}", %{key: "val"}, ttl: 86_400)
+      end
+
+      # 3. Manually push the delete_at into the past for the 5 expired records
+      Memento.transaction!(fn ->
+        for i <- 1..5 do
+          record = Memento.Query.read(LiveStash.Adapters.Mnesia.State, "batch_expired_#{i}")
+          Memento.Query.write(%{record | delete_at: System.os_time(:second) - 5})
+        end
+      end)
+
+      assert State.delete_expired!(System.os_time(:second), 2) == 5
+
+      for i <- 1..5 do
+        assert :not_found == State.get_by_id!("batch_expired_#{i}")
+      end
+
+      for i <- 1..2 do
+        assert {:ok, _} = State.get_by_id!("batch_fresh_#{i}")
+      end
     end
   end
 end
