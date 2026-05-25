@@ -45,8 +45,25 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
   """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do
-    State.delete_expired!(System.os_time(:second))
-    :ok
+    if state_table_available?() do
+      State.delete_expired!(System.os_time(:second))
+      :ok
+    else
+      Logger.warning(
+        Utils.message(
+          "Mnesia State table not available during cleanup. Skipping cleanup cycle."
+        )
+      )
+
+      :ok
+    end
+  end
+
+  defp state_table_available?() do
+    :mnesia.system_info(:is_running) == :yes and
+      :mnesia.table_info(State, :where_to_read) != :nowhere
+  rescue
+    _ -> false
   end
 
   defp schedule_cleanup(), do: Process.send_after(self(), :cleanup, @cleanup_interval)
