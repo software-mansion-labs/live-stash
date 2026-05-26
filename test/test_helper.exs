@@ -11,4 +11,3 @@ LiveStash.TestSupport.ClusterHelpers.ensure_distribution_started!()
 :mnesia.start()
 
 ExUnit.start()
-:logger.set_primary_config(:level, :warning)
