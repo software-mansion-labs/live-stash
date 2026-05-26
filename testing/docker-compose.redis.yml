@@ -1,0 +1,18 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: testing_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.66.0
+    container_name: testing_redis_exporter
+    ports:
+      - "9121:9121"
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    depends_on:
+      - redis
+    restart: unless-stopped

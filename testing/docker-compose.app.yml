@@ -1,0 +1,29 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: testing/Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      PHX_SERVER: "true"
+      PHX_HOST: "${PHX_HOST:-localhost}"
+      SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
+      # Set if using the Redis adapter:
+      # REDIS_URL: "redis://${REDIS_HOST:-localhost}:6379"
+    restart: unless-stopped
+
+  node_exporter:
+    image: prom/node-exporter:v1.8.2
+    pid: host
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    restart: unless-stopped

@@ -29,14 +29,4 @@ defmodule Testing.PromEx do
       Testing.PromEx.SchedulerPlugin
     ]
   end
-
-  @impl true
-  def dashboards do
-    [
-      {:prom_ex, "application.json"},
-      {:prom_ex, "beam.json"},
-      {:prom_ex, "phoenix.json"},
-      {:prom_ex, "phoenix_live_view.json"}
-    ]
-  end
 end

@@ -8,8 +8,36 @@ scrape_configs:
   # `host.docker.internal` resolves to the host machine from inside the
   # container on Docker Desktop (Mac/Windows) and via the host-gateway
   # alias on Linux (see docker-compose.yml).
+  # Local dev (mix phx.server on host)
   - job_name: testing_app
     static_configs:
       - targets: ["host.docker.internal:4000"]
         labels:
           instance: local
+
+  # Multi-VM setup — replace with actual app VM IPs
+  # - job_name: testing_cluster
+  #   static_configs:
+  #     - targets:
+  #         - "APP_VM_1:4000"
+  #         - "APP_VM_2:4000"
+  #         # - "APP_VM_3:4000"
+
+  # node_exporter — local dev (host machine)
+  - job_name: node
+    static_configs:
+      - targets:
+          - "host.docker.internal:9100"
+
+  # node_exporter on each app VM (multi-VM setup)
+  # - job_name: node
+  #   static_configs:
+  #     - targets:
+  #         - "APP_VM_1:9100"
+  #         - "APP_VM_2:9100"
+  #         # - "APP_VM_3:9100"
+
+  # Redis (runs on its own VM)
+  # - job_name: redis
+  #   static_configs:
+  #     - targets: ["REDIS_VM:9121"]

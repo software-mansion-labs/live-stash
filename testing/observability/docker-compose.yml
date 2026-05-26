@@ -8,6 +8,8 @@ services:
       - --storage.tsdb.path=/prometheus
       - --web.console.libraries=/usr/share/prometheus/console_libraries
       - --web.console.templates=/usr/share/prometheus/consoles
+      - --web.enable-remote-write-receiver
+      - --enable-feature=native-histograms
     ports:
       - "9090:9090"
     volumes:
@@ -17,6 +19,19 @@ services:
     # to the host machine. On Docker Desktop (Mac/Windows) it's a no-op.
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: testing_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx:/etc/nginx/templates:ro
+    environment:
+      APP_VM_1: "${APP_VM_1:-127.0.0.1}"
+      APP_VM_2: "${APP_VM_2:-127.0.0.1}"
+      APP_VM_3: "${APP_VM_3:-}"
     restart: unless-stopped
 
   grafana:

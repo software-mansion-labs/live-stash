@@ -11,13 +11,19 @@ Load tests for the `testing/` Phoenix app using [k6](https://k6.io).
 ## Run
 
 ```sh
+# Console output only
 k6 run testing/k6/load_test.js
+
+# With Prometheus remote write (sends k6 metrics to Grafana)
+K6_PROMETHEUS_RW_SERVER_URL=http://localhost:9090/api/v1/write \
+K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true \
+  k6 run --out=experimental-prometheus-rw testing/k6/load_test.js
 ```
 
 ### Options
 
 | Variable     | Default                      | Description                        |
-|--------------|------------------------------|------------------------------------|
+| ------------ | ---------------------------- | ---------------------------------- |
 | `HOST`       | `localhost:4000`             | Host and port of the Phoenix app   |
 | `SIZE_KB`    | `100`                        | Payload size in KB                 |
 | `BASE_PATH`  | `/performance/livestash_ets` | Which live view to test            |
@@ -33,6 +39,10 @@ k6 run -e BASE_PATH=/performance/baseline testing/k6/load_test.js
 
 # Custom payload size
 k6 run -e BASE_PATH=/performance/baseline -e SIZE_KB=1000 testing/k6/load_test.js
+
+K6_PROMETHEUS_RW_SERVER_URL=http://localhost:9090/api/v1/write \
+K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true \
+  k6 run -e BASE_PATH=/performance/baseline -e SIZE_KB=1000 --out=experimental-prometheus-rw testing/k6/load_test.js
 ```
 
 ## Scenarios
@@ -48,7 +58,7 @@ Default load profile: ramp to 50 VUs over 30s, hold for 60s, ramp down.
 
 ## Metrics
 
-| Metric               | Description                                      |
-|----------------------|--------------------------------------------------|
+| Metric                | Description                                         |
+| --------------------- | --------------------------------------------------- |
 | `first_render_rtt_ms` | RTT from `phx_join` to receiving the initial render |
 | `stash_rtt_ms`        | RTT from sending `regenerate` to receiving the diff |
