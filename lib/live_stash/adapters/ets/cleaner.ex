@@ -36,47 +36,24 @@ defmodule LiveStash.Adapters.ETS.Cleaner do
   end
 
   @doc """
-  Cleans up expired states from the ETS table.
-  It uses a batching approach to avoid locking the table for too long.
-  It bumps the delete_at time for records with alive processes and deletes records with dead processes.
+  Deletes all records whose `delete_at` has elapsed.
+
+  TTL bumping for live LiveViews is handled by `LiveStash.Adapters.ETS.Hook`
+  via periodic keep-alive ticks on the owning process, so this cleaner only
+  needs to delete records whose owners stopped bumping them.
   """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do
     if :ets.whereis(@table_name) == :undefined do
       Logger.warning(
-        Utils.message(
-          "ETS table #{@table_name} not found during cleanup. Skipping cleanup cycle."
+        Utils.reason_message(
+          "ETS table #{@table_name} not found during cleanup. Skipping cleanup cycle.",
+          :not_found
         )
       )
     else
-      now = System.os_time(:second)
-
-      case State.get_batch!(now) do
-        {candidates, continuation} ->
-          do_clear!(candidates, continuation, now)
-
-        :"$end_of_table" ->
-          :ok
-      end
-    end
-  end
-
-  defp do_clear!(candidates, continuation, now) do
-    Enum.each(candidates, fn {id, pid, ttl} ->
-      if Process.alive?(pid) do
-        new_delete_at = now + ttl
-        State.bump_delete_at!(id, new_delete_at)
-      else
-        State.delete_by_id!(id)
-      end
-    end)
-
-    case State.get_next_batch!(continuation) do
-      {candidates, next_continuation} ->
-        do_clear!(candidates, next_continuation, now)
-
-      :"$end_of_table" ->
-        :ok
+      State.delete_expired!(System.os_time(:second))
+      :ok
     end
   end
 

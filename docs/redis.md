@@ -42,6 +42,30 @@ Remember to define adapters you would like to activate in your `config.exs` file
 config :live_stash, adapters: [LiveStash.Adapters.Redis]
 ```
 
+### Versioning
+
+Use `:version` to reject stashed state that was saved by a different version
+of your code. This is useful when you change the shape of the stashed assigns
+and want to discard state persisted by an older deploy rather than recovering
+potentially incompatible data.
+
+```elixir
+use LiveStash, stored_keys: [:count], version: 1
+```
+
+When a reconnect occurs, the recovered payload's version is compared to the
+configured value. A mismatch causes the stash to be discarded and the adapter
+to return `{:error, socket}`, the same as if recovery had failed.
+
+Increment the version whenever the structure of your stashed assigns changes
+in a backwards-incompatible way:
+
+```elixir
+use LiveStash, stored_keys: [:count, :step], version: 2
+```
+
+Omitting `:version` or setting it to `nil` disables the check.
+
 ### Redis connection
 
 Defines how LiveStash connects to Redis. The value is read from `config :live_stash, :redis` and can be:

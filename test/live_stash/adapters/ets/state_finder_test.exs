@@ -32,7 +32,7 @@ defmodule LiveStash.Adapters.ETS.StateFinderTest do
         true = Node.connect(peer2_node)
 
         local_state = %{from: :local}
-        :ok = State.insert!(State.new(id, local_state, ttl: 60))
+        :ok = State.insert!(State.new(id, local_state, [ttl: 60], nil))
 
         # Put state on peers too; it should NOT be popped if local state is found.
         :ok =
@@ -49,7 +49,7 @@ defmodule LiveStash.Adapters.ETS.StateFinderTest do
             state: %{from: peer2_node}
           )
 
-        assert {:ok, ^local_state} = StateFinder.get_from_cluster(id, peer1_node)
+        assert {:ok, ^local_state, _} = StateFinder.get_from_cluster(id, peer1_node)
 
         # We check that the state is still on the peer nodes because we didn't call them.
         assert ClusterHelpers.peer_has_state?(peer1_node, id)
@@ -89,7 +89,7 @@ defmodule LiveStash.Adapters.ETS.StateFinderTest do
             state: peer2_state
           )
 
-        assert {:ok, ^peer1_state} = StateFinder.get_from_cluster(id, peer1_node)
+        assert {:ok, ^peer1_state, _} = StateFinder.get_from_cluster(id, peer1_node)
 
         refute ClusterHelpers.peer_has_state?(peer1_node, id)
         assert ClusterHelpers.peer_has_state?(peer2_node, id)
@@ -126,7 +126,7 @@ defmodule LiveStash.Adapters.ETS.StateFinderTest do
             state: peer2_state
           )
 
-        assert {:ok, recovered_state} = StateFinder.get_from_cluster(id, nil)
+        assert {:ok, recovered_state, _} = StateFinder.get_from_cluster(id, nil)
         assert recovered_state in [peer1_state, peer2_state]
 
         # multicall uses pop; all nodes should have been popped regardless of which returned first
@@ -167,7 +167,7 @@ defmodule LiveStash.Adapters.ETS.StateFinderTest do
             state: peer3_state
           )
 
-        assert {:ok, recovered_state} = StateFinder.get_from_cluster(id, peer_hint_node)
+        assert {:ok, recovered_state, _} = StateFinder.get_from_cluster(id, peer_hint_node)
         assert recovered_state in [peer1_state, peer3_state]
 
         # Since node_hint missed, we should have fallen back to asking every other node.

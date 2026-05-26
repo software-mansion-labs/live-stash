@@ -9,6 +9,7 @@ defmodule LiveStash.Adapters.ETS.Context do
   * `:secret` - A binary string used as part of the record id in the ETS for security purposes.
   * `:ttl` - Time-to-live for the records kept in the ETS table, specified in seconds.
   * `:node_hint` - Information about the Elixir node that currently holds stashed state in the ETS. This is used to optimize state retrieval in a distributed deployment.
+  * `:version` - An optional value used to validate stashed state on recovery. If set, the recovered payload must carry the same version or it is rejected. Defaults to `nil` (no version check).
   """
 
   alias LiveStash.Adapters.ETS.NodeHint
@@ -29,7 +30,8 @@ defmodule LiveStash.Adapters.ETS.Context do
     stash_fingerprint: nil,
     secret: "live_stash",
     ttl: 5 * 60,
-    node_hint: nil
+    node_hint: nil,
+    version: nil
   ]
 
   @type t :: %__MODULE__{
@@ -39,7 +41,8 @@ defmodule LiveStash.Adapters.ETS.Context do
           secret: binary(),
           ttl: integer(),
           node_hint: atom() | nil,
-          id: binary()
+          id: binary(),
+          version: term()
         }
 
   @allowed_keys [
@@ -48,7 +51,8 @@ defmodule LiveStash.Adapters.ETS.Context do
     :stash_fingerprint,
     :secret,
     :ttl,
-    :id
+    :id,
+    :version
   ]
 
   @doc """

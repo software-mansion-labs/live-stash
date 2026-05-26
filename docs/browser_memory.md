@@ -39,6 +39,30 @@ Remember to define adapters you would like to activate in your `config.exs` file
 config :live_stash, adapters: [LiveStash.Adapters.BrowserMemory]
 ```
 
+### Versioning
+
+Use `:version` to reject stashed state that was saved by a different version
+of your code. This is useful when you change the shape of the stashed assigns
+and want to discard state persisted by an older deploy rather than recovering
+potentially incompatible data.
+
+```elixir
+use LiveStash, stored_keys: [:count], version: 1
+```
+
+When a reconnect occurs, the recovered payload's version is compared to the
+configured value. A mismatch causes the stash to be discarded and the adapter
+to return `{:error, socket}`, the same as if recovery had failed.
+
+Increment the version whenever the structure of your stashed assigns changes
+in a backwards-incompatible way:
+
+```elixir
+use LiveStash, stored_keys: [:count, :step], version: 2
+```
+
+Omitting `:version` or setting it to `nil` disables the check.
+
 ### Expiration (TTL)
 
 Stashed data has a Time-To-Live (TTL) that is used to determine how long the data should be retained. You can adjust this using the `:ttl` option. There is an external upper limit from Phoenix Token of 1 day (24 hours) for the maximum TTL.

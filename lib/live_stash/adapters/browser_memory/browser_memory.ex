@@ -39,8 +39,10 @@ defmodule LiveStash.Adapters.BrowserMemory do
     new_fingerprint = Utils.hash_term(assigns_to_stash)
 
     if new_fingerprint != context.stash_fingerprint do
+      wrapped = %{version: context.version, assigns: assigns_to_stash}
+
       serialized_assigns =
-        Serializer.encode_token(socket, assigns_to_stash, get_settings(socket))
+        Serializer.encode_token(socket, wrapped, get_settings(socket))
 
       payload = %{
         "assigns" => serialized_assigns
@@ -58,11 +60,13 @@ defmodule LiveStash.Adapters.BrowserMemory do
 
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
+    context = socket.private.live_stash_context
+
     with %{"liveStash" => %{"stashedState" => stashed_state}} when is_binary(stashed_state) <-
            LiveView.get_connect_params(socket),
-         {:ok, recovered_state} <-
-           Serializer.decode_token(socket, stashed_state, get_settings(socket)) do
-      context = socket.private.live_stash_context
+         {:ok, decoded} <-
+           Serializer.decode_token(socket, stashed_state, get_settings(socket)),
+         {:ok, recovered_state} <- unwrap_payload(decoded, context.version) do
       fingerprint = Utils.hash_term(recovered_state)
       updated_context = %{context | stash_fingerprint: fingerprint}
 
@@ -71,10 +75,23 @@ defmodule LiveStash.Adapters.BrowserMemory do
       |> LiveView.put_private(:live_stash_context, updated_context)
       |> then(&{:recovered, &1})
     else
+      {:error, :version_mismatch} ->
+        msg =
+          Utils.reason_message(
+            "Rejecting stashed state due to version mismatch.",
+            :version_mismatch
+          )
+
+        Logger.info(msg)
+
+        socket
+        |> LiveView.push_event("live-stash:init-browser-memory", %{})
+        |> then(&{:error, &1})
+
       {:error, reason} ->
         msg =
           Utils.reason_message(
-            "Failed to decode stashed state from token.",
+            "Failed to recover stashed state from token.",
             reason
           )
 
@@ -112,6 +129,9 @@ defmodule LiveStash.Adapters.BrowserMemory do
     |> LiveView.push_event("live-stash:init-browser-memory", %{})
     |> LiveView.put_private(:live_stash_context, updated_context)
   end
+
+  defp unwrap_payload(%{version: v, assigns: assigns}, v), do: {:ok, assigns}
+  defp unwrap_payload(_, _), do: {:error, :version_mismatch}
 
   defp get_settings(socket) do
     %{
