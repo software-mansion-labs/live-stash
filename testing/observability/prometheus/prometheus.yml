@@ -1,0 +1,15 @@
+global:
+  # Tight interval for short test runs. Tune up to 15s for steady-state.
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # The testing/ Phoenix app, running on the host (mix phx.server).
+  # `host.docker.internal` resolves to the host machine from inside the
+  # container on Docker Desktop (Mac/Windows) and via the host-gateway
+  # alias on Linux (see docker-compose.yml).
+  - job_name: testing_app
+    static_configs:
+      - targets: ["host.docker.internal:4000"]
+        labels:
+          instance: local
