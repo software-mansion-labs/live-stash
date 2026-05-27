@@ -186,6 +186,26 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   @doc """
+  Gets the state of a LiveView from the Mnesia table and re-inserts it with new delete_at and PID
+  """
+  @spec recover_and_insert!(id :: binary(), opts :: keyword()) :: {:ok, map()} | :not_found
+  def recover_and_insert!(id, opts) do
+    Memento.transaction!(fn ->
+      case Memento.Query.read(__MODULE__, id) do
+        nil ->
+          :not_found
+
+        %__MODULE__{state: recovered_state} ->
+          record = new(id, recovered_state, opts)
+
+          Memento.Query.write(record)
+
+          {:ok, recovered_state}
+      end
+    end)
+  end
+
+  @doc """
   Deletes the state of a LiveView from the Mnesia table.
   """
   @spec delete_by_id!(id :: binary()) :: :ok

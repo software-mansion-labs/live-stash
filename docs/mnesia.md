@@ -22,7 +22,7 @@ Choose the Mnesia adapter when:
 - **State durability (Rolling Redeploys):** You need stashed state to survive rolling server restarts and redeployments. Thanks to Mnesia's replication, the state persists as long as at least one node in the cluster remains active. _(Note: A simultaneous shutdown of the entire cluster will clear the state)._
 - **Clustering:** You have a clustered application where client can connect to different nodes.
 
-### Reseting the stash
+### Resetting the stash
 
 Stashed state is automatically cleared after the TTL passes, provided the process owning the state is dead. If the process is still alive, the `delete_at` time gets bumped by the TTL.
 

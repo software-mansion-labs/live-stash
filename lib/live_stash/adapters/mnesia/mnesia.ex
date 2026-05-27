@@ -117,13 +117,10 @@ defmodule LiveStash.Adapters.Mnesia do
   @impl true
   def recover_state(%{private: %{live_stash_context: %Context{reconnected?: true}}} = socket) do
     id = get_mnesia_id(socket)
+    opts = get_opts(socket)
 
-    case State.get_by_id!(id) do
+    case State.recover_and_insert!(id, opts) do
       {:ok, recovered_state} ->
-        id
-        |> State.new(recovered_state, get_opts(socket))
-        |> State.insert!()
-
         context = socket.private.live_stash_context
         fingerprint = Utils.hash_term(recovered_state)
         updated_context = %{context | stash_fingerprint: fingerprint}
