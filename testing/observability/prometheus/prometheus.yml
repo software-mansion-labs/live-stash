@@ -37,7 +37,13 @@ scrape_configs:
   #         - "APP_VM_2:9100"
   #         # - "APP_VM_3:9100"
 
-  # Redis (runs on its own VM)
+  # redis_exporter — local dev (docker-compose.redis.yml on host)
+  - job_name: redis
+    static_configs:
+      - targets:
+          - "host.docker.internal:9121"
+
+  # Redis on its own VM (multi-VM setup)
   # - job_name: redis
   #   static_configs:
   #     - targets: ["REDIS_VM:9121"]

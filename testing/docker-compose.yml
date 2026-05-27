@@ -1,0 +1,18 @@
+# Top-level compose for running the full stack locally on one machine.
+# Each `include:` is a self-contained "VM role" file — keep them runnable on
+# their own so the same files can deploy to separate VMs:
+#
+#   App VM:   docker compose -f docker-compose.app.yml up -d
+#   Redis VM: docker compose -f docker-compose.redis.yml up -d
+#   Obs VM:   docker compose -f observability/docker-compose.yml up -d
+#
+# Locally, just: docker compose up -d
+#
+# Services reach each other via `host.docker.internal:<published-port>` so the
+# same prometheus.yml works whether peers are on the same host or remote VMs
+# (swap the targets in prometheus.yml for the latter).
+
+include:
+  - docker-compose.app.yml
+  - docker-compose.redis.yml
+  - observability/docker-compose.yml

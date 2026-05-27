@@ -1,46 +1,42 @@
-# Observability — local Prometheus + Grafana
+# Observability — Prometheus + Grafana
 
-Local setup that scrapes the running `testing/` Phoenix app and renders the
-PromEx dashboards in Grafana.
+Scrapes the `testing/` Phoenix app, node_exporter, and redis_exporter and
+renders the PromEx + load-test dashboards in Grafana.
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────┐
-│ Host machine                                    │
-│                                                 │
-│  mix phx.server                                 │
-│  http://localhost:4000/metrics  ◄──┐            │
-│                                    │            │
-│  ┌──────────────────────────────┐  │ scrape     │
-│  │ docker compose:              │  │ every 5s   │
-│  │                              │  │            │
-│  │  Prometheus :9090  ──────────┘            │
-│  │       ▲                      │            │
-│  │       │ query                │            │
-│  │       │                      │            │
-│  │  Grafana :3000                │            │
-│  │  (datasource + dashboards    │            │
-│  │   auto-provisioned)          │            │
-│  └──────────────────────────────┘            │
-└─────────────────────────────────────────────────┘
-```
+Three "VM-role" compose files under `testing/`, each self-contained so the
+same files deploy to a single host (locally) or to separate VMs:
 
-`host.docker.internal` is how the Prometheus container reaches the Phoenix
-app on the host. Works out of the box on Docker Desktop (Mac/Windows); on
-Linux the `extra_hosts: host-gateway` line in `docker-compose.yml` makes
-it work too.
+- `docker-compose.app.yml` — app + node_exporter (ports 4000, 9100)
+- `docker-compose.redis.yml` — redis + redis_exporter (ports 6379, 9121)
+- `observability/docker-compose.yml` — prometheus + grafana + nginx (9090, 3000, 80)
 
-## Run
+Prometheus reaches the other services via `host.docker.internal:<port>`
+locally (the published ports show up on the host), or via VM IPs in
+production (see the commented blocks in `prometheus/prometheus.yml`).
+
+## Run — single host (local)
 
 ```sh
-# Terminal A — the app being measured
-cd ../  # i.e. the testing/ project root
-mix phx.server
+cd testing/
+SECRET_KEY_BASE=$(mix phx.gen.secret) docker compose up -d --build
+```
 
-# Terminal B — observability stack
-cd observability/
-docker-compose up -d
+The top-level `testing/docker-compose.yml` `include:`s all three role files.
+
+## Run — per VM
+
+```sh
+# App VM(s)
+docker compose -f docker-compose.app.yml up -d --build
+
+# Redis VM
+docker compose -f docker-compose.redis.yml up -d
+
+# Observability VM (after editing prometheus.yml targets to point at the
+# app/redis VM IPs)
+docker compose -f observability/docker-compose.yml up -d
 ```
 
 Then:

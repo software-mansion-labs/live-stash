@@ -1,0 +1,18 @@
+# k6 load driver — opt-in via profile so it doesn't start with `up`.
+#   docker-compose --profile k6 run --rm k6
+# Override script/env on the command line, e.g.:
+#   docker-compose --profile k6 run --rm \
+#     -e SIZE_KB=1000 -e BASE_PATH=/performance/baseline k6
+services:
+  k6:
+    image: grafana/k6:0.54.0
+    profiles: ["k6"]
+    volumes:
+      - ./k6:/scripts:ro
+    environment:
+      HOST: "app:4000"
+      K6_PROMETHEUS_RW_SERVER_URL: "http://prometheus:9090/api/v1/write"
+      K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"
+    command: run --out=experimental-prometheus-rw /scripts/load_test.js
+    depends_on:
+      - app

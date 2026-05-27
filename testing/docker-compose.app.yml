@@ -3,18 +3,24 @@ services:
     build:
       context: ..
       dockerfile: testing/Dockerfile
+    container_name: testing_app
     ports:
       - "4000:4000"
     environment:
       PHX_SERVER: "true"
       PHX_HOST: "${PHX_HOST:-localhost}"
       SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
-      # Set if using the Redis adapter:
-      # REDIS_URL: "redis://${REDIS_HOST:-localhost}:6379"
+      # Redis adapter target. On a single host, `host.docker.internal` reaches
+      # the redis container's published port; on multi-VM, set REDIS_HOST to
+      # the redis VM's IP.
+      LIVE_STASH_REDIS_URL: "redis://${REDIS_HOST:-host.docker.internal}:6379"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
 
   node_exporter:
     image: prom/node-exporter:v1.8.2
+    container_name: testing_node_exporter
     pid: host
     ports:
       - "9100:9100"

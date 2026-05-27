@@ -4,11 +4,27 @@ Load tests for the `testing/` Phoenix app using [k6](https://k6.io).
 
 ## Prerequisites
 
-- [k6 installed](https://grafana.com/docs/k6/latest/set-up/install-k6/) (`brew install k6` on macOS)
-- `testing/` Phoenix app running (`mix phx.server` in `testing/`)
-- Observability stack running (optional, for Grafana dashboards)
+- Either k6 installed on the host (`brew install k6`) **or** Docker
+- `testing/` stack running: `docker-compose up -d` in `testing/`
 
-## Run
+## Run — in Docker (recommended for parity with the load-test stack)
+
+The k6 service joins the compose network and reaches the app via its service
+name (skipping the docker-proxy hop), and sends metrics straight to
+prometheus.
+
+```sh
+docker-compose -f docker-compose.k6.yml --profile k6 run --rm k6
+```
+
+Override vars per run:
+
+```sh
+docker-compose -f docker-compose.k6.yml --profile k6 run --rm \
+  -e SIZE_KB=1000 -e VUS=100 -e BASE_PATH=/performance/baseline k6
+```
+
+## Run — on the host
 
 ```sh
 # Console output only
