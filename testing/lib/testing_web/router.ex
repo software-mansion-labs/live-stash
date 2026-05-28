@@ -25,6 +25,8 @@ defmodule TestingWeb.Router do
 
     live "/performance/baseline", Performance.BaselineLive
     live "/performance/livestash_ets", Performance.LiveStashEtsLive
+    live "/performance/livestash_browser_memory", Performance.LiveStashBrowserMemoryLive
+    live "/performance/livestash_redis", Performance.LiveStashRedisLive
   end
 
   # Other scopes may use custom stacks.

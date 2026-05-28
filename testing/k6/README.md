@@ -38,13 +38,18 @@ K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true \
 
 ### Options
 
-| Variable     | Default                      | Description                        |
-| ------------ | ---------------------------- | ---------------------------------- |
-| `HOST`       | `localhost:4000`             | Host and port of the Phoenix app   |
-| `SIZE_KB`    | `100`                        | Payload size in KB                 |
-| `BASE_PATH`  | `/performance/livestash_ets` | Which live view to test            |
-| `VUS`        | `50`                         | Number of concurrent virtual users |
-| `ITERATIONS` | `5000`                       | Total iterations shared across VUs |
+| Variable                    | Default                      | Description                                                       |
+| --------------------------- | ---------------------------- | ----------------------------------------------------------------- |
+| `HOST`                      | `localhost:4000`             | Host and port of the Phoenix app                                  |
+| `SIZE_KB`                   | `100`                        | Payload size in KB                                                |
+| `BASE_PATH`                 | `/performance/livestash_ets` | Which live view to test                                           |
+| `VUS`                       | `50`                         | Peak concurrent virtual users                                     |
+| `TTL`                       | `5`                          | Adapter TTL in seconds (must match `:ttl` on the LiveView module) |
+| `RECONNECT_WITHIN_TTL_PCT`  | `80`                         | % of iterations that reconnect while the stash is still alive     |
+| `TEST_DURATION_SEC`         | `300`                        | Total test duration (incl. ramp up/down)                          |
+| `RAMP_UP_SEC`               | `30`                         | Ramp-up duration                                                  |
+| `RAMP_DOWN_SEC`             | `30`                         | Ramp-down duration                                                |
+| `SOCKET_TIMEOUT_MS`         | `60000`                      | Per-socket safety timeout                                         |
 
 ```sh
 # LiveStash ETS (default)
@@ -61,20 +66,28 @@ K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true \
   k6 run -e BASE_PATH=/performance/baseline -e SIZE_KB=1000 --out=experimental-prometheus-rw testing/k6/load_test.js
 ```
 
-## Scenarios
+## Scenario
 
-**`load_test.js`** — tests `LiveStashEtsLive` (`/performance/livestash_ets`):
+Per VU iteration:
 
-1. HTTP GET to grab CSRF token, `phx-session`, `phx-static`, `phx-id`
-2. WebSocket upgrade to `/live/websocket`
-3. `phx_join` → measures **`first_render_rtt_ms`** (time to first rendered diff)
-4. `regenerate` click event → measures **`stash_rtt_ms`** (time to ETS stash + diff)
+1. HTTP GET → grab CSRF token, `phx-session`, `phx-static`, `phx-id`.
+2. **Connection 1** — `phx_join` (fresh mount), wait ~5 s, `regenerate` (stash),
+   wait ~15 s, close.
+3. **Gap** — `RECONNECT_WITHIN_TTL_PCT` % of iterations wait less than `TTL`
+   (stash still recoverable); the rest wait `TTL + 1..3 s` (stash expired,
+   fresh mount on reconnect).
+4. **Connection 2** — `phx_join` (with `liveStash.stashId`), wait ~15 s,
+   `regenerate` again (second stash on the same connection), wait ~15 s, close.
 
-Default load profile: ramp to 50 VUs over 30s, hold for 60s, ramp down.
+All sleeps are jittered ±20 % so VUs don't re-synchronise.
+
+Load profile: ramp to `VUS` over `RAMP_UP_SEC`, hold, ramp down over
+`RAMP_DOWN_SEC` — total `TEST_DURATION_SEC` (default 5 min).
 
 ## Metrics
 
-| Metric                | Description                                         |
-| --------------------- | --------------------------------------------------- |
-| `first_render_rtt_ms` | RTT from `phx_join` to receiving the initial render |
-| `stash_rtt_ms`        | RTT from sending `regenerate` to receiving the diff |
+| Metric                | Tags                          | Description                                                    |
+| --------------------- | ----------------------------- | -------------------------------------------------------------- |
+| `first_render_rtt_ms` |                               | RTT from `phx_join` (conn 1) to first rendered diff            |
+| `stash_rtt_ms`        | `stash_round=1\|2`            | RTT from `regenerate` to diff (per stash round in the iter)    |
+| `reconnect_rtt_ms`    | `within_ttl=true\|false`      | RTT from `phx_join` (conn 2) — split by whether stash was live |

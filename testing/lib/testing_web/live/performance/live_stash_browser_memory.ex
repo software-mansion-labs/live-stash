@@ -1,9 +1,9 @@
-defmodule TestingWeb.Performance.LiveStashEtsLive do
+defmodule TestingWeb.Performance.LiveStashBrowserMemoryLive do
   use TestingWeb, :live_view
 
   use LiveStash,
-    adapter: LiveStash.Adapters.ETS,
-    ttl: 5,
+    adapter: LiveStash.Adapters.BrowserMemory,
+    ttl: 1,
     stored_keys: [:payload, :size_kb]
 
   alias TestingWeb.Performance.Payload
@@ -24,12 +24,12 @@ defmodule TestingWeb.Performance.LiveStashEtsLive do
   def render(assigns) do
     ~H"""
     <div
-      id="performance-livestash-ets"
+      id="performance-livestash-browser-memory"
       data-recovered={to_string(@recovered)}
       data-payload-bytes={@payload_bytes}
       data-size-kb={@size_kb}
     >
-      <h1>Performance (LiveStash ETS)</h1>
+      <h1>Performance (LiveStash Browser Memory)</h1>
       <p>size_kb: {@size_kb}</p>
       <p>payload_bytes (compressed term_to_binary): {@payload_bytes}</p>
       <p>recovered: {to_string(@recovered)}</p>

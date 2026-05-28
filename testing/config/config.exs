@@ -9,7 +9,8 @@ import Config
 
 config :live_stash,
   adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis],
-  redis: System.get_env("LIVE_STASH_REDIS_URL", "redis://localhost:6379")
+  ets_cleanup_interval: 1_000,
+  ets_cleanup_batch_size: 2_000
 
 config :testing,
   generators: [timestamp_type: :utc_datetime]
