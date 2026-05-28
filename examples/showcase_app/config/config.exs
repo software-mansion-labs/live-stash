@@ -8,7 +8,8 @@
 import Config
 
 config :live_stash,
-  adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis],
+  adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Mnesia, LiveStash.Adapters.Redis],
+  mnesia_auto_heal: true,
   redis: System.get_env("LIVE_STASH_REDIS_URL", "redis://localhost:6379")
 
 config :showcase_app, :scopes,

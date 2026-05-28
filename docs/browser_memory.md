@@ -25,7 +25,7 @@ Choose the Browser Memory mode when:
 
 An updated socket is returned from `LiveStash.recover_state/1` only if the stored browser token can be successfully decoded and applied. The recovered state is the exact map that was previously serialized during `stash/1`.
 
-### Reseting the stash
+### Resetting the stash
 
 The stash is always cleared after a LiveView using this mode is rendered for the first time. You can also do it manually with `LiveStash.reset_stash/1`. Naturally, refreshing the browser tab clears this state as well.
 

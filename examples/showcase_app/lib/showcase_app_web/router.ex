@@ -33,7 +33,15 @@ defmodule ShowcaseAppWeb.Router do
 
     live "/test/counter/live_stash_server", E2eTest.LiveStashServerCounterLive
     live "/test/counter/live_stash_client", E2eTest.LiveStashClientCounterLive
+    live "/test/counter/live_stash_mnesia", E2eTest.LiveStashMnesiaCounterLive
     live "/test/counter/live_stash_redis", E2eTest.LiveStashRedisCounterLive
+  end
+
+  scope "/test/mnesia", ShowcaseAppWeb.E2eTest do
+    pipe_through :api
+
+    get "/info", MnesiaClusterController, :info
+    post "/simulate-inconsistency", MnesiaClusterController, :simulate_inconsistency
   end
 
   # Other scopes may use custom stacks.

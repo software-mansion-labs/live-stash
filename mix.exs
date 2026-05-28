@@ -30,6 +30,7 @@ defmodule LiveStash.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:memento, "~> 0.5.0", optional: true},
       {:phoenix_live_view, "~> 1.0"},
       {:uniq, "~> 0.6"},
       {:redix, "~> 1.1", optional: true},
@@ -56,6 +57,7 @@ defmodule LiveStash.MixProject do
         "docs/welcome.md",
         "docs/browser_memory.md",
         "docs/ets.md",
+        "docs/mnesia.md",
         "docs/redis.md",
         "docs/adapters.md",
         "docs/example.md"
@@ -64,6 +66,7 @@ defmodule LiveStash.MixProject do
         Adapters: [
           "docs/browser_memory.md",
           "docs/ets.md",
+          "docs/mnesia.md",
           "docs/redis.md",
           "docs/adapters.md"
         ]
@@ -89,6 +92,7 @@ defmodule LiveStash.MixProject do
   defp filter_modules(LiveStash.Adapter, _meta), do: true
   defp filter_modules(LiveStash.Adapters.BrowserMemory, _meta), do: true
   defp filter_modules(LiveStash.Adapters.ETS, _meta), do: true
+  defp filter_modules(LiveStash.Adapters.Mnesia, _meta), do: true
   defp filter_modules(_, _meta), do: false
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]

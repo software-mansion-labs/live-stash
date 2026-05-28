@@ -16,6 +16,11 @@ defmodule LiveStash.Utils do
     "[LiveStash] #{message}, reason: #{inspect(reason)}"
   end
 
+  @spec message(message :: String.t()) :: String.t()
+  def message(message) do
+    "[LiveStash] #{message}"
+  end
+
   @spec hash_term(term :: term()) :: binary()
   def hash_term(term) do
     :crypto.hash(:sha256, :erlang.term_to_binary(term))

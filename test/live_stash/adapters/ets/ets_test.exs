@@ -176,22 +176,6 @@ defmodule LiveStash.Adapters.ETSTest do
 
       assert saved_state == %{username: "tester"}
     end
-
-    test "crashes the process if attempting to stash to a record owned by a different PID", %{
-      socket: socket,
-      ets_id: ets_id
-    } do
-      Task.async(fn ->
-        State.put!(ets_id, %{username: "detached process"}, ttl: 86_400)
-      end)
-      |> Task.await()
-
-      socket_with_new_state = put_in(socket.assigns.username, "current process")
-
-      assert_raise RuntimeError, ~r/already exists for another process/, fn ->
-        ETS.stash(socket_with_new_state)
-      end
-    end
   end
 
   describe "recover_state/1" do

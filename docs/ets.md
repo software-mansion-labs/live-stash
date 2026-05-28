@@ -34,7 +34,7 @@ In a clustered environment, if the client reconnects to a different server node,
 >
 > For cross-node recovery to work, your application must form a connected BEAM cluster (e.g., by using [libcluster](https://hexdocs.pm/libcluster)). In this scenario, the state is deleted from the old node and securely saved in the new one. To optimize finding the correct node, the **node hint** saved in the browser is utilized.
 
-### Reseting the stash
+### Resetting the stash
 
 Stashed state is automatically cleared after the TTL passes, provided the process owning the state is dead. If the process is still alive, the `delete_at` time gets bumped by the TTL.
 

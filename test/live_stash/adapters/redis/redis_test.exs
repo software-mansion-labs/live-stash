@@ -124,7 +124,11 @@ defmodule LiveStash.Adapters.RedisTest do
              end)
     end
 
-    test "logs and continues when DEL fails on fresh mount", %{socket: socket, redis_id: redis_id} do
+    test "logs error and rotates id when DEL fails on fresh mount", %{
+      socket: socket,
+      redis_id: redis_id,
+      stash_id: stash_id
+    } do
       binary_state = :erlang.term_to_binary(%{username: "stale"})
 
       Helpers.command([
@@ -142,6 +146,10 @@ defmodule LiveStash.Adapters.RedisTest do
         capture_log(fn ->
           initialized_socket = Redis.init_stash(socket, %{}, stored_keys: [:username])
           assert %Socket{} = initialized_socket
+
+          generated_id = initialized_socket.private.live_stash_context.id
+          assert generated_id != stash_id
+          assert is_binary(generated_id)
 
           queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
 
