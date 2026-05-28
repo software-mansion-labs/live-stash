@@ -5,7 +5,7 @@
 #     -e SIZE_KB=1000 -e BASE_PATH=/performance/baseline k6
 services:
   k6:
-    image: grafana/k6:0.54.0
+    image: grafana/k6:2.0.0
     profiles: ["k6"]
     volumes:
       - ./k6:/scripts:ro
@@ -14,5 +14,12 @@ services:
       K6_PROMETHEUS_RW_SERVER_URL: "http://prometheus:9090/api/v1/write"
       K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"
     command: run --out=experimental-prometheus-rw /scripts/load_test.js
-    depends_on:
-      - app
+
+# The main stack (app, prometheus, ...) must already be running:
+#   docker-compose up -d
+# k6 joins that stack's network by attaching to the external "testing_default"
+# network it creates.
+networks:
+  default:
+    name: testing_default
+    external: true

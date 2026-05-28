@@ -10,10 +10,10 @@ services:
       PHX_SERVER: "true"
       PHX_HOST: "${PHX_HOST:-localhost}"
       SECRET_KEY_BASE: "${SECRET_KEY_BASE}"
-      # Redis adapter target. On a single host, `host.docker.internal` reaches
-      # the redis container's published port; on multi-VM, set REDIS_HOST to
-      # the redis VM's IP.
-      LIVE_STASH_REDIS_URL: "redis://${REDIS_HOST:-host.docker.internal}:6379"
+      # Redis adapter target. Locally (everything in one compose project) the
+      # redis service is reachable by its service name on the shared network.
+      # For multi-VM, set REDIS_HOST to the redis VM's IP.
+      LIVE_STASH_REDIS_URL: "redis://${REDIS_HOST:-redis}:6379"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped

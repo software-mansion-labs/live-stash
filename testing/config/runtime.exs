@@ -23,6 +23,9 @@ end
 config :testing, TestingWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 
+config :live_stash,
+  redis: System.get_env("LIVE_STASH_REDIS_URL", "redis://localhost:6379")
+
 if config_env() == :prod do
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
@@ -41,7 +44,11 @@ if config_env() == :prod do
   config :testing, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :testing, TestingWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
+    url: [host: host, port: 4000, scheme: "http"],
+    # Load-test harness: accept WS upgrades regardless of Origin/Host so k6
+    # can connect via the docker service name ("app:4000") as well as
+    # localhost. Do NOT copy this to a real prod app.
+    check_origin: false,
     http: [
       # Enable IPv6 and bind on all interfaces.
       # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
