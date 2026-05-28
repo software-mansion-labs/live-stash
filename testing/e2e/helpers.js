@@ -4,6 +4,7 @@ const routes = [
   "/test/counter/live_stash_server",
   "/test/counter/live_stash_client",
   "/test/counter/live_stash_redis",
+  "/test/counter/live_stash_mnesia",
 ];
 
 async function waitForConnected(page) {

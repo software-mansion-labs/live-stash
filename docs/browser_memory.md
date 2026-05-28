@@ -25,7 +25,7 @@ Choose the Browser Memory mode when:
 
 An updated socket is returned from `LiveStash.recover_state/1` only if the stored browser token can be successfully decoded and applied. The recovered state is the exact map that was previously serialized during `stash/1`.
 
-### Reseting the stash
+### Resetting the stash
 
 The stash is always cleared after a LiveView using this mode is rendered for the first time. You can also do it manually with `LiveStash.reset_stash/1`. Naturally, refreshing the browser tab clears this state as well.
 
@@ -38,6 +38,30 @@ Remember to define adapters you would like to activate in your `config.exs` file
 ```elixir
 config :live_stash, adapters: [LiveStash.Adapters.BrowserMemory]
 ```
+
+### Versioning
+
+Use `:version` to reject stashed state that was saved by a different version
+of your code. This is useful when you change the shape of the stashed assigns
+and want to discard state persisted by an older deploy rather than recovering
+potentially incompatible data.
+
+```elixir
+use LiveStash, stored_keys: [:count], version: 1
+```
+
+When a reconnect occurs, the recovered payload's version is compared to the
+configured value. A mismatch causes the stash to be discarded and the adapter
+to return `{:error, socket}`, the same as if recovery had failed.
+
+Increment the version whenever the structure of your stashed assigns changes
+in a backwards-incompatible way:
+
+```elixir
+use LiveStash, stored_keys: [:count, :step], version: 2
+```
+
+Omitting `:version` or setting it to `nil` disables the check.
 
 ### Expiration (TTL)
 

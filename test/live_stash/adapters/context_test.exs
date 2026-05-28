@@ -7,6 +7,7 @@ defmodule LiveStash.Adapters.ContextTest do
   @adapters [
     LiveStash.Adapters.ETS.Context,
     LiveStash.Adapters.BrowserMemory.Context,
+    LiveStash.Adapters.Mnesia.Context,
     LiveStash.Adapters.Redis.Context
   ]
 

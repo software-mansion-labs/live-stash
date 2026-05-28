@@ -34,13 +34,37 @@ In a clustered environment, if the client reconnects to a different server node,
 >
 > For cross-node recovery to work, your application must form a connected BEAM cluster (e.g., by using [libcluster](https://hexdocs.pm/libcluster)). In this scenario, the state is deleted from the old node and securely saved in the new one. To optimize finding the correct node, the **node hint** saved in the browser is utilized.
 
-### Reseting the stash
+### Resetting the stash
 
 Stashed state is automatically cleared after the TTL passes, provided the process owning the state is dead. If the process is still alive, the `delete_at` time gets bumped by the TTL.
 
 State can also be cleared manually by calling `LiveStash.reset_stash/1`.
 
 ## Configuration
+
+### Versioning
+
+Use `:version` to reject stashed state that was saved by a different version
+of your code. This is useful when you change the shape of the stashed assigns
+and want to discard state persisted by an older deploy rather than recovering
+potentially incompatible data.
+
+```elixir
+use LiveStash, stored_keys: [:count], version: 1
+```
+
+When a reconnect occurs, the recovered payload's version is compared to the
+configured value. A mismatch causes the stash to be discarded and the adapter
+to return `{:error, socket}`, the same as if recovery had failed.
+
+Increment the version whenever the structure of your stashed assigns changes
+in a backwards-incompatible way:
+
+```elixir
+use LiveStash, stored_keys: [:count, :step], version: 2
+```
+
+Omitting `:version` or setting it to `nil` disables the check.
 
 ### Activating the adapter
 

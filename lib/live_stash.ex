@@ -114,6 +114,10 @@ defmodule LiveStash do
   It initializes stash handling for the current socket and continues the mount
   lifecycle.
   """
+  def on_mount(_opts, :not_mounted_at_router, _session, _socket) do
+    raise ArgumentError, "LiveStash does not support nested LiveViews."
+  end
+
   def on_mount(opts, _params, session, socket) do
     socket = init_stash(socket, session, opts)
 
