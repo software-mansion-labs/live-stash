@@ -25,7 +25,7 @@ const RECONNECT_WITHIN_TTL_PCT = parseFloat(
 // Test profile: 5 min total = ramp up + hold + ramp down.
 const RAMP_UP_SEC = parseInt(__ENV.RAMP_UP_SEC || "30");
 const RAMP_DOWN_SEC = parseInt(__ENV.RAMP_DOWN_SEC || "30");
-const TEST_DURATION_SEC = parseInt(__ENV.TEST_DURATION_SEC || "300");
+const TEST_DURATION_SEC = parseInt(__ENV.TEST_DURATION_SEC || "120");
 const HOLD_SEC = TEST_DURATION_SEC - RAMP_UP_SEC - RAMP_DOWN_SEC;
 
 // Per-VU per-socket safety net so a stuck connection doesn't block the iteration

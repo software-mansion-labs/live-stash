@@ -53,6 +53,7 @@ defmodule Testing.MixProject do
       {:bandit, "~> 1.5"},
       {:live_stash, path: "../"},
       {:redix, "~> 1.1"},
+      {:memento, "~> 0.5.0"},
       {:prom_ex, "~> 1.9"}
     ]
   end
