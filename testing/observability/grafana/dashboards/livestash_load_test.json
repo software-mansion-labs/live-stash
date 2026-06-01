@@ -3,7 +3,7 @@
   "uid": "livestash-load-test",
   "tags": ["livestash", "load-test"],
   "schemaVersion": 38,
-  "version": 3,
+  "version": 4,
   "refresh": "5s",
   "timezone": "browser",
   "time": { "from": "now-15m", "to": "now" },
@@ -329,7 +329,7 @@
       "title": "node — CPU utilization",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 0, "y": 32, "w": 8, "h": 8 },
+      "gridPos": { "x": 0, "y": 32, "w": 12, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -358,7 +358,7 @@
       "title": "node — memory",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 8, "y": 32, "w": 8, "h": 8 },
+      "gridPos": { "x": 12, "y": 32, "w": 12, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "bytes",
@@ -386,12 +386,12 @@
         }
       ]
     },
-    {
-      "id": 11,
-      "title": "node — network I/O",
+        {
+      "id": 18,
+      "title": "BEAM port I/O — socket bytes/sec",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 16, "y": 32, "w": 8, "h": 8 },
+      "gridPos": { "x": 0, "y": 40, "w": 24, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "Bps",
@@ -408,14 +408,8 @@
         {
           "refId": "A",
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(node_network_receive_bytes_total{device=~\"en[0-1]|eth[0-9]+|ens[0-9]+|eno[0-9]+|enp.*\"}[1m])",
-          "legendFormat": "{{device}} rx"
-        },
-        {
-          "refId": "B",
-          "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "rate(node_network_transmit_bytes_total{device=~\"en[0-1]|eth[0-9]+|ens[0-9]+|eno[0-9]+|enp.*\"}[1m])",
-          "legendFormat": "{{device}} tx"
+          "expr": "rate(testing_prom_ex_beam_stats_port_io_byte_count[1m])",
+          "legendFormat": "{{type}}"
         }
       ]
     },
@@ -424,7 +418,7 @@
       "title": "redis — ops/sec",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 0, "y": 40, "w": 8, "h": 8 },
+      "gridPos": { "x": 0, "y": 48, "w": 8, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
@@ -451,7 +445,7 @@
       "title": "redis — memory used",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 8, "y": 40, "w": 8, "h": 8 },
+      "gridPos": { "x": 8, "y": 48, "w": 8, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "bytes",
@@ -484,7 +478,7 @@
       "title": "redis — connected clients",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 16, "y": 40, "w": 8, "h": 8 },
+      "gridPos": { "x": 16, "y": 48, "w": 8, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
@@ -517,7 +511,7 @@
       "title": "redis — keyspace hit ratio",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 0, "y": 48, "w": 8, "h": 8 },
+      "gridPos": { "x": 0, "y": 56, "w": 8, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "percentunit",
@@ -546,7 +540,7 @@
       "title": "redis — network I/O",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 8, "y": 48, "w": 8, "h": 8 },
+      "gridPos": { "x": 8, "y": 56, "w": 8, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "Bps",
@@ -579,7 +573,7 @@
       "title": "redis — command latency (avg)",
       "type": "timeseries",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "x": 16, "y": 48, "w": 8, "h": 8 },
+      "gridPos": { "x": 16, "y": 56, "w": 8, "h": 8 },
       "fieldConfig": {
         "defaults": {
           "unit": "s",

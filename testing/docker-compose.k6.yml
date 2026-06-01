@@ -5,6 +5,12 @@
 #     -e SIZE_KB=1000 -e BASE_PATH=/performance/baseline k6
 services:
   k6:
+    ulimits:
+      nofile: { soft: 1048576, hard: 1048576 }
+    sysctls:
+      net.ipv4.ip_local_port_range: "1024 65535"
+      net.ipv4.tcp_tw_reuse: "1"
+
     image: grafana/k6:2.0.0
     profiles: ["k6"]
     volumes:

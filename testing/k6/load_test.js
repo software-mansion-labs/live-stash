@@ -71,6 +71,8 @@ export default function () {
   const wsHeaders = { Origin: baseUrl, Cookie: sessionCookie };
 
   let stashId = null;
+  let nodeHint = null;
+  let stashedState = null;
 
   // ── Connection 1 ────────────────────────────────────────────────────────
   // connect → wait ~5 s → stash → wait ~15 s → disconnect
@@ -101,7 +103,9 @@ export default function () {
         payload?.status === "ok"
       ) {
         firstRenderRTT.add(Date.now() - joinSentAt);
-        stashId = extractStashId(payload);
+        const init = extractStashInit(payload);
+        stashId = init.stashId;
+        nodeHint = init.node;
         phase = "idle_before_stash";
         socket.setTimeout(
           () => {
@@ -121,6 +125,7 @@ export default function () {
         phase === "stashing" &&
         (event === "diff" || (event === "phx_reply" && ref === "2"))
       ) {
+        stashedState = extractStashedState(payload) ?? stashedState;
         stashRTT.add(Date.now() - stashSentAt, { stash_round: "1" });
         phase = "idle_after_stash";
         socket.setTimeout(() => socket.close(), jitter(15) * 1000);
@@ -160,7 +165,11 @@ export default function () {
     socket.on("open", () => {
       reconnectSentAt = Date.now();
       const params = { _csrf_token: wsCsrfToken, _mounts: 1 };
-      if (stashId) params.liveStash = { stashId };
+      const liveStash = {};
+      if (stashId) liveStash.stashId = stashId;
+      if (nodeHint) liveStash.node = nodeHint;
+      if (stashedState) liveStash.stashedState = stashedState;
+      if (Object.keys(liveStash).length > 0) params.liveStash = liveStash;
       socket.send(
         phxMsg("1", "1", topic, "phx_join", {
           url: `${baseUrl}${path}`,
@@ -227,10 +236,34 @@ function phxMsg(joinRef, ref, topic, event, payload) {
   return JSON.stringify([joinRef, ref, topic, event, payload]);
 }
 
-function extractStashId(payload) {
-  const events = payload?.response?.rendered?.e || [];
-  const initEvent = events.find(([name]) => name === "live-stash:init-ets");
-  return initEvent?.[1]?.stashId || null;
+function findPushEvent(payload, name) {
+  const events =
+    payload?.response?.rendered?.e ||
+    payload?.response?.diff?.e ||
+    payload?.diff?.e ||
+    payload?.e ||
+    [];
+  return events.find(([eventName]) => eventName === name)?.[1] || null;
+}
+
+const INIT_EVENTS = [
+  "live-stash:init-ets",
+  "live-stash:init-redis",
+  "live-stash:init-mnesia",
+];
+
+function extractStashInit(payload) {
+  for (const name of INIT_EVENTS) {
+    const detail = findPushEvent(payload, name);
+    if (detail) {
+      return { stashId: detail.stashId || null, node: detail.node || null };
+    }
+  }
+  return { stashId: null, node: null };
+}
+
+function extractStashedState(payload) {
+  return findPushEvent(payload, "live-stash:stash-state")?.assigns || null;
 }
 
 function grabLVProps(response) {
