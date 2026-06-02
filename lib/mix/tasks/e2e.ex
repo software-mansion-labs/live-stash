@@ -45,8 +45,14 @@ defmodule Mix.Tasks.E2e do
   defp docker_config do
     cmd = if System.find_executable("docker-compose"), do: "docker-compose", else: "docker"
     file_args = ["-f", "docker-compose.e2e.yml"]
-    up_args = if cmd == "docker", do: ["compose"] ++ file_args ++ ["up", "-d"], else: file_args ++ ["up", "-d"]
-    down_args = if cmd == "docker", do: ["compose"] ++ file_args ++ ["down"], else: file_args ++ ["down"]
+
+    up_args =
+      if cmd == "docker",
+        do: ["compose"] ++ file_args ++ ["up", "-d"],
+        else: file_args ++ ["up", "-d"]
+
+    down_args =
+      if cmd == "docker", do: ["compose"] ++ file_args ++ ["down"], else: file_args ++ ["down"]
 
     {cmd, up_args, down_args}
   end
