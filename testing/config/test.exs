@@ -5,7 +5,7 @@ import Config
 config :testing, TestingWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "KbXTu4OqPYW0qgNL6NjwJzZ3g67ACETrMpfEjUlDheOh6PYahWjQoTIdKhEum2CG",
-  server: false
+  server: true
 
 # Print only warnings and errors during test
 config :logger, level: :warning
