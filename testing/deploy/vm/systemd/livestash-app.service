@@ -1,0 +1,22 @@
+[Unit]
+Description=LiveStash testing app (Phoenix release)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=livestash
+Group=livestash
+WorkingDirectory=/opt/livestash
+EnvironmentFile=/etc/livestash/app.env
+ExecStart=/opt/livestash/bin/testing start
+ExecStop=/opt/livestash/bin/testing stop
+Restart=on-failure
+RestartSec=2
+
+LimitNOFILE=1048576
+
+TimeoutStopSec=15
+
+[Install]
+WantedBy=multi-user.target

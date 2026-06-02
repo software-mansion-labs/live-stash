@@ -1,0 +1,28 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Phoenix app cluster (scraped directly, not through nginx — per-node metrics).
+  - job_name: testing_app
+    static_configs:
+      - targets: ["APP_VM_1:4000"]
+        labels: { instance: "app-1" }
+      - targets: ["APP_VM_2:4000"]
+        labels: { instance: "app-2" }
+      # - targets: ["APP_VM_3:4000"]
+      #   labels: { instance: "app-3" }
+
+  # node_exporter on every VM — now on the host, so its network I/O is real.
+  - job_name: node
+    static_configs:
+      - targets:
+          - "APP_VM_1:9100"
+          - "APP_VM_2:9100"
+          - "REDIS_VM:9100"
+          - "OBS_VM:9100"
+
+  # redis_exporter on the redis VM.
+  - job_name: redis
+    static_configs:
+      - targets: ["REDIS_VM:9121"]

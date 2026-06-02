@@ -1,0 +1,17 @@
+[Unit]
+Description=Prometheus redis_exporter
+After=network-online.target redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=redis_exporter
+Group=redis_exporter
+# Install from https://github.com/oliver006/redis_exporter/releases
+# Runs on the redis VM; points at the local redis.
+ExecStart=/usr/local/bin/redis_exporter --redis.addr=redis://localhost:6379
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
