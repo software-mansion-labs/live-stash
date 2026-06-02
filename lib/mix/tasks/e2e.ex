@@ -4,7 +4,7 @@ defmodule Mix.Tasks.E2e do
   use Mix.Task
 
   @shortdoc "Runs End-to-End tests using Playwright and Docker"
-  @app_dir "examples/showcase_app"
+  @app_dir "testing"
 
   @nginx_port 8080
   @phoenix_port 4000
@@ -44,8 +44,9 @@ defmodule Mix.Tasks.E2e do
 
   defp docker_config do
     cmd = if System.find_executable("docker-compose"), do: "docker-compose", else: "docker"
-    up_args = if cmd == "docker", do: ["compose", "up", "-d"], else: ["up", "-d"]
-    down_args = if cmd == "docker", do: ["compose", "down"], else: ["down"]
+    file_args = ["-f", "docker-compose.e2e.yml"]
+    up_args = if cmd == "docker", do: ["compose"] ++ file_args ++ ["up", "-d"], else: file_args ++ ["up", "-d"]
+    down_args = if cmd == "docker", do: ["compose"] ++ file_args ++ ["down"], else: file_args ++ ["down"]
 
     {cmd, up_args, down_args}
   end

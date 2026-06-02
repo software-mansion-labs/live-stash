@@ -36,7 +36,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: examples/showcase_app/package-lock.json
+          cache-dependency-path: testing/package-lock.json
 
       - name: Cache Mix
         uses: actions/cache@v4
@@ -44,26 +44,28 @@ jobs:
           path: |
             deps
             _build
+            testing/deps
+            testing/_build
           key: ${{ runner.os }}-mix-e2e-${{ hashFiles('**/mix.lock') }}
           restore-keys: ${{ runner.os }}-mix-e2e-
 
       - name: Install Elixir Dependencies (Root)
         run: mix deps.get
 
-      - name: Install Elixir Dependencies (Showcase App)
-        working-directory: ./examples/showcase_app
+      - name: Install Elixir Dependencies (Testing App)
+        working-directory: ./testing
         run: mix deps.get
 
-      - name: Install NPM Dependencies (Showcase App)
-        working-directory: ./examples/showcase_app
+      - name: Install NPM Dependencies (Testing App)
+        working-directory: ./testing
         run: npm ci
 
       - name: Install Playwright Browsers
-        working-directory: ./examples/showcase_app
+        working-directory: ./testing
         run: npx playwright install --with-deps firefox
 
-      - name: Pre-compile Showcase App for Test
-        working-directory: ./examples/showcase_app
+      - name: Pre-compile Testing App for Test
+        working-directory: ./testing
         run: MIX_ENV=test mix compile
 
       - name: Run E2E Script
@@ -74,5 +76,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
-          path: examples/showcase_app/playwright-report/
+          path: testing/playwright-report/
           retention-days: 5
