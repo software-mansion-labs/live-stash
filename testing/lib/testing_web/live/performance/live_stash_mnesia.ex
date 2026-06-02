@@ -3,7 +3,7 @@ defmodule TestingWeb.Performance.LiveStashMnesiaLive do
 
   use LiveStash,
     adapter: LiveStash.Adapters.Mnesia,
-    ttl: 5,
+    ttl: 5*60,
     stored_keys: [:payload, :size_kb]
 
   alias TestingWeb.Performance.Payload

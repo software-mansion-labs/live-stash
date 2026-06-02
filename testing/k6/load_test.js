@@ -13,13 +13,13 @@ const BASE_PATH = __ENV.BASE_PATH || "/performance/livestash_ets";
 const VUS = parseInt(__ENV.VUS || "50");
 
 // Adapter TTL (must match the LiveStash :ttl in the LiveView module).
-const TTL = parseFloat(__ENV.TTL || "5");
+const TTL = parseFloat(__ENV.TTL || "300");
 
 // Probability (0-100) that the gap between disconnect and reconnect is shorter
 // than TTL (i.e. the stash is still recoverable). The complement reconnects
 // after TTL has elapsed → fresh mount.
 const RECONNECT_WITHIN_TTL_PCT = parseFloat(
-  __ENV.RECONNECT_WITHIN_TTL_PCT || "80",
+  __ENV.RECONNECT_WITHIN_TTL_PCT || "100",
 );
 
 // Test profile: 5 min total = ramp up + hold + ramp down.
@@ -150,9 +150,13 @@ export default function () {
   // RECONNECT_WITHIN_TTL_PCT % of iterations reconnect while the stash is
   // still recoverable; the rest wait long enough that it has expired.
   const withinTtl = Math.random() * 100 < RECONNECT_WITHIN_TTL_PCT;
-  const gapSec = withinTtl
+  let gapSec = withinTtl
     ? Math.random() * (TTL * 0.8) // 0 .. 80% of TTL
     : TTL + 1 + Math.random() * 2; // TTL+1 .. TTL+3
+
+  // TEMPORARY FOR LOCAL SHORTER TESTS
+  gapSec = 10;
+
   sleep(gapSec);
 
   // ── Connection 2 ────────────────────────────────────────────────────────

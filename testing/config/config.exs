@@ -8,7 +8,7 @@
 import Config
 
 config :live_stash,
-  adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis],
+  adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis, LiveStash.Adapters.Mnesia],
   ets_cleanup_interval: 1_000,
   ets_cleanup_batch_size: 2_000
 

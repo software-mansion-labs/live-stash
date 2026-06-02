@@ -26,7 +26,8 @@ defmodule Testing.PromEx do
       {PromEx.Plugins.Phoenix,
        router: TestingWeb.Router, endpoint: TestingWeb.Endpoint},
       PromEx.Plugins.PhoenixLiveView,
-      Testing.PromEx.SchedulerPlugin
+      Testing.PromEx.SchedulerPlugin,
+      Testing.PromEx.LiveStashPlugin
     ]
   end
 end
