@@ -21,7 +21,7 @@ if System.get_env("PHX_SERVER") do
 end
 
 config :testing, TestingWeb.Endpoint,
-  http: [port: String.to_integer(System.get_env("PORT", "4000"))]
+  http: [ip: {0, 0, 0, 0}, port: String.to_integer(System.get_env("PORT", "4000"))]
 
 config :live_stash,
   redis: System.get_env("LIVE_STASH_REDIS_URL", "redis://localhost:6379")
