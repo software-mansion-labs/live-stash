@@ -78,9 +78,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
 
   @impl true
   def handle_info({:nodeup, node}, %{healing?: true} = state) do
-    Logger.info(
-      Utils.message("Node #{node} connected during a heal. Deferring Mnesia reconciliation.")
-    )
+    Logger.info(Utils.message("Node #{node} connected during a heal. Not reconciling."))
 
     {:noreply, state}
   end
