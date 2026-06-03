@@ -27,6 +27,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   def init(_opts) do
     Memento.start()
     {:ok, _node} = :mnesia.subscribe(:system)
+
+    :ok = :net_kernel.monitor_nodes(true)
     State.setup_cluster_state!()
 
     auto_heal? = Application.get_env(:live_stash, :mnesia_auto_heal, true)
@@ -72,6 +74,39 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   @impl true
   def handle_info(:heal_retry, state) do
     {:noreply, state, {:continue, :heal}}
+  end
+
+  @impl true
+  def handle_info({:nodeup, node}, %{healing?: true} = state) do
+    Logger.info(
+      Utils.message("Node #{node} connected during a heal. Deferring Mnesia reconciliation.")
+    )
+
+    {:noreply, state}
+  end
+
+  def handle_info({:nodeup, node}, state) do
+    Logger.info(Utils.message("Node #{node} connected. Reconciling Mnesia cluster membership."))
+
+    try do
+      State.ensure_cluster_table!(Node.list())
+    rescue
+      error ->
+        Logger.error(
+          Utils.exception_message(
+            "Failed to reconcile Mnesia membership after #{node} connected",
+            error,
+            __STACKTRACE__
+          )
+        )
+    end
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:nodedown, _node}, state) do
+    {:noreply, state}
   end
 
   @impl true
