@@ -1,8 +1,7 @@
 {
-  "name": "showcase_app",
+  "name": "testing",
   "version": "1.0.0",
-  "description": "This projects features a few examples where you can see LiveStash in action:",
-  "main": "steal_state.js",
+  "description": "This projects consists of e2e and performance tests for LiveStash.",
   "directories": {
     "lib": "lib",
     "test": "test"

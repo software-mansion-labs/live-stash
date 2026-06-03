@@ -7,7 +7,15 @@ defmodule Testing.Application do
 
   @impl true
   def start(_type, _args) do
+    topologies = [
+      example: [
+        strategy: Cluster.Strategy.Epmd,
+        config: [hosts: [:"a@node_a", :"b@node_b"]],
+      ]
+    ]
+
     children = [
+      {Cluster.Supervisor, [topologies, [name: ShowcaseApp.ClusterSupervisor]]},
       TestingWeb.Telemetry,
       Testing.PromEx,
       {DNSCluster, query: Application.get_env(:testing, :dns_cluster_query) || :ignore},

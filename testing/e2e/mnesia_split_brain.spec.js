@@ -1,4 +1,5 @@
 const { test, expect } = require("@playwright/test");
+const { reconnect } = require("./helpers");
 
 const NODE_A = "http://localhost:4002";
 const NODE_B = "http://localhost:4001";
@@ -71,14 +72,7 @@ test.describe("Mnesia adapter - split-brain auto-heal", () => {
     const finalA = await nodeInfo(request, NODE_A);
     expect(finalA.table_size).toBe(baselineSize);
 
-    await page.evaluate(() => window.liveSocket.disconnect());
-    await page.waitForFunction(
-      () => window.liveSocket && !window.liveSocket.isConnected(),
-    );
-    await page.evaluate(() => window.liveSocket.connect());
-    await page.waitForFunction(
-      () => window.liveSocket && window.liveSocket.isConnected(),
-    );
+    await reconnect(page);
 
     await expect(counterValue).toHaveText("3");
 

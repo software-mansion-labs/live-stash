@@ -54,7 +54,8 @@ defmodule Testing.MixProject do
       {:live_stash, path: "../"},
       {:redix, "~> 1.1"},
       {:memento, "~> 0.5.0"},
-      {:prom_ex, "~> 1.9"}
+      {:prom_ex, "~> 1.9"},
+      {:libcluster, "~> 3.5"},
     ]
   end
 
