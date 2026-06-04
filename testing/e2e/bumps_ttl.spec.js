@@ -18,12 +18,12 @@ test.describe("All adapters - bumps ttl", () => {
       await incrementBtn.click();
       await expect(counterValue).toHaveText("1");
 
-      await page.waitForTimeout(700);
+      await page.waitForTimeout(1200);
 
       await incrementBtn.click();
       await expect(counterValue).toHaveText("2");
 
-      await reconnect(page, { delayMs: 400 });
+      await reconnect(page, { delayMs: 1000 });
 
       await expect(counterValue).toHaveText("2");
     });

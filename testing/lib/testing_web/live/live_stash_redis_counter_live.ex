@@ -4,7 +4,7 @@ defmodule TestingWeb.LiveStashRedisCounterLive do
   use LiveStash,
     adapter: LiveStash.Adapters.Redis,
     stored_keys: [:count],
-    ttl: 1
+    ttl: 2
 
   def mount(_params, _session, socket) do
     socket

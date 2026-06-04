@@ -19,7 +19,7 @@ test.describe("All adapters - TTL expiration", () => {
       await incrementBtn.click();
       await expect(counterValue).toHaveText("2");
 
-      await reconnect(page, { delayMs: 2000 });
+      await reconnect(page, { delayMs: 3000 });
 
       await expect(counterValue).toHaveText("0");
     });

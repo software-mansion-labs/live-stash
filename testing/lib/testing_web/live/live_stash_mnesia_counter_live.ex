@@ -3,7 +3,7 @@ defmodule TestingWeb.LiveStashMnesiaCounterLive do
 
   use LiveStash,
     adapter: LiveStash.Adapters.Mnesia,
-    ttl: 1,
+    ttl: 2,
     stored_keys: [:count]
 
   def mount(_params, _session, socket) do
