@@ -35,3 +35,10 @@ testing-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Playwright
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/playwright/.auth/
