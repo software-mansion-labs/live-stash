@@ -29,7 +29,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     {:ok, _node} = :mnesia.subscribe(:system)
 
     :ok = :net_kernel.monitor_nodes(true)
-    State.setup_cluster_state!()
+    State.ensure_cluster_table!()
 
     auto_heal? = Application.get_env(:live_stash, :mnesia_auto_heal, true)
     {:ok, %__MODULE__{auto_heal?: auto_heal?}}

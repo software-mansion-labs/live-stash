@@ -1,7 +1,6 @@
 defmodule LiveStash.Adapters.Mnesia.State do
   @moduledoc """
-  A module that manages the state of LiveViews stored on the server. It uses Mnesia to store the state.
-  Mnesia replication is used, therefore the first approach is to connect to other nodes and create a copy of the table.
+  A module that manages the state of LiveViews stored on the server. It uses Mnesia to store the state with in-memory copies and replication.
 
   The state is stored in the following format:
   - id: the id of the LiveView
@@ -46,13 +45,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   @doc """
-  Sets up the Mnesia table for storing LiveView states using whichever peers are
-  currently connected.
-  """
-  @spec setup_cluster_state!() :: :ok
-  def setup_cluster_state!(), do: ensure_cluster_table!(Node.list())
-
-  @doc """
   Ensures the `State` table exists and is replicated to this node, independent of
   cluster boot order.
 
@@ -63,7 +55,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
   "already exists" results are treated as success.
   """
   @spec ensure_cluster_table!([node()]) :: :ok
-  def ensure_cluster_table!(peers) do
+  def ensure_cluster_table!(peers \\ Node.list()) do
     join_peers!(peers)
     ensure_table!()
     ensure_local_copy!()
@@ -126,7 +118,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   defp mnesia_running?(node) do
-    :rpc.call(node, :mnesia, :system_info, [:is_running], 2_000) == :yes
+    :erpc.call(node, :mnesia, :system_info, [:is_running], 2_000) == :yes
   end
 
   defp ensure_table!() do
