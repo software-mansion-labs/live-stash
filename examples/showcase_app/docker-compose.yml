@@ -16,6 +16,7 @@ services:
     command: sh -c "mix deps.get && epmd -daemon && elixir --sname a@node_a --cookie livestashexamplecluster -S mix phx.server"
     environment:
       - PORT=4000
+      - MIX_ENV=test
       - LIVE_STASH_REDIS_URL=redis://redis:6379
     ports:
       - "4002:4000"
@@ -36,6 +37,7 @@ services:
     command: sh -c "mix deps.get && epmd -daemon && elixir --sname b@node_b --cookie livestashexamplecluster -S mix phx.server"
     environment:
       - PORT=4000
+      - MIX_ENV=test
       - LIVE_STASH_REDIS_URL=redis://redis:6379
     ports:
       - "4001:4000"
