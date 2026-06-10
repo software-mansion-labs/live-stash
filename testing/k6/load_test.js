@@ -18,7 +18,7 @@ const TTL = parseFloat(__ENV.TTL || "15");
 // Probability (0-100) that the gap between disconnect and reconnect is shorter
 // than TTL (the stash is still recoverable).
 const RECONNECT_WITHIN_TTL_PCT = parseFloat(
-  __ENV.RECONNECT_WITHIN_TTL_PCT || "80",
+  __ENV.RECONNECT_WITHIN_TTL_PCT || "40",
 );
 
 // Test profile: ramp up + hold + ramp down.
@@ -152,15 +152,16 @@ export default function () {
   });
 
   // ── Gap before reconnect ────────────────────────────────────────────────
+  // watch out for first wait time, as it impacts length of necessary gap
   // RECONNECT_WITHIN_TTL_PCT % of iterations reconnect while the stash is
   // still recoverable; the rest wait long enough that it has expired.
   const withinTtl = Math.random() * 100 < RECONNECT_WITHIN_TTL_PCT;
   let gapSec = withinTtl
-    ? Math.random() * (TTL * 0.8) // 0 .. 80% of TTL
+    ? Math.random() * (TTL * 0.5) // 0 .. 50% of TTL
     : TTL + 1 + Math.random() * 2; // TTL+1 .. TTL+3
 
-  gapSec = Math.max(gapSec - FIRST_WAIT_SEC, 1);
-
+  // works only for browser memory adapter
+  // gapSec = Math.max(gapSec - FIRST_WAIT_SEC, 1);
   // // TEMPORARY FOR LOCAL SHORTER TESTS
   // gapSec = 5;
 

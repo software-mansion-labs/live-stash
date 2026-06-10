@@ -3,7 +3,7 @@ defmodule TestingWeb.Performance.LiveStashRedisLive do
 
   use LiveStash,
     adapter: LiveStash.Adapters.Redis,
-    ttl: 5*60,
+    ttl: 15,
     stored_keys: [:payload, :size_kb]
 
   alias TestingWeb.Performance.Payload
