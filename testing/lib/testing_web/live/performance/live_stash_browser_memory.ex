@@ -3,7 +3,7 @@ defmodule TestingWeb.Performance.LiveStashBrowserMemoryLive do
 
   use LiveStash,
     adapter: LiveStash.Adapters.BrowserMemory,
-    ttl: 15*60,
+    ttl: 15,
     stored_keys: [:payload, :size_kb]
 
   alias TestingWeb.Performance.Payload

@@ -200,11 +200,13 @@ defmodule LiveStash do
     adapter = get_adapter(socket)
     {status, socket} = apply(adapter, :recover_state, [socket])
 
-    :telemetry.execute(
-      [:live_stash, :recover_state],
-      %{count: 1},
-      %{adapter: adapter, live_view_module: socket.view, status: status}
-    )
+    if Phoenix.LiveView.connected?(socket) do
+      :telemetry.execute(
+        [:live_stash, :recover_state],
+        %{count: 1},
+        %{adapter: adapter, live_view_module: socket.view, status: status}
+      )
+    end
 
     {status, socket}
   end

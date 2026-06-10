@@ -12,25 +12,30 @@ const SIZE_KB = __ENV.SIZE_KB || "100";
 const BASE_PATH = __ENV.BASE_PATH || "/performance/livestash_ets";
 const VUS = parseInt(__ENV.VUS || "50");
 
-// Adapter TTL (must match the LiveStash :ttl in the LiveView module).
-const TTL = parseFloat(__ENV.TTL || "300");
+// Adapter TTL, must match LiveView config
+const TTL = parseFloat(__ENV.TTL || "15");
 
 // Probability (0-100) that the gap between disconnect and reconnect is shorter
-// than TTL (i.e. the stash is still recoverable). The complement reconnects
-// after TTL has elapsed → fresh mount.
+// than TTL (the stash is still recoverable).
 const RECONNECT_WITHIN_TTL_PCT = parseFloat(
-  __ENV.RECONNECT_WITHIN_TTL_PCT || "100",
+  __ENV.RECONNECT_WITHIN_TTL_PCT || "80",
 );
 
-// Test profile: 5 min total = ramp up + hold + ramp down.
+// Test profile: ramp up + hold + ramp down.
 const RAMP_UP_SEC = parseInt(__ENV.RAMP_UP_SEC || "30");
 const RAMP_DOWN_SEC = parseInt(__ENV.RAMP_DOWN_SEC || "30");
 const TEST_DURATION_SEC = parseInt(__ENV.TEST_DURATION_SEC || "120");
 const HOLD_SEC = TEST_DURATION_SEC - RAMP_UP_SEC - RAMP_DOWN_SEC;
 
-// Per-VU per-socket safety net so a stuck connection doesn't block the iteration
-// forever. Must comfortably exceed conn-2's nominal lifetime (~30 s).
-const SOCKET_TIMEOUT_MS = parseInt(__ENV.SOCKET_TIMEOUT_MS || "60000");
+const FIRST_WAIT_SEC = parseInt(__ENV.FIRST_WAIT_SEC || "5");
+const SECOND_WAIT_SEC = parseInt(__ENV.SECOND_WAIT_SEC || "5");
+
+const MAX_WAIT_SEC = Math.max(FIRST_WAIT_SEC, SECOND_WAIT_SEC);
+const DYNAMIC_TIMEOUT_MS = Math.ceil(MAX_WAIT_SEC * 2 * 1.2 + 10) * 1000;
+
+const SOCKET_TIMEOUT_MS = parseInt(
+  __ENV.SOCKET_TIMEOUT_MS || String(DYNAMIC_TIMEOUT_MS),
+);
 
 export const options = {
   scenarios: {
@@ -53,7 +58,7 @@ function jitter(seconds, spread = 0.2) {
 }
 
 export default function () {
-  // Smear iteration starts so VUs don't re-synchronise after the ramp.
+  // desynchronize iteration starts so VUs don't re-synchronise after the ramp.
   sleep(jitter(0.5, 1));
 
   const path = `${BASE_PATH}?size_kb=${SIZE_KB}`;
@@ -75,7 +80,7 @@ export default function () {
   let stashedState = null;
 
   // ── Connection 1 ────────────────────────────────────────────────────────
-  // connect → wait ~5 s → stash → wait ~15 s → disconnect
+  // connect → wait → stash → wait → disconnect
   ws.connect(wsUrl, { headers: wsHeaders }, (socket) => {
     let phase = "joining";
     let joinSentAt = 0;
@@ -119,7 +124,7 @@ export default function () {
               }),
             );
           },
-          jitter(5) * 1000,
+          jitter(FIRST_WAIT_SEC) * 1000,
         );
       } else if (
         phase === "stashing" &&
@@ -128,7 +133,7 @@ export default function () {
         stashedState = extractStashedState(payload) ?? stashedState;
         stashRTT.add(Date.now() - stashSentAt, { stash_round: "1" });
         phase = "idle_after_stash";
-        socket.setTimeout(() => socket.close(), jitter(15) * 1000);
+        socket.setTimeout(() => socket.close(), jitter(FIRST_WAIT_SEC) * 1000);
       }
     });
 
@@ -154,26 +159,33 @@ export default function () {
     ? Math.random() * (TTL * 0.8) // 0 .. 80% of TTL
     : TTL + 1 + Math.random() * 2; // TTL+1 .. TTL+3
 
-  // TEMPORARY FOR LOCAL SHORTER TESTS
-  gapSec = 10;
+  gapSec = Math.max(gapSec - FIRST_WAIT_SEC, 1);
+
+  // // TEMPORARY FOR LOCAL SHORTER TESTS
+  // gapSec = 5;
 
   sleep(gapSec);
 
   // ── Connection 2 ────────────────────────────────────────────────────────
-  // reconnect (with stashId) → wait ~15 s → stash again → wait ~15 s → close
-  ws.connect(wsUrl, { headers: wsHeaders }, (socket) => {
+  // reconnect → wait → stash again → wait → close
+  const params = { _csrf_token: wsCsrfToken, _mounts: 1 };
+  const liveStash = {};
+  if (stashId) liveStash.stashId = stashId;
+  if (nodeHint) liveStash.node = nodeHint;
+  if (stashedState) liveStash.stashedState = stashedState;
+  if (Object.keys(liveStash).length > 0) params.liveStash = liveStash;
+
+  const queryString = serializeParams(params);
+  const reconnectWsUrl = `ws://${HOST}/live/websocket?vsn=2.0.0&${queryString}`;
+
+  ws.connect(reconnectWsUrl, { headers: wsHeaders }, (socket) => {
     let phase = "joining";
     let reconnectSentAt = 0;
     let stashSentAt = 0;
 
     socket.on("open", () => {
       reconnectSentAt = Date.now();
-      const params = { _csrf_token: wsCsrfToken, _mounts: 1 };
-      const liveStash = {};
-      if (stashId) liveStash.stashId = stashId;
-      if (nodeHint) liveStash.node = nodeHint;
-      if (stashedState) liveStash.stashedState = stashedState;
-      if (Object.keys(liveStash).length > 0) params.liveStash = liveStash;
+
       socket.send(
         phxMsg("1", "1", topic, "phx_join", {
           url: `${baseUrl}${path}`,
@@ -209,7 +221,7 @@ export default function () {
               }),
             );
           },
-          jitter(15) * 1000,
+          jitter(SECOND_WAIT_SEC) * 1000,
         );
       } else if (
         phase === "stashing" &&
@@ -217,7 +229,7 @@ export default function () {
       ) {
         stashRTT.add(Date.now() - stashSentAt, { stash_round: "2" });
         phase = "idle_after_stash";
-        socket.setTimeout(() => socket.close(), jitter(15) * 1000);
+        socket.setTimeout(() => socket.close(), jitter(SECOND_WAIT_SEC) * 1000);
       }
     });
 
@@ -234,6 +246,22 @@ export default function () {
       socket.close();
     }, SOCKET_TIMEOUT_MS);
   });
+}
+
+function serializeParams(obj, prefix) {
+  const str = [];
+  for (let p in obj) {
+    if (obj.hasOwnProperty(p)) {
+      let k = prefix ? prefix + "[" + p + "]" : p,
+        v = obj[p];
+      str.push(
+        v !== null && typeof v === "object"
+          ? serializeParams(v, k)
+          : encodeURIComponent(k) + "=" + encodeURIComponent(v),
+      );
+    }
+  }
+  return str.join("&");
 }
 
 function phxMsg(joinRef, ref, topic, event, payload) {
