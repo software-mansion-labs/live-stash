@@ -15,9 +15,8 @@ async function waitForConnected(page) {
 }
 
 async function reconnect(page, { delayMs = 0 } = {}) {
-  await page.evaluate(() => window.liveSocket.disconnect());
-  await page.waitForFunction(
-    () => window.liveSocket && !window.liveSocket.isConnected(),
+  await page.evaluate(
+    () => new Promise((resolve) => window.liveSocket.disconnect(resolve)),
   );
 
   if (delayMs > 0) await page.waitForTimeout(delayMs);
