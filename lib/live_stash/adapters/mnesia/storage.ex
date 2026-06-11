@@ -114,18 +114,18 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   end
 
   @impl true
-  def handle_info({ref, result}, %{reconcile_task: %Task{ref: ref}} = state) do
+  def handle_info({ref, :ok}, %{reconcile_task: %Task{ref: ref}} = state) do
     Process.demonitor(ref, [:flush])
-
-    case result do
-      :ok ->
-        Logger.info(Utils.message("Mnesia cluster reconciliation complete."))
-
-      {:error, message} ->
-        Logger.error(message)
-    end
+    Logger.info(Utils.message("Mnesia cluster reconciliation complete."))
 
     {:noreply, finish_reconcile(state)}
+  end
+
+  def handle_info({ref, other}, %{reconcile_task: %Task{ref: ref}} = state) do
+    Process.demonitor(ref, [:flush])
+    Logger.error(Utils.reason_message("Mnesia cluster reconciliation failed", other))
+
+    {:noreply, retry_reconcile(state)}
   end
 
   def handle_info(
@@ -134,7 +134,15 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
       ) do
     Logger.error(Utils.reason_message("Mnesia cluster reconciliation task exited", reason))
 
-    {:noreply, finish_reconcile(state)}
+    {:noreply, retry_reconcile(state)}
+  end
+
+  def handle_info(:reconcile_retry, %{reconcile_task: %Task{}} = state) do
+    {:noreply, state}
+  end
+
+  def handle_info(:reconcile_retry, state) do
+    {:noreply, start_reconcile(state)}
   end
 
   @impl true
@@ -173,6 +181,15 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   end
 
   defp finish_reconcile(state) do
+    %{state | reconcile_task: nil}
+  end
+
+  defp retry_reconcile(%{reconcile_pending?: true} = state) do
+    start_reconcile(%{state | reconcile_task: nil})
+  end
+
+  defp retry_reconcile(state) do
+    Process.send_after(self(), :reconcile_retry, @retry_delay)
     %{state | reconcile_task: nil}
   end
 
