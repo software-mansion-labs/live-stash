@@ -46,6 +46,7 @@ defmodule LiveStash.Adapters.Mnesia do
   @doc false
   def start_link(opts \\ []) do
     children = [
+      {Task.Supervisor, name: LiveStash.Adapters.Mnesia.TaskSupervisor},
       {LiveStash.Adapters.Mnesia.Storage, opts},
       {LiveStash.Adapters.Mnesia.Cleaner, opts}
     ]
