@@ -8,7 +8,6 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   alias LiveStash.Adapters.Mnesia.State
   alias LiveStash.Utils
 
-  @wait_timeout 15_000
   @retry_delay 5_000
   @max_retries 3
   @task_supervisor LiveStash.Adapters.Mnesia.TaskSupervisor
@@ -72,7 +71,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
       node() > remote_node ->
         Logger.info(Utils.message("Yielding state to #{remote_node}. Attempting auto-heal."))
 
-        {:noreply, %{state | healing?: true, retries_left: @max_retries}, {:continue, :heal}}
+        {:noreply, %{state | healing?: true, retries_left: @max_retries},
+         {:continue, {:heal, remote_node}}}
 
       true ->
         Logger.info(
@@ -86,8 +86,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   end
 
   @impl true
-  def handle_info(:heal_retry, state) do
-    {:noreply, state, {:continue, :heal}}
+  def handle_info({:heal_retry, remote_node}, state) do
+    {:noreply, state, {:continue, {:heal, remote_node}}}
   end
 
   @impl true
@@ -156,14 +156,14 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   end
 
   @impl true
-  def handle_continue(:heal, state) do
-    case run_heal() do
+  def handle_continue({:heal, remote_node}, state) do
+    case run_heal(remote_node) do
       :ok ->
-        Logger.info(Utils.message("Mnesia State table copy dropped and recreated successfully."))
+        Logger.info(Utils.message("Mnesia State table re-synced from #{remote_node} successfully."))
         {:noreply, %{state | healing?: false, retries_left: @max_retries}}
 
       {:error, reason} ->
-        schedule_retry(state, reason)
+        schedule_retry(state, remote_node, reason)
     end
   end
 
@@ -193,25 +193,16 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     %{state | reconcile_task: nil}
   end
 
-  defp run_heal do
-    with :ok <- Memento.Table.delete_copy(State, node()),
-         :ok <- Memento.Table.create_copy(State, node(), :ram_copies) do
-      wait_for_table(State)
-    end
+  defp run_heal(remote_node) do
+    State.resync_from!(remote_node)
+    :ok
   rescue
     e ->
       Logger.error(Utils.exception_message("Mnesia auto-heal raised", e, __STACKTRACE__))
       {:error, e}
   end
 
-  defp wait_for_table(table) do
-    case Memento.Table.wait([table], @wait_timeout) do
-      {:timeout, _} -> {:error, :timeout}
-      other -> other
-    end
-  end
-
-  defp schedule_retry(%{retries_left: 1} = state, reason) do
+  defp schedule_retry(%{retries_left: 1} = state, _remote_node, reason) do
     Logger.error(
       Utils.reason_message(
         "Mnesia auto-heal exhausted all retries. Manual Mnesia restart required.",
@@ -222,7 +213,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     {:noreply, %{state | healing?: false, retries_left: @max_retries}}
   end
 
-  defp schedule_retry(state, reason) do
+  defp schedule_retry(state, remote_node, reason) do
     Logger.warning(
       Utils.reason_message(
         "Mnesia auto-heal attempt failed. Retrying in #{div(@retry_delay, 1000)}s...",
@@ -230,7 +221,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
       )
     )
 
-    Process.send_after(self(), :heal_retry, @retry_delay)
+    Process.send_after(self(), {:heal_retry, remote_node}, @retry_delay)
     {:noreply, %{state | retries_left: state.retries_left - 1}}
   end
 end
