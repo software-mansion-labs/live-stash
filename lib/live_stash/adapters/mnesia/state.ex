@@ -56,10 +56,15 @@ defmodule LiveStash.Adapters.Mnesia.State do
   """
   @spec ensure_cluster_table!([node()]) :: :ok
   def ensure_cluster_table!(peers \\ Node.list()) do
-    join_peers!(peers)
-    ensure_table!()
-    ensure_local_copy!()
-    wait_for_table!()
+    case join_peers!(peers) do
+      :ok ->
+        ensure_table!()
+        ensure_local_copy!()
+        wait_for_table!()
+
+      {:conflict, reason} ->
+        resolve_schema_conflict!(peers, reason)
+    end
   end
 
   @join_retries 5
@@ -74,6 +79,9 @@ defmodule LiveStash.Adapters.Mnesia.State do
         peers
         |> Enum.reject(&(&1 in :mnesia.system_info(:db_nodes)))
         |> handle_unmerged(attempts_left)
+
+      {:error, {:merge_schema_failed, _} = reason} ->
+        {:conflict, reason}
 
       {:error, reason} ->
         raise RuntimeError, Utils.reason_message("Failed to join Mnesia cluster", reason)
@@ -96,6 +104,68 @@ defmodule LiveStash.Adapters.Mnesia.State do
     warn_unmerged(running)
     log_non_mnesia(non_mnesia)
     :ok
+  end
+
+  defp resolve_schema_conflict!(peers, reason) do
+    master = elect_master(peers)
+
+    if node() == master do
+      Logger.warning(
+        Utils.reason_message(
+          "Mnesia schema conflict detected; this node (#{node()}) is the master. Peers will adopt its table",
+          reason
+        )
+      )
+
+      wait_for_table!()
+    else
+      Logger.warning(
+        Utils.reason_message(
+          "Mnesia schema conflict detected; yielding to master #{master} and adopting its table",
+          reason
+        )
+      )
+
+      adopt_from_master!(master)
+    end
+  end
+
+  defp elect_master(peers) do
+    [node() | peers]
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.find(fn
+      candidate when candidate == node() -> true
+      candidate -> mnesia_running?(candidate)
+    end)
+  end
+
+  defp adopt_from_master!(master) do
+    drop_table!()
+
+    case join_peers!([master]) do
+      :ok ->
+        ensure_local_copy!()
+        wait_for_table!()
+
+      {:conflict, reason} ->
+        raise RuntimeError,
+              Utils.reason_message("Mnesia schema conflict persisted after reset", reason)
+    end
+  end
+
+  defp drop_table!() do
+    case Memento.Table.delete(__MODULE__) do
+      :ok ->
+        :ok
+
+      {:error, {:no_exists, _}} ->
+        :ok
+
+      {:error, reason} ->
+        raise RuntimeError,
+              Utils.reason_message("Failed to drop conflicting Mnesia table", reason)
+    end
   end
 
   defp warn_unmerged([]), do: :ok
