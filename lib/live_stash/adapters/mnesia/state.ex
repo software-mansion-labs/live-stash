@@ -168,6 +168,70 @@ defmodule LiveStash.Adapters.Mnesia.State do
     end
   end
 
+  @doc """
+  Re-syncs this node's table from `remote_node` after an `:inconsistent_database`
+  event, where `remote_node` is the peer the caller already decided to yield to.
+
+  The repair mechanism depends on the cause, which we tell apart by comparing the
+  table cookie with `remote_node`:
+
+    * same cookie (same-table partition) — drop the local replica and
+      re-pull it, discarding this node's divergent data;
+    * different cookie (tables created independently before connecting) — reset
+      and copy `remote_node`'s table.
+  """
+  @spec resync_from!(node()) :: :ok
+  def resync_from!(remote_node) do
+    if same_cookie?(remote_node) do
+      resync_local!()
+    else
+      adopt_from_master!(remote_node)
+    end
+  end
+
+  defp same_cookie?(remote_node) do
+    case {local_cookie(), remote_cookie(remote_node)} do
+      {nil, _} -> false
+      {_, nil} -> false
+      {cookie, cookie} -> true
+      _ -> false
+    end
+  end
+
+  defp local_cookie() do
+    :mnesia.table_info(__MODULE__, :cookie)
+  rescue
+    _ -> nil
+  end
+
+  defp remote_cookie(node) do
+    :erpc.call(node, :mnesia, :table_info, [__MODULE__, :cookie], 5_000)
+  rescue
+    _ -> nil
+  catch
+    _, _ -> nil
+  end
+
+  defp resync_local!() do
+    drop_local_copy!()
+    ensure_local_copy!()
+    wait_for_table!()
+  end
+
+  defp drop_local_copy!() do
+    case Memento.Table.delete_copy(__MODULE__, node()) do
+      :ok ->
+        :ok
+
+      {:error, {:no_exists, _}} ->
+        :ok
+
+      {:error, reason} ->
+        raise RuntimeError,
+              Utils.reason_message("Failed to drop local Mnesia copy during heal", reason)
+    end
+  end
+
   defp warn_unmerged([]), do: :ok
 
   defp warn_unmerged(peers) do
