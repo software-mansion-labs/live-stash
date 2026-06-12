@@ -159,7 +159,10 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   def handle_continue({:heal, remote_node}, state) do
     case run_heal(remote_node) do
       :ok ->
-        Logger.info(Utils.message("Mnesia State table re-synced from #{remote_node} successfully."))
+        Logger.info(
+          Utils.message("Mnesia State table re-synced from #{remote_node} successfully.")
+        )
+
         {:noreply, %{state | healing?: false, retries_left: @max_retries}}
 
       {:error, reason} ->

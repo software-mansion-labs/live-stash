@@ -42,6 +42,7 @@ defmodule ShowcaseAppWeb.Router do
 
     get "/info", MnesiaClusterController, :info
     post "/simulate-inconsistency", MnesiaClusterController, :simulate_inconsistency
+    post "/poison", MnesiaClusterController, :poison
   end
 
   # Other scopes may use custom stacks.

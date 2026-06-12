@@ -172,44 +172,31 @@ defmodule LiveStash.Adapters.Mnesia.State do
   Re-syncs this node's table from `remote_node` after an `:inconsistent_database`
   event, where `remote_node` is the peer the caller already decided to yield to.
 
-  The repair mechanism depends on the cause, which we tell apart by comparing the
-  table cookie with `remote_node`:
+  The repair mechanism depends on the cause, which we tell apart by whether
+  `remote_node` already shares this node's Mnesia schema:
 
-    * same cookie (same-table partition) — drop the local replica and
-      re-pull it, discarding this node's divergent data;
-    * different cookie (tables created independently before connecting) — reset
+    * shared schema (same-table partition) — drop the local replica and re-pull
+      it, discarding this node's divergent data;
+    * separate schema (tables created independently before connecting) — reset
       and copy `remote_node`'s table.
+
+  We key off local `db_nodes` membership rather than comparing cookies over the
+  network on purpose: an `:erpc` cookie probe that times out under load would
+  return `nil` and be read as "different", sending a node that actually shares
+  the table into the `delete_table` branch — which is cluster-wide and would
+  wipe `State` on every node. `db_nodes` is a local, infallible read.
   """
   @spec resync_from!(node()) :: :ok
   def resync_from!(remote_node) do
-    if same_cookie?(remote_node) do
+    if shares_schema?(remote_node) do
       resync_local!()
     else
       adopt_from_master!(remote_node)
     end
   end
 
-  defp same_cookie?(remote_node) do
-    case {local_cookie(), remote_cookie(remote_node)} do
-      {nil, _} -> false
-      {_, nil} -> false
-      {cookie, cookie} -> true
-      _ -> false
-    end
-  end
-
-  defp local_cookie() do
-    :mnesia.table_info(__MODULE__, :cookie)
-  rescue
-    _ -> nil
-  end
-
-  defp remote_cookie(node) do
-    :erpc.call(node, :mnesia, :table_info, [__MODULE__, :cookie], 5_000)
-  rescue
-    _ -> nil
-  catch
-    _, _ -> nil
+  defp shares_schema?(remote_node) do
+    remote_node in :mnesia.system_info(:db_nodes)
   end
 
   defp resync_local!() do
