@@ -1,5 +1,4 @@
 const { test, expect } = require("@playwright/test");
-const { reconnect } = require("./helpers");
 
 const NODE_A = "http://localhost:4002";
 const NODE_B = "http://localhost:4001";
@@ -51,7 +50,21 @@ test.describe("Mnesia adapter - split-brain auto-heal", () => {
       )
       .toBe(true);
 
-    const baselineSize = (await nodeInfo(request, NODE_A)).table_size;
+    const poisonRes = await request.post(`${NODE_B}/test/mnesia/poison`);
+    expect(poisonRes.ok()).toBeTruthy();
+
+    await expect
+      .poll(
+        async () => {
+          const [a, b] = await Promise.all([
+            nodeInfo(request, NODE_A),
+            nodeInfo(request, NODE_B),
+          ]);
+          return b.table_size > a.table_size;
+        },
+        { timeout: 5_000, intervals: [200, 500] },
+      )
+      .toBe(true);
 
     const trigger = await request.post(
       `${NODE_B}/test/mnesia/simulate-inconsistency`,
@@ -62,17 +75,24 @@ test.describe("Mnesia adapter - split-brain auto-heal", () => {
     await expect
       .poll(
         async () => {
-          const b = await nodeInfo(request, NODE_B);
-          return b.table_size === baselineSize;
+          const [a, b] = await Promise.all([
+            nodeInfo(request, NODE_A),
+            nodeInfo(request, NODE_B),
+          ]);
+          return a.table_size === b.table_size;
         },
-        { timeout: 30_000, intervals: [500, 1_000] },
+        { timeout: 10_000, intervals: [200, 500] },
       )
       .toBe(true);
 
-    const finalA = await nodeInfo(request, NODE_A);
-    expect(finalA.table_size).toBe(baselineSize);
-
-    await reconnect(page);
+    await page.evaluate(() => window.liveSocket.disconnect());
+    await page.waitForFunction(
+      () => window.liveSocket && !window.liveSocket.isConnected(),
+    );
+    await page.evaluate(() => window.liveSocket.connect());
+    await page.waitForFunction(
+      () => window.liveSocket && window.liveSocket.isConnected(),
+    );
 
     await expect(counterValue).toHaveText("3");
 
@@ -86,7 +106,7 @@ test.describe("Mnesia adapter - split-brain auto-heal", () => {
             nodeInfo(request, NODE_A),
             nodeInfo(request, NODE_B),
           ]);
-          return a.table_size === b.table_size && a.table_size >= baselineSize;
+          return a.table_size === b.table_size;
         },
         { timeout: 5_000, intervals: [200, 500] },
       )

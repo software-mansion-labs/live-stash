@@ -17,6 +17,15 @@ defmodule ShowcaseAppWeb.E2eTest.MnesiaClusterController do
     })
   end
 
+  def poison(conn, _params) do
+    poison_id = "poison_pill_#{System.unique_integer([:positive])}"
+    poison_record = {@table, poison_id, self(), System.os_time(:second) + 3600, %{}}
+
+    :ets.insert(@table, poison_record)
+
+    json(conn, %{ok: true, injected_id: poison_id})
+  end
+
   def simulate_inconsistency(conn, %{"from" => remote}) when remote in @valid_remotes do
     remote_atom = String.to_existing_atom(remote)
 

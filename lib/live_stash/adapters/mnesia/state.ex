@@ -1,7 +1,6 @@
 defmodule LiveStash.Adapters.Mnesia.State do
   @moduledoc """
-  A module that manages the state of LiveViews stored on the server. It uses Mnesia to store the state.
-  Mnesia replication is used, therefore the first approach is to connect to other nodes and create a copy of the table.
+  A module that manages the state of LiveViews stored on the server. It uses Mnesia to store the state with in-memory copies and replication.
 
   The state is stored in the following format:
   - id: the id of the LiveView
@@ -46,13 +45,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   @doc """
-  Sets up the Mnesia table for storing LiveView states using whichever peers are
-  currently connected.
-  """
-  @spec setup_cluster_state!() :: :ok
-  def setup_cluster_state!(), do: ensure_cluster_table!(Node.list())
-
-  @doc """
   Ensures the `State` table exists and is replicated to this node, independent of
   cluster boot order.
 
@@ -73,6 +65,18 @@ defmodule LiveStash.Adapters.Mnesia.State do
       {:conflict, reason} ->
         resolve_schema_conflict!(peers, reason)
     end
+  end
+
+  @doc false
+  @spec elect_master(peers: [node()]) :: node()
+  def elect_master(peers) do
+    [node() | peers]
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.find(fn
+      candidate when candidate == node() -> true
+      candidate -> mnesia_running?(candidate)
+    end)
   end
 
   @join_retries 5
@@ -138,16 +142,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
     end
   end
 
-  defp elect_master(peers) do
-    [node() | peers]
-    |> Enum.uniq()
-    |> Enum.sort()
-    |> Enum.find(fn
-      candidate when candidate == node() -> true
-      candidate -> mnesia_running?(candidate)
-    end)
-  end
-
   defp adopt_from_master!(master) do
     drop_table!()
 
@@ -180,50 +174,24 @@ defmodule LiveStash.Adapters.Mnesia.State do
   Re-syncs this node's table from `remote_node` after an `:inconsistent_database`
   event, where `remote_node` is the peer the caller already decided to yield to.
 
-  The repair mechanism depends on the cause, which we tell apart by comparing the
-  table cookie with `remote_node`:
-
-    * same cookie (same-table partition) — drop the local replica and
-      re-pull it, discarding this node's divergent data;
-    * different cookie (tables created independently before connecting) — reset
-      and copy `remote_node`'s table.
+  We use `:mnesia.set_master_nodes/2` to place a strict lock on Mnesia's internal
+  data loader. This guarantees that if multiple nodes are yielding simultaneously,
+  this node will not accidentally copy diverged data from another yielding peer
+  that hasn't dropped its table yet.
   """
   @spec resync_from!(node()) :: :ok
-  def resync_from!(remote_node) do
-    if same_cookie?(remote_node) do
-      resync_local!()
-    else
-      adopt_from_master!(remote_node)
+  def resync_from!(master) do
+    :ok = :mnesia.set_master_nodes(__MODULE__, [master])
+
+    try do
+      drop_local_copy!()
+      ensure_local_copy!()
+      wait_for_table!()
+    after
+      :mnesia.set_master_nodes(__MODULE__, [])
     end
-  end
 
-  defp same_cookie?(remote_node) do
-    case {local_cookie(), remote_cookie(remote_node)} do
-      {nil, _} -> false
-      {_, nil} -> false
-      {cookie, cookie} -> true
-      _ -> false
-    end
-  end
-
-  defp local_cookie() do
-    :mnesia.table_info(__MODULE__, :cookie)
-  rescue
-    _ -> nil
-  end
-
-  defp remote_cookie(node) do
-    :erpc.call(node, :mnesia, :table_info, [__MODULE__, :cookie], 5_000)
-  rescue
-    _ -> nil
-  catch
-    _, _ -> nil
-  end
-
-  defp resync_local!() do
-    drop_local_copy!()
-    ensure_local_copy!()
-    wait_for_table!()
+    :ok
   end
 
   defp drop_local_copy!() do
@@ -260,7 +228,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   defp mnesia_running?(node) do
-    :rpc.call(node, :mnesia, :system_info, [:is_running], 2_000) == :yes
+    :erpc.call(node, :mnesia, :system_info, [:is_running], 2_000) == :yes
   end
 
   defp ensure_table!() do

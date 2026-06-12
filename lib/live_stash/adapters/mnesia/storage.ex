@@ -35,7 +35,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     {:ok, _node} = :mnesia.subscribe(:system)
 
     :ok = :net_kernel.monitor_nodes(true)
-    State.setup_cluster_state!()
+    State.ensure_cluster_table!()
 
     auto_heal? = Application.get_env(:live_stash, :mnesia_auto_heal, true)
     {:ok, %__MODULE__{auto_heal?: auto_heal?}}
@@ -46,6 +46,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     Logger.error(
       Utils.reason_message("Mnesia split-brain detected with #{remote_node}", :conflict)
     )
+
+    master = State.elect_master(Node.list())
 
     cond do
       not state.auto_heal? ->
@@ -68,17 +70,15 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
 
         {:noreply, state}
 
-      node() > remote_node ->
-        Logger.info(Utils.message("Yielding state to #{remote_node}. Attempting auto-heal."))
+      node() != master ->
+        Logger.info(Utils.message("Yielding state to #{master}. Attempting auto-heal."))
 
         {:noreply, %{state | healing?: true, retries_left: @max_retries},
-         {:continue, {:heal, remote_node}}}
+         {:continue, {:heal, master}}}
 
       true ->
         Logger.info(
-          Utils.message(
-            "This node's state was selected over #{remote_node}. Node #{remote_node} is attempting auto-heal."
-          )
+          Utils.message("This node (#{node()}) is the global master. Yielding to no one.")
         )
 
         {:noreply, state}
@@ -159,7 +159,10 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   def handle_continue({:heal, remote_node}, state) do
     case run_heal(remote_node) do
       :ok ->
-        Logger.info(Utils.message("Mnesia State table re-synced from #{remote_node} successfully."))
+        Logger.info(
+          Utils.message("Mnesia State table re-synced from #{remote_node} successfully.")
+        )
+
         {:noreply, %{state | healing?: false, retries_left: @max_retries}}
 
       {:error, reason} ->
