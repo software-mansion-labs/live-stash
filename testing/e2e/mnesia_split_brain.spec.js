@@ -51,6 +51,13 @@ test.describe("Mnesia adapter - split-brain auto-heal", () => {
       .toBe(true);
 
     const poisonRes = await request.post(`${NODE_B}/test/mnesia/poison`);
+
+    if (!poisonRes.ok()) {
+      console.error("POISON ENDPOINT FAILED:");
+      console.error("Status:", poisonRes.status());
+      console.error("Body:", await poisonRes.text());
+    }
+
     expect(poisonRes.ok()).toBeTruthy();
 
     await expect
