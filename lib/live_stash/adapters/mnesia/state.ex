@@ -67,6 +67,18 @@ defmodule LiveStash.Adapters.Mnesia.State do
     end
   end
 
+  @doc false
+  @spec elect_master(peers: [node()]) :: node()
+  def elect_master(peers) do
+    [node() | peers]
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.find(fn
+      candidate when candidate == node() -> true
+      candidate -> mnesia_running?(candidate)
+    end)
+  end
+
   @join_retries 5
   @join_retry_delay_ms 300
 
@@ -130,16 +142,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
     end
   end
 
-  defp elect_master(peers) do
-    [node() | peers]
-    |> Enum.uniq()
-    |> Enum.sort()
-    |> Enum.find(fn
-      candidate when candidate == node() -> true
-      candidate -> mnesia_running?(candidate)
-    end)
-  end
-
   defp adopt_from_master!(master) do
     drop_table!()
 
@@ -171,12 +173,25 @@ defmodule LiveStash.Adapters.Mnesia.State do
   @doc """
   Re-syncs this node's table from `remote_node` after an `:inconsistent_database`
   event, where `remote_node` is the peer the caller already decided to yield to.
+
+  We use `:mnesia.set_master_nodes/2` to place a strict lock on Mnesia's internal
+  data loader. This guarantees that if multiple nodes are yielding simultaneously,
+  this node will not accidentally copy diverged data from another yielding peer
+  that hasn't dropped its table yet.
   """
   @spec resync_from!(node()) :: :ok
-  def resync_from!(_remote_node) do
-    drop_local_copy!()
-    ensure_local_copy!()
-    wait_for_table!()
+  def resync_from!(master) do
+    :ok = :mnesia.set_master_nodes(__MODULE__, [master])
+
+    try do
+      drop_local_copy!()
+      ensure_local_copy!()
+      wait_for_table!()
+    after
+      :mnesia.set_master_nodes(__MODULE__, [])
+    end
+
+    :ok
   end
 
   defp drop_local_copy!() do

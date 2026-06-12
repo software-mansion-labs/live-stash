@@ -47,6 +47,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
       Utils.reason_message("Mnesia split-brain detected with #{remote_node}", :conflict)
     )
 
+    master = State.elect_master(Node.list())
+
     cond do
       not state.auto_heal? ->
         Logger.warning(
@@ -68,17 +70,15 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
 
         {:noreply, state}
 
-      node() > remote_node ->
-        Logger.info(Utils.message("Yielding state to #{remote_node}. Attempting auto-heal."))
+      node() != master ->
+        Logger.info(Utils.message("Yielding state to #{master}. Attempting auto-heal."))
 
         {:noreply, %{state | healing?: true, retries_left: @max_retries},
-         {:continue, {:heal, remote_node}}}
+         {:continue, {:heal, master}}}
 
       true ->
         Logger.info(
-          Utils.message(
-            "This node's state was selected over #{remote_node}. Node #{remote_node} is attempting auto-heal."
-          )
+          Utils.message("This node (#{node()}) is the global master. Yielding to no one.")
         )
 
         {:noreply, state}
