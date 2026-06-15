@@ -14,6 +14,14 @@ defmodule TestingWeb.Performance.LiveStashMnesiaLive do
       |> assign(:size_kb, Payload.parse_size_kb(params))
       |> assign_new_payload()
       |> LiveStash.recover_state()
+      |> case do
+      {:recovered, recovered_socket} ->
+        {:recovered, recovered_socket}
+
+      {status, socket} ->
+        assign_new_payload(socket)
+        |> then(&{status, &1})
+      end
 
     socket = assign(socket, :recovered, status == :recovered)
     socket = assign(socket, :payload_bytes, Payload.measure_bytes(socket.assigns.payload))
