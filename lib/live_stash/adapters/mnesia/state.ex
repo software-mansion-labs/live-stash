@@ -395,8 +395,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
         length(records)
       end)
 
-    dbg(deleted_in_batch)
-
     if deleted_in_batch == batch_size do
       deleted_in_batch + delete_expired!(now, batch_size)
     else
