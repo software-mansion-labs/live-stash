@@ -138,17 +138,16 @@ defmodule LiveStash.Adapters.Mnesia.State do
         )
       )
 
-      adopt_from_master!(master)
+      adopt_from!(master)
     end
   end
 
-  defp adopt_from_master!(master) do
+  defp adopt_from!(master) do
     drop_table!()
 
     case join_peers!([master]) do
       :ok ->
-        ensure_local_copy!()
-        wait_for_table!()
+        copy_and_wait_from!(master)
 
       {:conflict, reason} ->
         raise RuntimeError,
@@ -181,17 +180,8 @@ defmodule LiveStash.Adapters.Mnesia.State do
   """
   @spec resync_from!(node()) :: :ok
   def resync_from!(master) do
-    :ok = :mnesia.set_master_nodes(__MODULE__, [master])
-
-    try do
-      drop_local_copy!()
-      ensure_local_copy!()
-      wait_for_table!()
-    after
-      :mnesia.set_master_nodes(__MODULE__, [])
-    end
-
-    :ok
+    drop_local_copy!()
+    copy_and_wait_from!(master)
   end
 
   defp drop_local_copy!() do
@@ -205,6 +195,17 @@ defmodule LiveStash.Adapters.Mnesia.State do
       {:error, reason} ->
         raise RuntimeError,
               Utils.reason_message("Failed to drop local Mnesia copy during heal", reason)
+    end
+  end
+
+  defp copy_and_wait_from!(master) do
+    :ok = :mnesia.set_master_nodes(__MODULE__, [master])
+
+    try do
+      ensure_local_copy!()
+      wait_for_table!()
+    after
+      :mnesia.set_master_nodes(__MODULE__, [])
     end
   end
 
