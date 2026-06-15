@@ -17,13 +17,15 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
           retries_left: non_neg_integer(),
           auto_heal?: boolean(),
           reconcile_task: Task.t() | nil,
-          reconcile_pending?: boolean()
+          reconcile_pending?: boolean(),
+          reconcile_peers: [node()]
         }
   defstruct healing?: false,
             retries_left: @max_retries,
             auto_heal?: true,
             reconcile_task: nil,
-            reconcile_pending?: false
+            reconcile_pending?: false,
+            reconcile_peers: []
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
@@ -86,8 +88,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   end
 
   @impl true
-  def handle_info({:heal_retry, remote_node}, state) do
-    {:noreply, state, {:continue, {:heal, remote_node}}}
+  def handle_info({:heal_retry, master}, state) do
+    {:noreply, state, {:continue, {:heal, master}}}
   end
 
   @impl true
@@ -110,7 +112,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   def handle_info({:nodeup, node}, state) do
     Logger.info(Utils.message("Node #{node} connected. Reconciling Mnesia cluster membership."))
 
-    {:noreply, start_reconcile(state)}
+    {:noreply, start_reconcile(state, Node.list())}
   end
 
   @impl true
@@ -142,7 +144,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   end
 
   def handle_info(:reconcile_retry, state) do
-    {:noreply, start_reconcile(state)}
+    {:noreply, start_reconcile(state, state.reconcile_peers)}
   end
 
   @impl true
@@ -156,39 +158,37 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
   end
 
   @impl true
-  def handle_continue({:heal, remote_node}, state) do
-    case run_heal(remote_node) do
+  def handle_continue({:heal, master}, state) do
+    case run_heal(master) do
       :ok ->
-        Logger.info(
-          Utils.message("Mnesia State table re-synced from #{remote_node} successfully.")
-        )
+        Logger.info(Utils.message("Mnesia State table re-synced from #{master} successfully."))
 
         {:noreply, %{state | healing?: false, retries_left: @max_retries}}
 
       {:error, reason} ->
-        schedule_retry(state, remote_node, reason)
+        schedule_retry(state, master, reason)
     end
   end
 
-  defp start_reconcile(state) do
+  defp start_reconcile(state, peers) do
     task =
       Task.Supervisor.async_nolink(@task_supervisor, fn ->
-        State.ensure_cluster_table!(Node.list())
+        State.ensure_cluster_table!(peers)
       end)
 
-    %{state | reconcile_task: task, reconcile_pending?: false}
+    %{state | reconcile_task: task, reconcile_pending?: false, reconcile_peers: peers}
   end
 
   defp finish_reconcile(%{reconcile_pending?: true} = state) do
-    start_reconcile(%{state | reconcile_task: nil})
+    start_reconcile(%{state | reconcile_task: nil}, Node.list())
   end
 
   defp finish_reconcile(state) do
-    %{state | reconcile_task: nil}
+    %{state | reconcile_task: nil, reconcile_peers: []}
   end
 
   defp retry_reconcile(%{reconcile_pending?: true} = state) do
-    start_reconcile(%{state | reconcile_task: nil})
+    start_reconcile(%{state | reconcile_task: nil}, Node.list())
   end
 
   defp retry_reconcile(state) do
@@ -196,8 +196,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     %{state | reconcile_task: nil}
   end
 
-  defp run_heal(remote_node) do
-    State.resync_from!(remote_node)
+  defp run_heal(master) do
+    State.resync_from!(master)
     :ok
   rescue
     e ->
@@ -205,7 +205,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
       {:error, e}
   end
 
-  defp schedule_retry(%{retries_left: 1} = state, _remote_node, reason) do
+  defp schedule_retry(%{retries_left: 1} = state, _master, reason) do
     Logger.error(
       Utils.reason_message(
         "Mnesia auto-heal exhausted all retries. Manual Mnesia restart required.",
@@ -216,7 +216,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
     {:noreply, %{state | healing?: false, retries_left: @max_retries}}
   end
 
-  defp schedule_retry(state, remote_node, reason) do
+  defp schedule_retry(state, master, reason) do
     Logger.warning(
       Utils.reason_message(
         "Mnesia auto-heal attempt failed. Retrying in #{div(@retry_delay, 1000)}s...",
@@ -224,7 +224,7 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
       )
     )
 
-    Process.send_after(self(), {:heal_retry, remote_node}, @retry_delay)
+    Process.send_after(self(), {:heal_retry, master}, @retry_delay)
     {:noreply, %{state | retries_left: state.retries_left - 1}}
   end
 end
