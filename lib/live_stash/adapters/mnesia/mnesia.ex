@@ -46,6 +46,7 @@ defmodule LiveStash.Adapters.Mnesia do
   @doc false
   def start_link(opts \\ []) do
     children = [
+      {Task.Supervisor, name: LiveStash.Adapters.Mnesia.TaskSupervisor},
       {LiveStash.Adapters.Mnesia.Storage, opts},
       {LiveStash.Adapters.Mnesia.Cleaner, opts}
     ]
@@ -55,9 +56,8 @@ defmodule LiveStash.Adapters.Mnesia do
 
   @impl true
   def init_stash(socket, session, opts) do
-    context = Context.new(socket, session, opts)
-
-    socket = Phoenix.LiveView.put_private(socket, :live_stash_context, context)
+    socket = Common.init_context(socket, session, opts, __MODULE__)
+    context = socket.private.live_stash_context
 
     socket =
       if context.reconnected? do

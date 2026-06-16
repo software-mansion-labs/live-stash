@@ -9,7 +9,7 @@ defmodule LiveStash.Adapters.MnesiaTest do
   alias LiveStash.Fakes
 
   setup_all do
-    State.setup_cluster_state!()
+    State.ensure_cluster_table!()
     :ok
   end
 
@@ -80,7 +80,7 @@ defmodule LiveStash.Adapters.MnesiaTest do
       socket: socket,
       stash_id: stash_id
     } do
-      on_exit(fn -> State.setup_cluster_state!() end)
+      on_exit(fn -> State.ensure_cluster_table!() end)
 
       :mnesia.delete_table(LiveStash.Adapters.Mnesia.State)
 

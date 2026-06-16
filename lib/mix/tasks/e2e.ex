@@ -24,6 +24,8 @@ defmodule Mix.Tasks.E2e do
         IO.puts("[E2E] Booting Docker infrastructure...")
         System.cmd(docker_cmd, up_args, cd: @app_dir)
 
+        build_assets()
+
         IO.puts("[E2E] Starting Phoenix server in test environment...")
         start_phoenix_server()
 
@@ -134,6 +136,26 @@ defmodule Mix.Tasks.E2e do
 
     if status != 0 do
       Mix.raise("[E2E ERROR] Failed to install NPM dependencies. Please check the logs above.")
+    end
+  end
+
+  defp build_assets do
+    IO.puts("[E2E] Building assets (MIX_ENV=test)...")
+
+    run_mix(["assets.setup"], "install asset build tooling")
+    run_mix(["assets.build"], "build assets")
+  end
+
+  defp run_mix(args, description) do
+    {_stream, status} =
+      System.cmd("mix", args,
+        cd: @app_dir,
+        env: [{"MIX_ENV", "test"}],
+        into: IO.stream(:stdio, :line)
+      )
+
+    if status != 0 do
+      Mix.raise("[E2E ERROR] Failed to #{description} (`mix #{Enum.join(args, " ")}`).")
     end
   end
 end

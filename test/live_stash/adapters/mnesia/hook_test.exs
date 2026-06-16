@@ -5,7 +5,7 @@ defmodule LiveStash.Adapters.Mnesia.HookTest do
   alias LiveStash.Fakes
 
   setup_all do
-    State.setup_cluster_state!()
+    State.ensure_cluster_table!()
     :ok
   end
 

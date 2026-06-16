@@ -1,7 +1,6 @@
 defmodule LiveStash.Adapters.Mnesia.State do
   @moduledoc """
-  A module that manages the state of LiveViews stored on the server. It uses Mnesia to store the state.
-  Mnesia replication is used, therefore the first approach is to connect to other nodes and create a copy of the table.
+  A module that manages the state of LiveViews stored on the server. It uses Mnesia to store the state with in-memory copies and replication.
 
   The state is stored in the following format:
   - id: the id of the LiveView
@@ -46,66 +45,211 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   @doc """
-  Sets up the Mnesia table for storing LiveView states.
-  If other nodes are already running, it creates a copy of the table on this node.
-  Otherwise, it creates the table on this node as the first node in the cluster.
+  Ensures the `State` table exists and is replicated to this node, independent of
+  cluster boot order.
+
+  Safe to call repeatedly: it joins any reachable peers
+  into a shared schema, creates the table if no node has it yet, and ensures a
+  local `ram_copies` replica. Concurrent calls from multiple nodes are tolerated
+  because the underlying Mnesia schema operations are serialized cluster-wide and
+  "already exists" results are treated as success.
   """
-  @spec setup_cluster_state!() :: :ok
-  def setup_cluster_state!() do
-    ensure_table_created!()
-    wait_for_table!()
-  end
+  @spec ensure_cluster_table!([node()]) :: :ok
+  def ensure_cluster_table!(peers \\ Node.list()) do
+    case join_peers!(peers) do
+      :ok ->
+        ensure_table!()
+        ensure_local_copy!()
+        wait_for_table!()
 
-  defp ensure_table_created!() do
-    Node.list()
-    |> init_table()
-    |> handle_create_result!()
-  end
-
-  defp init_table([]) do
-    Memento.Table.create(__MODULE__, ram_copies: [node()])
-  end
-
-  defp init_table(nodes) do
-    case Memento.add_nodes(nodes) do
-      {:ok, []} ->
-        Logger.warning(
-          Utils.reason_message(
-            "Could not reach any Mnesia peer",
-            {:requested_nodes, nodes}
-          )
-        )
-
-        Memento.Table.create_copy(__MODULE__, node(), :ram_copies)
-
-      {:ok, connected} ->
-        missing = nodes -- connected
-
-        if missing != [] do
-          Logger.warning(
-            Utils.message(
-              "Mnesia joined #{inspect(connected)} of requested peers. Could not reach #{inspect(missing)}"
-            )
-          )
-        end
-
-        Memento.Table.create_copy(__MODULE__, node(), :ram_copies)
-
-      {:error, reason} ->
-        {:error, {:add_nodes_failed, reason}}
+      {:conflict, reason} ->
+        resolve_schema_conflict!(peers, reason)
     end
   end
 
-  defp handle_create_result!(:ok), do: :ok
-  defp handle_create_result!({:error, {:already_exists, _}}), do: :ok
-  defp handle_create_result!({:error, {:already_exists, _, _}}), do: :ok
-
-  defp handle_create_result!({:error, {:add_nodes_failed, reason}}) do
-    raise RuntimeError, Utils.reason_message("Failed to join Mnesia cluster", reason)
+  @doc false
+  @spec elect_master([node()]) :: node()
+  def elect_master(peers) do
+    [node() | peers]
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.find(fn
+      candidate when candidate == node() -> true
+      candidate -> mnesia_running?(candidate)
+    end)
   end
 
-  defp handle_create_result!({:error, reason}) do
-    raise RuntimeError, Utils.reason_message("Failed to set up Mnesia table", reason)
+  @join_retries 5
+  @join_retry_delay_ms 300
+
+  defp join_peers!([]), do: :ok
+  defp join_peers!(peers), do: join_peers!(peers, @join_retries)
+
+  defp join_peers!(peers, attempts_left) do
+    case Memento.add_nodes(peers) do
+      {:ok, _added} ->
+        peers
+        |> Enum.reject(&(&1 in :mnesia.system_info(:db_nodes)))
+        |> handle_unmerged(attempts_left)
+
+      {:error, {:merge_schema_failed, _} = reason} ->
+        {:conflict, reason}
+
+      {:error, reason} ->
+        raise RuntimeError, Utils.reason_message("Failed to join Mnesia cluster", reason)
+    end
+  end
+
+  defp handle_unmerged([], _attempts_left), do: :ok
+
+  # Retry every still-unmerged peer: Erlang distribution connects at VM start, so
+  # a `:nodeup` can fire before the peer's Mnesia has even started. We can't tell
+  # "not a Mnesia node" from "Mnesia not up yet" at a single instant, so we keep
+  # retrying.
+  defp handle_unmerged(unmerged, attempts_left) when attempts_left > 0 do
+    Process.sleep(@join_retry_delay_ms)
+    join_peers!(unmerged, attempts_left - 1)
+  end
+
+  defp handle_unmerged(unmerged, _attempts_left) do
+    {running, non_mnesia} = Enum.split_with(unmerged, &mnesia_running?/1)
+    warn_unmerged(running)
+    log_non_mnesia(non_mnesia)
+    :ok
+  end
+
+  defp resolve_schema_conflict!(peers, reason) do
+    master = elect_master(peers)
+
+    if node() == master do
+      Logger.warning(
+        Utils.reason_message(
+          "Mnesia schema conflict detected; this node (#{node()}) is the master. Peers will adopt its table",
+          reason
+        )
+      )
+
+      wait_for_table!()
+    else
+      Logger.warning(
+        Utils.reason_message(
+          "Mnesia schema conflict detected; yielding to master #{master} and adopting its table",
+          reason
+        )
+      )
+
+      adopt_from!(master)
+    end
+  end
+
+  defp adopt_from!(master) do
+    drop_table!()
+
+    case join_peers!([master]) do
+      :ok ->
+        copy_and_wait_from!(master)
+
+      {:conflict, reason} ->
+        raise RuntimeError,
+              Utils.reason_message("Mnesia schema conflict persisted after reset", reason)
+    end
+  end
+
+  defp drop_table!() do
+    case Memento.Table.delete(__MODULE__) do
+      :ok ->
+        :ok
+
+      {:error, {:no_exists, _}} ->
+        :ok
+
+      {:error, reason} ->
+        raise RuntimeError,
+              Utils.reason_message("Failed to drop conflicting Mnesia table", reason)
+    end
+  end
+
+  @doc """
+  Re-syncs this node's table from `remote_node` after an `:inconsistent_database`
+  event, where `remote_node` is the peer the caller already decided to yield to.
+
+  We use `:mnesia.set_master_nodes/2` to place a strict lock on Mnesia's internal
+  data loader. This guarantees that if multiple nodes are yielding simultaneously,
+  this node will not accidentally copy diverged data from another yielding peer
+  that hasn't dropped its table yet.
+  """
+  @spec resync_from!(node()) :: :ok
+  def resync_from!(master) do
+    drop_local_copy!()
+    copy_and_wait_from!(master)
+  end
+
+  defp drop_local_copy!() do
+    case Memento.Table.delete_copy(__MODULE__, node()) do
+      :ok ->
+        :ok
+
+      {:error, {:no_exists, _}} ->
+        :ok
+
+      {:error, reason} ->
+        raise RuntimeError,
+              Utils.reason_message("Failed to drop local Mnesia copy during heal", reason)
+    end
+  end
+
+  defp copy_and_wait_from!(master) do
+    :ok = :mnesia.set_master_nodes(__MODULE__, [master])
+
+    try do
+      ensure_local_copy!()
+      wait_for_table!()
+    after
+      :mnesia.set_master_nodes(__MODULE__, [])
+    end
+  end
+
+  defp warn_unmerged([]), do: :ok
+
+  defp warn_unmerged(peers) do
+    Logger.warning(
+      Utils.reason_message(
+        "Mnesia peers are running Mnesia but did not merge into the cluster",
+        {:unmerged, peers}
+      )
+    )
+  end
+
+  defp log_non_mnesia([]), do: :ok
+
+  defp log_non_mnesia(nodes) do
+    Logger.debug(
+      Utils.reason_message("Ignoring connected nodes not running Mnesia", {:no_mnesia, nodes})
+    )
+  end
+
+  defp mnesia_running?(node) do
+    :erpc.call(node, :mnesia, :system_info, [:is_running], 2_000) == :yes
+  end
+
+  defp ensure_table!() do
+    __MODULE__
+    |> Memento.Table.create(ram_copies: [node()])
+    |> accept_already_exists!("Failed to set up Mnesia table")
+  end
+
+  defp ensure_local_copy!() do
+    __MODULE__
+    |> Memento.Table.create_copy(node(), :ram_copies)
+    |> accept_already_exists!("Failed to create local Mnesia copy")
+  end
+
+  defp accept_already_exists!(:ok, _context), do: :ok
+  defp accept_already_exists!({:error, {:already_exists, _}}, _context), do: :ok
+  defp accept_already_exists!({:error, {:already_exists, _, _}}, _context), do: :ok
+
+  defp accept_already_exists!({:error, reason}, context) do
+    raise RuntimeError, Utils.reason_message(context, reason)
   end
 
   defp wait_for_table!() do
