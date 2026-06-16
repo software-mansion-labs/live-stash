@@ -68,7 +68,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   @doc false
-  @spec elect_master(peers: [node()]) :: node()
+  @spec elect_master([node()]) :: node()
   def elect_master(peers) do
     [node() | peers]
     |> Enum.uniq()
