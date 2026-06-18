@@ -12,7 +12,6 @@ defmodule TestingWeb.Performance.LiveStashRedisLive do
     {status, socket} =
       socket
       |> assign(:size_kb, Payload.parse_size_kb(params))
-      |> assign_new_payload()
       |> LiveStash.recover_state()
       |> case do
       {:recovered, recovered_socket} ->
