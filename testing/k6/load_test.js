@@ -15,6 +15,9 @@ const VUS = parseInt(__ENV.VUS || "50");
 // Adapter TTL, must match LiveView config
 const TTL = parseFloat(__ENV.TTL || "15");
 
+const TTL_MIN_GAP_PCT = parseFloat(__ENV.TTL_MIN_GAP_PCT || "0.1");
+const TTL_MAX_GAP_PCT = parseFloat(__ENV.TTL_MAX_GAP_PCT || "0.3");
+
 // Probability (0-100) that the gap between disconnect and reconnect is shorter
 // than TTL (the stash is still recoverable).
 const RECONNECT_WITHIN_TTL_PCT = parseFloat(
@@ -176,7 +179,7 @@ export default function () {
   // still recoverable; the rest wait long enough that it has expired.
   const withinTtl = Math.random() * 100 < RECONNECT_WITHIN_TTL_PCT;
   let gapSec = withinTtl
-    ? Math.random() * (TTL * 0.5) // 0 .. 50% of TTL
+    ? Math.random() * (TTL * TTL_MAX_GAP_PCT) + TTL_MIN_GAP_PCT * TTL // 0.1 .. 30% of TTL
     : TTL + 1 + Math.random() * 2; // TTL+1 .. TTL+3
 
   // works only for browser memory adapter
