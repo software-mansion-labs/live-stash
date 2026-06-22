@@ -6,7 +6,7 @@
     "load-test"
   ],
   "schemaVersion": 38,
-  "version": 6,
+  "version": 7,
   "refresh": "5s",
   "timezone": "browser",
   "time": {
@@ -480,7 +480,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.50, k6_stash_rtt_ms_seconds)",
+          "expr": "histogram_quantile(0.50, sum(k6_stash_rtt_ms_seconds))",
           "legendFormat": "p50"
         },
         {
@@ -489,7 +489,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, k6_stash_rtt_ms_seconds)",
+          "expr": "histogram_quantile(0.95, sum(k6_stash_rtt_ms_seconds))",
           "legendFormat": "p95"
         },
         {
@@ -498,7 +498,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.99, k6_stash_rtt_ms_seconds)",
+          "expr": "histogram_quantile(0.99, sum(k6_stash_rtt_ms_seconds))",
           "legendFormat": "p99"
         }
       ]
@@ -549,7 +549,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.50, k6_reconnect_rtt_ms_seconds)",
+          "expr": "histogram_quantile(0.50, sum(k6_reconnect_rtt_ms_seconds))",
           "legendFormat": "p50"
         },
         {
@@ -558,7 +558,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, k6_reconnect_rtt_ms_seconds)",
+          "expr": "histogram_quantile(0.95, sum(k6_reconnect_rtt_ms_seconds))",
           "legendFormat": "p95"
         },
         {
@@ -567,7 +567,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.99, k6_reconnect_rtt_ms_seconds)",
+          "expr": "histogram_quantile(0.99, sum(k6_reconnect_rtt_ms_seconds))",
           "legendFormat": "p99"
         }
       ]

@@ -19,6 +19,7 @@ services:
       HOST: "app:4000"
       K6_PROMETHEUS_RW_SERVER_URL: "http://prometheus:9090/api/v1/write"
       K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM: "true"
+      K6_PROMETHEUS_RW_PUSH_INTERVAL: "10s"
     command: run --out=experimental-prometheus-rw /scripts/load_test.js
 
 # The main stack (app, prometheus, ...) must already be running:

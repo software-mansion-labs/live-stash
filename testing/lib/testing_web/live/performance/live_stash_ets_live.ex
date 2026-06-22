@@ -3,7 +3,7 @@ defmodule TestingWeb.Performance.LiveStashEtsLive do
 
   use LiveStash,
     adapter: LiveStash.Adapters.ETS,
-    ttl: 15,
+    ttl: 60,
     stored_keys: [:payload, :size_kb]
 
   alias TestingWeb.Performance.Payload
@@ -22,8 +22,10 @@ defmodule TestingWeb.Performance.LiveStashEtsLive do
         |> then(&{status, &1})
       end
 
-    socket = assign(socket, :recovered, status == :recovered)
-    socket = assign(socket, :payload_bytes, Payload.measure_bytes(socket.assigns.payload))
+    socket =
+      socket
+      |> assign(:recovered, status == :recovered)
+      |> assign(Payload.byte_metrics(socket.assigns.payload))
 
     {:ok, socket}
   end
@@ -34,11 +36,13 @@ defmodule TestingWeb.Performance.LiveStashEtsLive do
       id="performance-livestash-ets"
       data-recovered={to_string(@recovered)}
       data-payload-bytes={@payload_bytes}
+      data-payload-compressed-bytes={@payload_compressed_bytes}
       data-size-kb={@size_kb}
     >
       <h1>Performance (LiveStash ETS)</h1>
       <p>size_kb: {@size_kb}</p>
-      <p>payload_bytes (compressed term_to_binary): {@payload_bytes}</p>
+      <p>payload_bytes (term_to_binary): {@payload_bytes}</p>
+      <p>payload_compressed_bytes: {@payload_compressed_bytes}</p>
       <p>recovered: {to_string(@recovered)}</p>
       <button phx-click="regenerate" aria-label="Regenerate">Regenerate</button>
     </div>
@@ -51,7 +55,7 @@ defmodule TestingWeb.Performance.LiveStashEtsLive do
       |> assign_new_payload()
       |> LiveStash.stash()
 
-    {:noreply, assign(socket, :payload_bytes, Payload.measure_bytes(socket.assigns.payload))}
+    {:noreply, assign(socket, Payload.byte_metrics(socket.assigns.payload))}
   end
 
   defp assign_new_payload(socket) do

@@ -1,0 +1,25 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # Phoenix app cluster (scraped directly, not through nginx — per-node metrics).
+  - job_name: testing_app
+    static_configs:
+{% for h in groups['app'] %}
+      - targets: ["{{ hostvars[h].private_ip }}:4000"]
+        labels: { instance: "{{ h }}" }
+{% endfor %}
+
+  # node_exporter on every VM that runs it (all but the load box).
+  - job_name: node
+    static_configs:
+      - targets:
+{% for h in groups['app'] + groups['redis'] + groups['obs'] %}
+          - "{{ hostvars[h].private_ip }}:9100"
+{% endfor %}
+
+  # redis_exporter on the redis VM.
+  - job_name: redis
+    static_configs:
+      - targets: ["{{ redis_private_ip }}:9121"]

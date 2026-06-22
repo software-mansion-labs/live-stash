@@ -1,0 +1,128 @@
+---
+# --- OS tuning ------------------------------------------------------------
+- name: Install load-VM sysctl tuning
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/sysctl/99-livestash-load.conf"
+    dest: /etc/sysctl.d/99-livestash-load.conf
+    mode: "0644"
+  notify: reload sysctl
+
+- name: Apply load-VM sysctl tuning
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
+- name: Install nofile limits
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/limits.d/99-livestash.conf"
+    dest: /etc/security/limits.d/99-livestash.conf
+
+# --- nginx load balancer --------------------------------------------------
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    update_cache: true
+    cache_valid_time: 3600
+
+# Default Ubuntu nginx allows 768 conns/worker — far too low for 5k VUs with
+# long-lived WebSocket proxies (each WS uses 2 slots: client + upstream).
+- name: Raise nginx worker file descriptor limit
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^worker_rlimit_nofile'
+    line: "worker_rlimit_nofile 1048576;"
+    insertafter: "^worker_processes"
+  notify: reload nginx
+
+- name: Raise nginx worker_connections
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    regexp: '^\s*worker_connections\s+\d+;'
+    line: "\tworker_connections 65536;"
+  notify: reload nginx
+
+- name: Install nginx nofile limits
+  ansible.builtin.copy:
+    dest: /etc/security/limits.d/99-nginx.conf
+    content: |
+      www-data soft nofile 1048576
+      www-data hard nofile 1048576
+    mode: "0644"
+
+- name: Remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+
+- name: Render nginx LB config
+  ansible.builtin.template:
+    src: livestash.conf.j2
+    dest: /etc/nginx/conf.d/livestash.conf
+  notify: reload nginx
+
+- name: Enable nginx
+  ansible.builtin.systemd:
+    name: nginx
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# Handlers only run at play end; if an earlier play failed (e.g. k6 apt),
+# nginx can still be serving the stock default site. Always reload here.
+- name: Reload nginx to apply LB config
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+
+# --- k6 -------------------------------------------------------------------
+- name: Ensure apt keyrings dir exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Install gnupg (needed to dearmor the k6 repo key)
+  ansible.builtin.apt:
+    name: gnupg
+    state: present
+
+# dl.k6.io/key.gpg is ASCII-armored; apt signed_by needs the dearmored binary.
+- name: Download k6 GPG key
+  ansible.builtin.get_url:
+    url: https://dl.k6.io/key.gpg
+    dest: /tmp/k6-key.asc
+    mode: "0644"
+
+- name: Dearmor k6 GPG key for apt
+  ansible.builtin.command:
+    cmd: gpg --dearmor --batch --yes --no-tty -o /etc/apt/keyrings/k6.gpg /tmp/k6-key.asc
+
+- name: Add k6 APT repo
+  ansible.builtin.deb822_repository:
+    name: k6
+    types: deb
+    uris: https://dl.k6.io/deb
+    suites: stable
+    components: main
+    signed_by: /etc/apt/keyrings/k6.gpg
+
+- name: Install k6
+  ansible.builtin.apt:
+    name: k6
+    update_cache: true
+
+- name: Ensure k6 script dir exists
+  ansible.builtin.file:
+    path: /opt/k6
+    state: directory
+    mode: "0755"
+
+- name: Copy k6 load test script
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../k6/load_test.js"
+    dest: /opt/k6/load_test.js
+
+- name: Render run-k6.sh
+  ansible.builtin.template:
+    src: run-k6.sh.j2
+    dest: /opt/k6/run-k6.sh
+    mode: "0755"

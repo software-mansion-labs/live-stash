@@ -1,0 +1,110 @@
+---
+# --- Prometheus -----------------------------------------------------------
+- name: Create prometheus system user
+  ansible.builtin.user:
+    name: prometheus
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Ensure prometheus dirs exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: prometheus
+    group: prometheus
+    mode: "0755"
+  loop:
+    - /etc/prometheus
+    - /var/lib/prometheus
+
+- name: Install prometheus binary
+  ansible.builtin.unarchive:
+    src: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/prometheus"
+
+- name: Place prometheus in /usr/local/bin
+  ansible.builtin.copy:
+    src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}"
+    dest: "/usr/local/bin/{{ item }}"
+    mode: "0755"
+    remote_src: true
+  loop: [prometheus, promtool]
+
+- name: Render prometheus config
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: /etc/prometheus/prometheus.yml
+    owner: prometheus
+    group: prometheus
+  notify: restart prometheus
+
+- name: Install prometheus systemd unit
+  ansible.builtin.template:
+    src: prometheus.service.j2
+    dest: /etc/systemd/system/prometheus.service
+  notify: restart prometheus
+
+- name: Enable prometheus
+  ansible.builtin.systemd:
+    name: prometheus
+    enabled: true
+    state: started
+    daemon_reload: true
+
+# --- Grafana --------------------------------------------------------------
+- name: Add Grafana APT key
+  ansible.builtin.get_url:
+    url: https://apt.grafana.com/gpg.key
+    dest: /etc/apt/keyrings/grafana.asc
+    mode: "0644"
+
+- name: Add Grafana APT repo
+  ansible.builtin.deb822_repository:
+    name: grafana
+    types: deb
+    uris: https://apt.grafana.com
+    suites: stable
+    components: main
+    signed_by: /etc/apt/keyrings/grafana.asc
+
+- name: Install Grafana
+  ansible.builtin.apt:
+    name: grafana
+    update_cache: true
+
+- name: Provision Grafana dashboards + datasource provisioning
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../observability/grafana/provisioning/"
+    dest: /etc/grafana/provisioning/
+  notify: restart grafana
+
+- name: Ensure dashboards dir exists
+  ansible.builtin.file:
+    path: /var/lib/grafana/dashboards
+    state: directory
+    owner: grafana
+    group: grafana
+    mode: "0755"
+
+- name: Copy dashboard JSON
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../../observability/grafana/dashboards/"
+    dest: /var/lib/grafana/dashboards/
+    owner: grafana
+    group: grafana
+  notify: restart grafana
+
+- name: Override datasource to point at localhost prometheus
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/grafana-datasource.vm.yml"
+    dest: /etc/grafana/provisioning/datasources/prometheus.yml
+  notify: restart grafana
+
+- name: Enable Grafana
+  ansible.builtin.systemd:
+    name: grafana-server
+    enabled: true
+    state: started

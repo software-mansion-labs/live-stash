@@ -38,6 +38,22 @@ const SOCKET_TIMEOUT_MS = parseInt(
 );
 
 export const options = {
+  // Reconnect WS URLs embed unique csrf/stash/state params per VU; drop `url`
+  // so built-in metrics group on our explicit `name` tags instead.
+  systemTags: [
+    "check",
+    "error",
+    "error_code",
+    "expected_response",
+    "group",
+    "method",
+    "name",
+    "proto",
+    "scenario",
+    "status",
+    "subproto",
+    "tls_version",
+  ],
   scenarios: {
     load: {
       executor: "ramping-vus",
@@ -64,7 +80,9 @@ export default function () {
   const path = `${BASE_PATH}?size_kb=${SIZE_KB}`;
   const baseUrl = `http://${HOST}`;
 
-  const res = http.get(`${baseUrl}${path}`);
+  const res = http.get(`${baseUrl}${path}`, {
+    tags: { name: "liveview_page" },
+  });
   if (!check(res, { "HTTP 200": (r) => r.status === 200 })) {
     fail(`GET ${path} failed: ${res.status}`);
   }
@@ -74,6 +92,7 @@ export default function () {
   const sessionCookie = extractSessionCookie(res);
   const wsUrl = `ws://${HOST}/live/websocket?vsn=2.0.0&_csrf_token=${wsCsrfToken}`;
   const wsHeaders = { Origin: baseUrl, Cookie: sessionCookie };
+  const wsTags = (name) => ({ headers: wsHeaders, tags: { name } });
 
   let stashId = null;
   let nodeHint = null;
@@ -81,7 +100,7 @@ export default function () {
 
   // ── Connection 1 ────────────────────────────────────────────────────────
   // connect → wait → stash → wait → disconnect
-  ws.connect(wsUrl, { headers: wsHeaders }, (socket) => {
+  ws.connect(wsUrl, wsTags("ws_join"), (socket) => {
     let phase = "joining";
     let joinSentAt = 0;
     let stashSentAt = 0;
@@ -179,7 +198,7 @@ export default function () {
   const queryString = serializeParams(params);
   const reconnectWsUrl = `ws://${HOST}/live/websocket?vsn=2.0.0&${queryString}`;
 
-  ws.connect(reconnectWsUrl, { headers: wsHeaders }, (socket) => {
+  ws.connect(reconnectWsUrl, wsTags("ws_reconnect"), (socket) => {
     let phase = "joining";
     let reconnectSentAt = 0;
     let stashSentAt = 0;
