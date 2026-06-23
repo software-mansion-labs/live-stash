@@ -29,6 +29,7 @@ defmodule TestingWeb.Performance.BaselineLive do
       <p>size_kb: {@size_kb}</p>
       <p>payload_bytes (term_to_binary): {@payload_bytes}</p>
       <p>payload_compressed_bytes: {@payload_compressed_bytes}</p>
+      <p>payload: {inspect(@payload, pretty: true, limit: :infinity)}</p>
       <button phx-click="regenerate" aria-label="Regenerate">Regenerate</button>
     </div>
     """

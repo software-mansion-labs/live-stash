@@ -44,6 +44,7 @@ defmodule TestingWeb.Performance.LiveStashMnesiaLive do
       <p>payload_bytes (term_to_binary): {@payload_bytes}</p>
       <p>payload_compressed_bytes: {@payload_compressed_bytes}</p>
       <p>recovered: {to_string(@recovered)}</p>
+      <p>payload: {inspect(@payload, pretty: true, limit: :infinity)}</p>
       <button phx-click="regenerate" aria-label="Regenerate">Regenerate</button>
     </div>
     """
