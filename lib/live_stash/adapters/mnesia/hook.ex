@@ -3,6 +3,7 @@ defmodule LiveStash.Adapters.Mnesia.Hook do
 
   alias LiveStash.Adapters.Mnesia.{Helpers, State}
   alias Phoenix.LiveView
+  alias LiveStash.Utils
 
   require Logger
 
@@ -26,7 +27,13 @@ defmodule LiveStash.Adapters.Mnesia.Hook do
     ttl = context.ttl
     id = Helpers.mnesia_id(context.id, context.secret)
 
-    State.bump_delete_at!(id, ttl)
+    try do
+      State.bump_delete_at!(id, ttl)
+    rescue
+      _ ->
+        msg = Utils.reason_message("Failed to bump TTL for Mnesia stash with id #{id}", :error)
+        Logger.error(msg)
+    end
 
     send_keep_alive(ttl)
 
@@ -36,7 +43,7 @@ defmodule LiveStash.Adapters.Mnesia.Hook do
   defp handle_keep_alive(_msg, socket), do: {:cont, socket}
 
   defp send_keep_alive(ttl) do
-    interval = div(ttl * 1_000, 2)
+    interval = div(ttl * 1_000, 4)
     Process.send_after(self(), @hook_name, interval)
   end
 end

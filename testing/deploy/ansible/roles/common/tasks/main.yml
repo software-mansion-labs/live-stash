@@ -1,0 +1,71 @@
+---
+- name: Install base packages
+  ansible.builtin.apt:
+    name: [ufw, ca-certificates, curl, gnupg]
+    update_cache: true
+    cache_valid_time: 3600
+
+# --- Firewall -------------------------------------------------------------
+- name: Allow SSH
+  community.general.ufw:
+    rule: allow
+    port: "2222"
+    proto: tcp
+
+- name: Allow all traffic from the private subnet
+  community.general.ufw:
+    rule: allow
+    src: "{{ private_subnet }}"
+
+- name: Allow Grafana from anywhere (obs VM only)
+  community.general.ufw:
+    rule: allow
+    port: "3000"
+    proto: tcp
+  when: "'obs' in group_names"
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    policy: deny
+    direction: incoming
+
+# --- node_exporter (every VM except the load box; we only want k6 metrics) -
+- name: Create node_exporter system user
+  ansible.builtin.user:
+    name: node_exporter
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+  when: "'load' not in group_names"
+
+- name: Install node_exporter binary
+  ansible.builtin.unarchive:
+    src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+  when: "'load' not in group_names"
+
+- name: Place node_exporter in /usr/local/bin
+  ansible.builtin.copy:
+    src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+    dest: /usr/local/bin/node_exporter
+    mode: "0755"
+    remote_src: true
+  when: "'load' not in group_names"
+
+- name: Install node_exporter systemd unit
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/systemd/node_exporter.service"
+    dest: /etc/systemd/system/node_exporter.service
+  when: "'load' not in group_names"
+  notify: restart node_exporter
+
+- name: Enable node_exporter
+  ansible.builtin.systemd:
+    name: node_exporter
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: "'load' not in group_names"

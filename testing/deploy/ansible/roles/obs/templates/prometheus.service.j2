@@ -1,0 +1,19 @@
+[Unit]
+Description=Prometheus
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=prometheus
+Group=prometheus
+ExecStart=/usr/local/bin/prometheus \
+  --config.file=/etc/prometheus/prometheus.yml \
+  --storage.tsdb.path=/var/lib/prometheus \
+  --storage.tsdb.retention.time=14d \
+  --web.enable-remote-write-receiver \
+  --enable-feature=native-histograms
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

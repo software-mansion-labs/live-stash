@@ -1,0 +1,4 @@
+---
+collections:
+  - name: community.general   # ufw module
+  - name: ansible.posix       # handy on some distros

@@ -11,7 +11,7 @@ defmodule TestingWeb.Performance.BaselineLive do
       socket
       |> assign(:size_kb, size_kb)
       |> assign(:payload, payload)
-      |> assign(:payload_bytes, Payload.measure_bytes(payload))
+      |> assign(Payload.byte_metrics(payload))
 
     {:ok, socket}
   end
@@ -22,11 +22,14 @@ defmodule TestingWeb.Performance.BaselineLive do
       id="performance-baseline"
       data-recovered="false"
       data-payload-bytes={@payload_bytes}
+      data-payload-compressed-bytes={@payload_compressed_bytes}
       data-size-kb={@size_kb}
     >
       <h1>Performance baseline (no LiveStash)</h1>
       <p>size_kb: {@size_kb}</p>
-      <p>payload_bytes (compressed term_to_binary): {@payload_bytes}</p>
+      <p>payload_bytes (term_to_binary): {@payload_bytes}</p>
+      <p>payload_compressed_bytes: {@payload_compressed_bytes}</p>
+      <p>payload: {inspect(@payload, pretty: true, limit: :infinity)}</p>
       <button phx-click="regenerate" aria-label="Regenerate">Regenerate</button>
     </div>
     """
@@ -38,7 +41,7 @@ defmodule TestingWeb.Performance.BaselineLive do
     socket =
       socket
       |> assign(:payload, payload)
-      |> assign(:payload_bytes, Payload.measure_bytes(payload))
+      |> assign(Payload.byte_metrics(payload))
 
     {:noreply, socket}
   end

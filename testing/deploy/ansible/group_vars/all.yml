@@ -1,0 +1,28 @@
+---
+# ---- Secrets (override these; ideally with ansible-vault) -------------------
+# Generate with: cd testing && mix phx.gen.secret
+secret_key_base: "m33Z3+xI1Gfsy3wSqiclD65eOs7nMi87n3fek398Vrq6H95iqINhTqgfKh2ZrsYu"
+# Any shared random string; must be identical on every app node.
+release_cookie: "livestash-load-test"
+
+# ---- Release artifact ------------------------------------------------------
+# Linux/x86 release tarball built on your Mac via Docker (see README).
+# Path is relative to the ansible/ dir; drop the tgz in files/.
+release_archive: "files/testing-rel.tgz"
+app_dir: "/opt/livestash"
+
+# ---- Derived addresses (don't edit; computed from the inventory) -----------
+redis_private_ip: "{{ hostvars[groups['redis'][0]].private_ip }}"
+obs_private_ip: "{{ hostvars[groups['obs'][0]].private_ip }}"
+load_private_ip: "{{ hostvars[groups['load'][0]].private_ip }}"
+cluster_hosts: "{{ groups['app'] | map('extract', hostvars, 'private_ip') | map('regex_replace', '^(.*)$', 'testing@\\1') | join(',') }}"
+
+# ---- Pinned component versions (match the docker stack) ---------------------
+node_exporter_version: "1.8.2"
+redis_exporter_version: "1.66.0"
+prometheus_version: "2.55.0"
+
+# ---- Networking ------------------------------------------------------------
+# Broad private-net allow: covers app/redis/exporter/prometheus ports AND
+# EPMD (4369) + the Erlang distribution range, so dist ports need no pinning.
+private_subnet: "10.0.0.0/8"

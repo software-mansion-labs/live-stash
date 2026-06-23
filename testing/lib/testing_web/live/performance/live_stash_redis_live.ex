@@ -3,7 +3,7 @@ defmodule TestingWeb.Performance.LiveStashRedisLive do
 
   use LiveStash,
     adapter: LiveStash.Adapters.Redis,
-    ttl: 15,
+    ttl: 60,
     stored_keys: [:payload, :size_kb]
 
   alias TestingWeb.Performance.Payload
@@ -12,7 +12,6 @@ defmodule TestingWeb.Performance.LiveStashRedisLive do
     {status, socket} =
       socket
       |> assign(:size_kb, Payload.parse_size_kb(params))
-      |> assign_new_payload()
       |> LiveStash.recover_state()
       |> case do
       {:recovered, recovered_socket} ->
@@ -23,8 +22,10 @@ defmodule TestingWeb.Performance.LiveStashRedisLive do
         |> then(&{status, &1})
       end
 
-    socket = assign(socket, :recovered, status == :recovered)
-    socket = assign(socket, :payload_bytes, Payload.measure_bytes(socket.assigns.payload))
+    socket =
+      socket
+      |> assign(:recovered, status == :recovered)
+      |> assign(Payload.byte_metrics(socket.assigns.payload))
 
     {:ok, socket}
   end
@@ -35,12 +36,15 @@ defmodule TestingWeb.Performance.LiveStashRedisLive do
       id="performance-livestash-redis"
       data-recovered={to_string(@recovered)}
       data-payload-bytes={@payload_bytes}
+      data-payload-compressed-bytes={@payload_compressed_bytes}
       data-size-kb={@size_kb}
     >
       <h1>Performance (LiveStash Redis)</h1>
       <p>size_kb: {@size_kb}</p>
-      <p>payload_bytes (compressed term_to_binary): {@payload_bytes}</p>
+      <p>payload_bytes (term_to_binary): {@payload_bytes}</p>
+      <p>payload_compressed_bytes: {@payload_compressed_bytes}</p>
       <p>recovered: {to_string(@recovered)}</p>
+      <p>payload: {inspect(@payload, pretty: true, limit: :infinity)}</p>
       <button phx-click="regenerate" aria-label="Regenerate">Regenerate</button>
     </div>
     """
@@ -52,7 +56,7 @@ defmodule TestingWeb.Performance.LiveStashRedisLive do
       |> assign_new_payload()
       |> LiveStash.stash()
 
-    {:noreply, assign(socket, :payload_bytes, Payload.measure_bytes(socket.assigns.payload))}
+    {:noreply, assign(socket, Payload.byte_metrics(socket.assigns.payload))}
   end
 
   defp assign_new_payload(socket) do

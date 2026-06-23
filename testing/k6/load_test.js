@@ -15,6 +15,9 @@ const VUS = parseInt(__ENV.VUS || "50");
 // Adapter TTL, must match LiveView config
 const TTL = parseFloat(__ENV.TTL || "15");
 
+const TTL_MIN_GAP_PCT = parseFloat(__ENV.TTL_MIN_GAP_PCT || "0.1");
+const TTL_MAX_GAP_PCT = parseFloat(__ENV.TTL_MAX_GAP_PCT || "0.3");
+
 // Probability (0-100) that the gap between disconnect and reconnect is shorter
 // than TTL (the stash is still recoverable).
 const RECONNECT_WITHIN_TTL_PCT = parseFloat(
@@ -38,6 +41,22 @@ const SOCKET_TIMEOUT_MS = parseInt(
 );
 
 export const options = {
+  // Reconnect WS URLs embed unique csrf/stash/state params per VU; drop `url`
+  // so built-in metrics group on our explicit `name` tags instead.
+  systemTags: [
+    "check",
+    "error",
+    "error_code",
+    "expected_response",
+    "group",
+    "method",
+    "name",
+    "proto",
+    "scenario",
+    "status",
+    "subproto",
+    "tls_version",
+  ],
   scenarios: {
     load: {
       executor: "ramping-vus",
@@ -64,7 +83,9 @@ export default function () {
   const path = `${BASE_PATH}?size_kb=${SIZE_KB}`;
   const baseUrl = `http://${HOST}`;
 
-  const res = http.get(`${baseUrl}${path}`);
+  const res = http.get(`${baseUrl}${path}`, {
+    tags: { name: "liveview_page" },
+  });
   if (!check(res, { "HTTP 200": (r) => r.status === 200 })) {
     fail(`GET ${path} failed: ${res.status}`);
   }
@@ -74,6 +95,7 @@ export default function () {
   const sessionCookie = extractSessionCookie(res);
   const wsUrl = `ws://${HOST}/live/websocket?vsn=2.0.0&_csrf_token=${wsCsrfToken}`;
   const wsHeaders = { Origin: baseUrl, Cookie: sessionCookie };
+  const wsTags = (name) => ({ headers: wsHeaders, tags: { name } });
 
   let stashId = null;
   let nodeHint = null;
@@ -81,7 +103,7 @@ export default function () {
 
   // ── Connection 1 ────────────────────────────────────────────────────────
   // connect → wait → stash → wait → disconnect
-  ws.connect(wsUrl, { headers: wsHeaders }, (socket) => {
+  ws.connect(wsUrl, wsTags("ws_join"), (socket) => {
     let phase = "joining";
     let joinSentAt = 0;
     let stashSentAt = 0;
@@ -157,7 +179,7 @@ export default function () {
   // still recoverable; the rest wait long enough that it has expired.
   const withinTtl = Math.random() * 100 < RECONNECT_WITHIN_TTL_PCT;
   let gapSec = withinTtl
-    ? Math.random() * (TTL * 0.5) // 0 .. 50% of TTL
+    ? Math.random() * (TTL * TTL_MAX_GAP_PCT) + TTL_MIN_GAP_PCT * TTL // 0.1 .. 30% of TTL
     : TTL + 1 + Math.random() * 2; // TTL+1 .. TTL+3
 
   // works only for browser memory adapter
@@ -179,7 +201,7 @@ export default function () {
   const queryString = serializeParams(params);
   const reconnectWsUrl = `ws://${HOST}/live/websocket?vsn=2.0.0&${queryString}`;
 
-  ws.connect(reconnectWsUrl, { headers: wsHeaders }, (socket) => {
+  ws.connect(reconnectWsUrl, wsTags("ws_reconnect"), (socket) => {
     let phase = "joining";
     let reconnectSentAt = 0;
     let stashSentAt = 0;

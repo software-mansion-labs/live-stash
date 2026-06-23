@@ -7,15 +7,25 @@ defmodule Testing.Application do
 
   @impl true
   def start(_type, _args) do
+    # CLUSTER_HOSTS is a comma-separated list of node names to connect to, e.g.
+    # "testing@10.10.0.3,testing@10.10.0.4". When unset (e.g. the local Docker
+    # stack) we fall back to the placeholder hosts so behaviour is unchanged.
+    cluster_hosts =
+      case System.get_env("CLUSTER_HOSTS") do
+        nil -> [:"a@node_a", :"b@node_b"]
+        "" -> [:"a@node_a", :"b@node_b"]
+        value -> value |> String.split(",", trim: true) |> Enum.map(&String.to_atom/1)
+      end
+
     topologies = [
       example: [
         strategy: Cluster.Strategy.Epmd,
-        config: [hosts: [:"a@node_a", :"b@node_b"]],
+        config: [hosts: cluster_hosts]
       ]
     ]
 
     children = [
-      {Cluster.Supervisor, [topologies, [name: ShowcaseApp.ClusterSupervisor]]},
+      {Cluster.Supervisor, [topologies, [name: Testing.ClusterSupervisor]]},
       TestingWeb.Telemetry,
       Testing.PromEx,
       {DNSCluster, query: Application.get_env(:testing, :dns_cluster_query) || :ignore},

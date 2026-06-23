@@ -1,0 +1,10 @@
+---
+- name: reload sysctl
+  ansible.builtin.command: sysctl --system
+  changed_when: false
+
+- name: restart livestash-app
+  ansible.builtin.systemd:
+    name: livestash-app
+    state: restarted
+    daemon_reload: true

@@ -1,0 +1,40 @@
+---
+# Full stack. Build the release first (see README), then:
+#   ansible-playbook site.yml
+# Target a subset with tags, e.g. only redeploy the app:
+#   ansible-playbook site.yml --tags app
+
+- name: Base tuning + node_exporter on every VM
+  hosts: all
+  become: true
+  roles:
+    - role: common
+      tags: [common]
+
+- name: Phoenix app cluster
+  hosts: app
+  become: true
+  roles:
+    - role: app
+      tags: [app]
+
+- name: Redis
+  hosts: redis
+  become: true
+  roles:
+    - role: redis
+      tags: [redis]
+
+- name: Prometheus + Grafana
+  hosts: obs
+  become: true
+  roles:
+    - role: obs
+      tags: [obs]
+
+- name: k6 load driver + nginx LB
+  hosts: load
+  become: true
+  roles:
+    - role: load
+      tags: [load]

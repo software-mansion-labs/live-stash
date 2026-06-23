@@ -1,0 +1,61 @@
+---
+- name: Install redis-server
+  ansible.builtin.apt:
+    name: redis-server
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Bind redis to the private IP + loopback
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^bind '
+    line: "bind {{ private_ip }} 127.0.0.1"
+  notify: restart redis
+
+- name: Disable protected-mode (port is firewalled to the private net)
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^protected-mode '
+    line: "protected-mode no"
+  notify: restart redis
+
+- name: Enable redis-server
+  ansible.builtin.systemd:
+    name: redis-server
+    enabled: true
+    state: started
+
+# --- redis_exporter -------------------------------------------------------
+- name: Create redis_exporter system user
+  ansible.builtin.user:
+    name: redis_exporter
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Install redis_exporter binary
+  ansible.builtin.unarchive:
+    src: "https://github.com/oliver006/redis_exporter/releases/download/v{{ redis_exporter_version }}/redis_exporter-v{{ redis_exporter_version }}.linux-amd64.tar.gz"
+    dest: /tmp
+    remote_src: true
+    creates: "/tmp/redis_exporter-v{{ redis_exporter_version }}.linux-amd64/redis_exporter"
+
+- name: Place redis_exporter in /usr/local/bin
+  ansible.builtin.copy:
+    src: "/tmp/redis_exporter-v{{ redis_exporter_version }}.linux-amd64/redis_exporter"
+    dest: /usr/local/bin/redis_exporter
+    mode: "0755"
+    remote_src: true
+
+- name: Install redis_exporter systemd unit
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/systemd/redis_exporter.service"
+    dest: /etc/systemd/system/redis_exporter.service
+  notify: restart redis_exporter
+
+- name: Enable redis_exporter
+  ansible.builtin.systemd:
+    name: redis_exporter
+    enabled: true
+    state: started
+    daemon_reload: true

@@ -1,0 +1,65 @@
+---
+- name: Install Erlang/Elixir runtime libraries
+  ansible.builtin.apt:
+    name: [libstdc++6, openssl, libncurses6, locales, ca-certificates]
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Create livestash system user
+  ansible.builtin.user:
+    name: livestash
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Ensure app + config dirs exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: livestash
+    group: livestash
+    mode: "0755"
+  loop:
+    - "{{ app_dir }}"
+    - /etc/livestash
+
+- name: Deploy release tarball
+  ansible.builtin.unarchive:
+    src: "{{ release_archive }}"
+    dest: "{{ app_dir }}"
+    owner: livestash
+    group: livestash
+  notify: restart livestash-app
+
+- name: Render app.env
+  ansible.builtin.template:
+    src: app.env.j2
+    dest: /etc/livestash/app.env
+    owner: livestash
+    group: livestash
+    mode: "0640"
+  notify: restart livestash-app
+
+- name: Install systemd unit
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/systemd/livestash-app.service"
+    dest: /etc/systemd/system/livestash-app.service
+  notify: restart livestash-app
+
+- name: Install sysctl tuning
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/sysctl/99-livestash-app.conf"
+    dest: /etc/sysctl.d/99-livestash-app.conf
+  notify: reload sysctl
+
+- name: Install nofile limits
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/limits.d/99-livestash.conf"
+    dest: /etc/security/limits.d/99-livestash.conf
+
+- name: Enable livestash-app
+  ansible.builtin.systemd:
+    name: livestash-app
+    enabled: true
+    state: started
+    daemon_reload: true

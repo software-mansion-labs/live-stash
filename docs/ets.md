@@ -108,18 +108,6 @@ To override this, add the following to your `config/config.exs`:
 config :live_stash, adapters: [LiveStash.Adapters.ETS], ets_table_name: :my_custom_table_name
 ```
 
-### Cleanup batch size
-
-Specifies how many expired records the cleanup task will delete in a single batch. Limiting the batch size prevents the cleanup process from blocking the ETS table or the Erlang scheduler for too long during heavy loads.
-
-Default: `100`
-
-To override this, add the following to your `config/config.exs`:
-
-```elixir
-config :live_stash, adapters: [LiveStash.Adapters.ETS], ets_cleanup_batch_size: 100
-```
-
 ## Security
 
 By default, LiveStash uses a hardcoded default secret (`"live_stash"`) to secure your data. For production environments, it is highly recommended to tie the stash to a specific user session to prevent tampering or data leakage.
