@@ -21,7 +21,7 @@ defmodule Testing.MixProject do
   def application do
     [
       mod: {Testing.Application, []},
-      extra_applications: [:logger, :runtime_tools]
+      extra_applications: [:logger, :runtime_tools, :recon]
     ]
   end
 
@@ -56,6 +56,7 @@ defmodule Testing.MixProject do
       {:memento, "~> 0.5.0"},
       {:prom_ex, "~> 1.9"},
       {:libcluster, "~> 3.5"},
+      {:recon, "~> 2.5"},
     ]
   end
 
