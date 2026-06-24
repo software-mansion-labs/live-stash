@@ -42,3 +42,5 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+deploy/ansible/files/testing-rel.tgz
