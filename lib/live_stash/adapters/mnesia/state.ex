@@ -385,11 +385,11 @@ defmodule LiveStash.Adapters.Mnesia.State do
   Uses dirty Mnesia operations so cleanup does not hold a transaction open
   across the whole batch.
   """
-  @spec delete_expired!(now :: integer(), batch_size :: pos_integer()) :: integer()
-  def delete_expired!(now, batch_size \\ @batch_size) when is_integer(now) do
-    records = dirty_select_expired!(now, batch_size)
+  @spec delete_expired!(now :: integer()) :: integer()
+  def delete_expired!(now) when is_integer(now) do
+    records = dirty_select_expired!(now)
 
-    deleted_in_batch =
+    deleted =
       Enum.reduce(records, 0, fn record, count ->
         case dirty_delete_record!(record) do
           :ok ->
@@ -407,11 +407,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
         end
       end)
 
-    if length(records) == batch_size do
-      deleted_in_batch + delete_expired!(now, batch_size)
-    else
-      deleted_in_batch
-    end
+    deleted
   end
 
   defp expired_match_spec(now) do
@@ -421,10 +417,9 @@ defmodule LiveStash.Adapters.Mnesia.State do
     [{info.query_base, guards, [:"$_"]}]
   end
 
-  defp dirty_select_expired!(now, batch_size) do
+  defp dirty_select_expired!(now) do
     __MODULE__
     |> :mnesia.dirty_select(expired_match_spec(now))
-    |> Enum.take(batch_size)
   rescue
     error ->
       Logger.warning(
