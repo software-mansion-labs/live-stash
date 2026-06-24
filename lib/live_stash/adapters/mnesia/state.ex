@@ -20,8 +20,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
   # but in reality returns :ok. The `:ok ->` branch in `put!/3` is therefore reachable.
   @dialyzer {:no_match, put!: 3}
 
-  @batch_size Application.compile_env(:live_stash, :mnesia_cleanup_batch_size, 100)
-
   @type t :: %__MODULE__{
           id: term(),
           pid: pid(),
@@ -380,10 +378,9 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   @doc """
-  Deletes every record whose `delete_at` is strictly less than `now` in batches.
+  Deletes every record whose `delete_at` is strictly less than `now`.
 
-  Uses dirty Mnesia operations so cleanup does not hold a transaction open
-  across the whole batch.
+  Uses dirty Mnesia operations so cleanup does not hold a lock on the table.
   """
   @spec delete_expired!(now :: integer()) :: integer()
   def delete_expired!(now) when is_integer(now) do
