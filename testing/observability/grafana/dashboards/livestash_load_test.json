@@ -6,7 +6,7 @@
     "load-test"
   ],
   "schemaVersion": 38,
-  "version": 7,
+  "version": 8,
   "refresh": "5s",
   "timezone": "browser",
   "time": {
@@ -687,7 +687,7 @@
     },
     {
       "id": 18,
-      "title": "BEAM port I/O \u2014 socket bytes/sec",
+      "title": "node I/O \u2014 distribution bytes/sec",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -696,7 +696,7 @@
       "gridPos": {
         "x": 0,
         "y": 40,
-        "w": 24,
+        "w": 8,
         "h": 8
       },
       "fieldConfig": {
@@ -731,8 +731,77 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(testing_prom_ex_beam_stats_port_io_byte_count[1m])",
-          "legendFormat": "{{type}}"
+          "expr": "rate(testing_port_io_dist_input[1m])",
+          "legendFormat": "{{instance}} input"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "rate(testing_port_io_dist_output[1m])",
+          "legendFormat": "{{instance}} output"
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "title": "client I/O \u2014 HTTP/WS bytes/sec",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 40,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(rate(testing_prom_ex_beam_stats_port_io_byte_count{type=\"input\"}[1m])) - sum(rate(testing_port_io_dist_input[1m])) - sum(rate(redis_net_output_bytes_total[1m]))",
+          "legendFormat": "input"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(rate(testing_prom_ex_beam_stats_port_io_byte_count{type=\"output\"}[1m])) - sum(rate(testing_port_io_dist_output[1m])) - sum(rate(redis_net_input_bytes_total[1m]))",
+          "legendFormat": "output"
         }
       ]
     },
@@ -918,7 +987,7 @@
       "gridPos": {
         "x": 0,
         "y": 64,
-        "w": 8,
+        "w": 12,
         "h": 8
       },
       "fieldConfig": {
@@ -962,7 +1031,7 @@
     },
     {
       "id": 16,
-      "title": "redis \u2014 network I/O",
+      "title": "redis I/O \u2014 network bytes/sec",
       "type": "timeseries",
       "datasource": {
         "type": "prometheus",
@@ -970,7 +1039,7 @@
       },
       "gridPos": {
         "x": 8,
-        "y": 64,
+        "y": 40,
         "w": 8,
         "h": 8
       },
@@ -1029,9 +1098,9 @@
         "uid": "prometheus"
       },
       "gridPos": {
-        "x": 16,
+        "x": 12,
         "y": 64,
-        "w": 8,
+        "w": 12,
         "h": 8
       },
       "fieldConfig": {
