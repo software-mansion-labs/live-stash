@@ -9,23 +9,13 @@ the same x-axis.
 
 Usage
 -----
-  python export_charts.py runs.yaml
-  python export_charts.py runs.yaml --out charts/ --step 15s --format svg
+  ./generate_charts.sh
+  python export_charts.py runs.csv
+  python export_charts.py runs.csv --group ttl60s-vus1000 --out output/
+  python export_charts.py runs.yaml          # legacy YAML format
 
-runs.yaml example
------------------
-  prometheus_url: "http://localhost:9090"   # default
-  step: "5s"                                # default scrape resolution
-  runs:
-    - label: "Redis"
-      start: "2024-01-15T10:00:00Z"
-      end:   "2024-01-15T10:15:00Z"
-    - label: "ETS"
-      start: "2024-01-15T10:30:00Z"
-      end:   "2024-01-15T10:45:00Z"
-    - label: "Mnesia"
-      start: "2024-01-15T11:00:00Z"
-      end:   "2024-01-15T11:15:00Z"
+runs.csv is produced by deploy/vm/run_matrix.sh on the load VM.
+chart_config.yaml holds prometheus_url and step.
 
 Requirements
 ------------
@@ -33,6 +23,7 @@ Requirements
 """
 
 import argparse
+import csv
 import sys
 from pathlib import Path
 from datetime import datetime, timezone
@@ -86,6 +77,89 @@ QUANTILE_STYLES = {
     "p95": ("--", 0.75),
     "p99": (":",  0.65),
 }
+
+# Port I/O breakdown: HTTP/WS is always shown; node for clustered adapters;
+# redis for the Redis adapter. Matches livestash_load_test Grafana panels.
+PORT_IO_EXPRS = {
+    "input": {
+        "http_ws": (
+            'sum(rate(testing_prom_ex_beam_stats_port_io_byte_count{type="input"}[1m]))'
+            " - sum(rate(testing_port_io_dist_input[1m]))"
+            " - sum(rate(redis_net_output_bytes_total[1m]))"
+        ),
+        "node": "sum(rate(testing_port_io_dist_input[1m]))",
+        "redis": "sum(rate(redis_net_output_bytes_total[1m]))",
+    },
+    "output": {
+        "http_ws": (
+            'sum(rate(testing_prom_ex_beam_stats_port_io_byte_count{type="output"}[1m]))'
+            " - sum(rate(testing_port_io_dist_output[1m]))"
+            " - sum(rate(redis_net_input_bytes_total[1m]))"
+        ),
+        "node": "sum(rate(testing_port_io_dist_output[1m]))",
+        "redis": "sum(rate(redis_net_input_bytes_total[1m]))",
+    },
+}
+
+IO_COMPONENT_STYLE = {
+    "http_ws": ("-", 0.9),
+    "node": ("--", 0.85),
+    "redis": (":", 0.85),
+}
+
+# ---------------------------------------------------------------------------
+# Config loaders
+# ---------------------------------------------------------------------------
+
+def load_settings(config_path: Path | None) -> dict:
+    if config_path is None or not config_path.exists():
+        return {}
+    with config_path.open() as f:
+        data = yaml.safe_load(f) or {}
+    return data if isinstance(data, dict) else {}
+
+
+def load_runs_csv(csv_path: Path, group: str | None = None) -> list[dict]:
+    """Load completed runs from runs.csv (rows without start/end are skipped)."""
+    runs: list[dict] = []
+    with csv_path.open(newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            start = (row.get("start") or "").strip()
+            end = (row.get("end") or "").strip()
+            if not start or not end:
+                continue
+            if group and (row.get("group") or "").strip() != group:
+                continue
+
+            tags_raw = (row.get("tags") or "").strip()
+            tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
+            adapter = (row.get("adapter") or row.get("label") or "").strip()
+
+            runs.append({
+                "label": row["label"].strip(),
+                "start": start,
+                "end": end,
+                "tags": tags,
+                "prom_name": adapter.lower() if adapter else row["label"].strip().lower(),
+            })
+    return runs
+
+
+def load_config(runs_path: Path, config_path: Path | None, group: str | None) -> tuple[dict, list[dict]]:
+    if runs_path.suffix.lower() == ".csv":
+        settings_path = config_path
+        if settings_path is None:
+            settings_path = runs_path.with_name("chart_config.yaml")
+        settings = load_settings(settings_path)
+        effective_group = group if group is not None else settings.get("default_group")
+        runs = load_runs_csv(runs_path, group=effective_group)
+        return settings, runs
+
+    with runs_path.open() as f:
+        cfg = yaml.safe_load(f) or {}
+    return cfg, cfg.get("runs", [])
+
 
 # ---------------------------------------------------------------------------
 # Prometheus query helper
@@ -173,13 +247,14 @@ def make_figure(title: str) -> tuple[plt.Figure, plt.Axes]:
     return fig, ax
 
 
-def save(fig: plt.Figure, out_dir: Path, name: str, fmt: str):
+def save(fig: plt.Figure, out_dir: Path, name: str, fmt: str) -> Path:
     out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / f"{name}.{fmt}"
     fig.tight_layout()
     fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
     print(f"  saved → {path}")
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -262,25 +337,40 @@ def build_metrics(step: str) -> list[dict]:
             ],
         },
         {
-            "title": "BEAM - Memory (Total Allocated)",
-            "name": "beam_memory_total",
+            "title": "BEAM - Binary Memory",
+            "name": "beam_binary",
             "ylabel": "Memory",
             "unit": "bytes",
             "post_fmt": bytes_formatter,
             "series": [
-                {"expr": "testing_prom_ex_beam_memory_processes_total_bytes + testing_prom_ex_beam_memory_binary_total_bytes + testing_prom_ex_beam_memory_ets_total_bytes + testing_prom_ex_beam_memory_code_total_bytes + testing_prom_ex_beam_memory_atom_total_bytes + testing_prom_ex_beam_memory_persistent_term_total_bytes", "label": None},
+                {"expr": "testing_prom_ex_beam_memory_binary_total_bytes", "label": None},
             ],
         },
         {
-            "title": "BEAM - Port I/O",
-            "name": "beam_port_io",
+            "title": "BEAM - ETS Memory",
+            "name": "beam_ets",
+            "ylabel": "Memory",
+            "unit": "bytes",
+            "post_fmt": bytes_formatter,
+            "series": [
+                {"expr": "testing_prom_ex_beam_memory_ets_total_bytes", "label": None},
+            ],
+        },
+        {
+            "title": "BEAM - Port Input",
+            "name": "beam_input",
             "ylabel": "Throughput",
             "unit": "Bps",
             "post_fmt": bps_formatter,
-            "series": [
-                {"expr": 'rate(testing_prom_ex_beam_stats_port_io_byte_count{type="output"}[1m])', "label": "output"},
-                {"expr": 'rate(testing_prom_ex_beam_stats_port_io_byte_count{type="input"}[1m])',  "label": "input", "linestyle": ":"},
-            ],
+            "port_io_direction": "input",
+        },
+        {
+            "title": "BEAM - Port Output",
+            "name": "beam_output",
+            "ylabel": "Throughput",
+            "unit": "Bps",
+            "post_fmt": bps_formatter,
+            "port_io_direction": "output",
         },
         # --- LiveStash ---
         {
@@ -407,6 +497,29 @@ def _is_quantile_series(series_list: list[dict]) -> bool:
     return all(l in QUANTILE_KEYS for l in labels)
 
 
+def _adapter_kind(label: str) -> str:
+    """Map a run label to an adapter kind for conditional I/O series."""
+    l = label.lower()
+    if "redis" in l:
+        return "redis"
+    if "mnesia" in l:
+        return "mnesia"
+    if "ets" in l:
+        return "ets"
+    return "baseline"
+
+
+def _io_components_for_run(label: str) -> list[tuple[str, str]]:
+    """Return (component_key, legend_suffix) pairs to plot for a run."""
+    kind = _adapter_kind(label)
+    components = [("http_ws", "HTTP/WS")]
+    if kind in ("ets", "mnesia"):
+        components.append(("node", "node"))
+    if kind == "redis":
+        components.append(("redis", "redis"))
+    return components
+
+
 def _prom_label(result_item: dict) -> str:
     """Best single-word label from Prometheus metric labels."""
     m = result_item["metric"]
@@ -441,7 +554,7 @@ def _plot_chart(
     fmt: str,
     title_suffix: str = "",
     name_suffix: str = "",
-):
+) -> bool:
     title = metric["title"] + title_suffix
     print(f"\n[{title}]")
 
@@ -506,7 +619,7 @@ def _plot_chart(
     if plotted == 0:
         print("  WARN: no data -skipping chart")
         plt.close(fig)
-        return
+        return False
 
     ax.legend(loc="upper left", ncol=max(1, len(indexed_runs)))
     ax.set_xlim(left=0)
@@ -516,9 +629,72 @@ def _plot_chart(
         post_fmt(ax)
 
     save(fig, out_dir, metric["name"] + name_suffix, fmt)
+    return True
 
 
-def render_metric(metric: dict, runs: list[dict], prom_url: str, step: str, out_dir: Path, fmt: str):
+def _plot_port_io_chart(
+    metric: dict,
+    runs: list[tuple[int, dict]],
+    prom_url: str,
+    step: str,
+    out_dir: Path,
+    fmt: str,
+) -> bool:
+    direction = metric["port_io_direction"]
+    exprs = PORT_IO_EXPRS[direction]
+    title = metric["title"]
+    print(f"\n[{title}]")
+
+    fig, ax = make_figure(title)
+    ax.set_ylabel(metric.get("ylabel", ""))
+
+    plotted = 0
+
+    for run_idx, run in runs:
+        adapter = run["label"]
+        adapter_color = ADAPTER_COLORS[run_idx % len(ADAPTER_COLORS)]
+        t_start = parse_iso(run["start"])
+        t_end = parse_iso(run["end"])
+
+        for component_key, component_label in _io_components_for_run(adapter):
+            expr = exprs[component_key]
+            line_label = f"{adapter} {component_label}"
+            ls, alpha = IO_COMPONENT_STYLE[component_key]
+
+            try:
+                results = query_range(prom_url, expr, t_start, t_end, step)
+            except Exception as exc:
+                print(f"  WARN: query failed for '{expr}' run={adapter}: {exc}")
+                continue
+
+            if not results:
+                print(f"  WARN: no data for '{component_label}' (run={adapter})")
+                continue
+
+            xs, ys = series_to_xy(results[0], t_start)
+            if len(xs) == 0:
+                continue
+
+            ax.plot(xs, ys, color=adapter_color, linestyle=ls, alpha=alpha, label=line_label)
+            plotted += 1
+
+    if plotted == 0:
+        print("  WARN: no data -skipping chart")
+        plt.close(fig)
+        return False
+
+    ax.legend(loc="upper left", ncol=2)
+    ax.set_xlim(left=0)
+
+    post_fmt = metric.get("post_fmt")
+    if post_fmt:
+        post_fmt(ax)
+
+    save(fig, out_dir, metric["name"], fmt)
+    return True
+
+
+def render_metric(metric: dict, runs: list[dict], prom_url: str, step: str, out_dir: Path, fmt: str) -> int:
     require_tag = metric.get("require_tag")
     active = [
         (i, run) for i, run in enumerate(runs)
@@ -527,16 +703,23 @@ def render_metric(metric: dict, runs: list[dict], prom_url: str, step: str, out_
 
     if not active:
         print(f"\n[{metric['title']}] skipped - no runs have tag {require_tag!r}")
-        return
+        return 0
 
+    if metric.get("port_io_direction"):
+        saved = _plot_port_io_chart(metric, active, prom_url, step, out_dir, fmt)
+        return 1 if saved else 0
+
+    saved = 0
     if metric.get("per_adapter"):
         for run_idx, run in active:
             slug = run["label"].lower().replace(" ", "_")
-            _plot_chart(metric, [(run_idx, run)], prom_url, step, out_dir, fmt,
-                        title_suffix=f" - {run['label']}",
-                        name_suffix=f"_{slug}")
-    else:
-        _plot_chart(metric, active, prom_url, step, out_dir, fmt)
+            if _plot_chart(metric, [(run_idx, run)], prom_url, step, out_dir, fmt,
+                           title_suffix=f" - {run['label']}",
+                           name_suffix=f"_{slug}"):
+                saved += 1
+    elif _plot_chart(metric, active, prom_url, step, out_dir, fmt):
+        saved += 1
+    return saved
 
 
 # ---------------------------------------------------------------------------
@@ -545,30 +728,39 @@ def render_metric(metric: dict, runs: list[dict], prom_url: str, step: str, out_
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("config", help="YAML file describing runs")
-    parser.add_argument("--out", default="output", help="Output directory (default: charts/)")
+    parser.add_argument("runs", nargs="?", default="runs.csv",
+                        help="runs.csv or legacy runs.yaml (default: runs.csv)")
+    parser.add_argument("--config", "-c", default=None,
+                        help="Settings YAML (default: chart_config.yaml beside runs.csv)")
+    parser.add_argument("--group", "-g", default=None,
+                        help="CSV only: filter rows by group column")
+    parser.add_argument("--out", default="output", help="Output directory (default: output/)")
     parser.add_argument("--step", default=None, help="Prometheus step override (e.g. 15s)")
+    parser.add_argument("--prometheus-url", default=None, help="Prometheus base URL override")
     parser.add_argument("--format", default="png", choices=["png", "svg", "pdf"], dest="fmt")
     parser.add_argument("--metrics", nargs="*", help="Restrict to these metric names (by 'name' key)")
     args = parser.parse_args()
 
-    cfg_path = Path(args.config)
-    if not cfg_path.exists():
-        sys.exit(f"Config file not found: {cfg_path}")
+    runs_path = Path(args.runs)
+    if not runs_path.exists():
+        sys.exit(f"Runs file not found: {runs_path}")
 
-    with cfg_path.open() as f:
-        cfg = yaml.safe_load(f)
+    config_path = Path(args.config) if args.config else None
+    settings, runs = load_config(runs_path, config_path, args.group)
 
-    prom_url = cfg.get("prometheus_url", "http://localhost:9090")
-    step = args.step or cfg.get("step", "5s")
-    runs = cfg.get("runs", [])
+    prom_url = args.prometheus_url or settings.get("prometheus_url", "http://localhost:9090")
+    step = args.step or settings.get("step", "5s")
     out_dir = Path(args.out)
+    active_group = args.group or settings.get("default_group")
 
     if not runs:
-        sys.exit("No runs defined in config.")
+        group_hint = f" (group={active_group!r})" if active_group else ""
+        sys.exit(f"No completed runs found in {runs_path}{group_hint}")
 
     print(f"Prometheus : {prom_url}")
     print(f"Step       : {step}")
+    if active_group:
+        print(f"Group      : {active_group}")
     print(f"Runs       : {[r['label'] for r in runs]}")
     print(f"Output     : {out_dir}/  (.{args.fmt})")
 
@@ -580,10 +772,11 @@ def main():
         if not all_metrics:
             sys.exit(f"No metrics matched: {args.metrics}")
 
+    saved_total = 0
     for metric in all_metrics:
-        render_metric(metric, runs, prom_url, step, out_dir, args.fmt)
+        saved_total += render_metric(metric, runs, prom_url, step, out_dir, args.fmt)
 
-    print(f"\nDone -{len(all_metrics)} charts written to {out_dir}/")
+    print(f"\nDone — {saved_total} charts written to {out_dir}/")
 
 
 if __name__ == "__main__":

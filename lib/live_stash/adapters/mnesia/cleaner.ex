@@ -8,8 +8,6 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
   alias LiveStash.Adapters.Mnesia.State
   alias LiveStash.Utils
 
-  @cleanup_interval Application.compile_env(:live_stash, :mnesia_cleanup_interval, 1 * 60 * 1_000)
-
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
@@ -64,5 +62,10 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
     _ -> false
   end
 
-  defp schedule_cleanup(), do: Process.send_after(self(), :cleanup, @cleanup_interval)
+  defp schedule_cleanup(),
+    do: Process.send_after(self(), :cleanup, cleanup_interval())
+
+  defp cleanup_interval do
+    Application.get_env(:live_stash, :mnesia_cleanup_interval, 60_000)
+  end
 end

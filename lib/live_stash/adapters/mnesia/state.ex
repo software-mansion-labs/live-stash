@@ -426,9 +426,7 @@ defmodule LiveStash.Adapters.Mnesia.State do
       []
   catch
     :exit, reason ->
-      Logger.warning(
-        Utils.reason_message("Failed to select expired Mnesia records", reason)
-      )
+      Logger.warning(Utils.reason_message("Failed to select expired Mnesia records", reason))
 
       []
   end

@@ -61,8 +61,9 @@ so there's no need to pin distribution ports:
 ```sh
 sudo ufw allow from 10.0.0.0/8        # private network (covers 10.10.0.0/x)
 sudo ufw allow 22/tcp                  # SSH (public)
-# obs VM only, if you view Grafana from your laptop:
+# obs VM only, if you view Grafana / query Prometheus from your laptop:
 sudo ufw allow 3000/tcp
+sudo ufw allow 9090/tcp
 sudo ufw enable
 ```
 `10.0.0.0/8` is broad but fine since it only matches RFC1918 private addresses;

@@ -17,13 +17,6 @@
     rule: allow
     src: "{{ private_subnet }}"
 
-- name: Allow Grafana from anywhere (obs VM only)
-  community.general.ufw:
-    rule: allow
-    port: "3000"
-    proto: tcp
-  when: "'obs' in group_names"
-
 - name: Enable UFW
   community.general.ufw:
     state: enabled

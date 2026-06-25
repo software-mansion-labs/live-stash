@@ -2,7 +2,9 @@
 # Copy this file, fill in real timestamps, and run:
 #   python export_charts.py runs.yaml
 
-prometheus_url: "http://localhost:9090"
+# Local docker stack: http://localhost:9090
+# Ansible VM stack:  http://<obs-vm-public-ip>:9090  (see deploy/ansible/inventory.ini)
+prometheus_url: "http://37.27.16.253:9090"
 step: "5s"
 
 runs:

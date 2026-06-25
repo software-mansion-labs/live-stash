@@ -9,8 +9,8 @@ import Config
 
 config :live_stash,
   adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis, LiveStash.Adapters.Mnesia],
-  ets_cleanup_interval: 15_000,
-  mnesia_cleanup_interval: 15_000
+  ets_cleanup_interval: 30_000,
+  mnesia_cleanup_interval: 30_000
 
 config :testing,
   generators: [timestamp_type: :utc_datetime]

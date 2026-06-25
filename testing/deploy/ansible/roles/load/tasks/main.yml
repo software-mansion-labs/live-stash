@@ -126,3 +126,15 @@
     src: run-k6.sh.j2
     dest: /opt/k6/run-k6.sh
     mode: "0755"
+
+- name: Copy run_matrix.sh
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../vm/run_matrix.sh"
+    dest: /opt/k6/run_matrix.sh
+    mode: "0755"
+
+- name: Render configure_app_perf.sh
+  ansible.builtin.template:
+    src: configure_app_perf.sh.j2
+    dest: /opt/k6/configure_app_perf.sh
+    mode: "0755"

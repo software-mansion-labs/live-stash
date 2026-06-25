@@ -8,12 +8,18 @@ const stashRTT = new Trend("stash_rtt_ms", true);
 const reconnectRTT = new Trend("reconnect_rtt_ms", true);
 
 const HOST = __ENV.HOST || "localhost:4000";
-const SIZE_KB = __ENV.SIZE_KB || "100";
+const SIZE_KB = __ENV.SIZE_KB || "5";
 const BASE_PATH = __ENV.BASE_PATH || "/performance/livestash_ets";
 const VUS = parseInt(__ENV.VUS || "50");
 
-// Adapter TTL, must match LiveView config
-const TTL = parseFloat(__ENV.TTL || "15");
+// Adapter TTL — must match LIVE_STASH_TTL on the Phoenix app
+const TTL = parseFloat(__ENV.TTL || "60");
+
+function testDurationForTtl(ttlSec) {
+  if (ttlSec <= 60) return 180;
+  if (ttlSec <= 300) return 600;
+  return 1500;
+}
 
 const TTL_MIN_GAP_PCT = parseFloat(__ENV.TTL_MIN_GAP_PCT || "0.1");
 const TTL_MAX_GAP_PCT = parseFloat(__ENV.TTL_MAX_GAP_PCT || "0.3");
@@ -27,7 +33,9 @@ const RECONNECT_WITHIN_TTL_PCT = parseFloat(
 // Test profile: ramp up + hold + ramp down.
 const RAMP_UP_SEC = parseInt(__ENV.RAMP_UP_SEC || "30");
 const RAMP_DOWN_SEC = parseInt(__ENV.RAMP_DOWN_SEC || "30");
-const TEST_DURATION_SEC = parseInt(__ENV.TEST_DURATION_SEC || "120");
+const TEST_DURATION_SEC = parseInt(
+  __ENV.TEST_DURATION_SEC || String(testDurationForTtl(TTL)),
+);
 const HOLD_SEC = TEST_DURATION_SEC - RAMP_UP_SEC - RAMP_DOWN_SEC;
 
 const FIRST_WAIT_SEC = parseInt(__ENV.FIRST_WAIT_SEC || "5");
@@ -180,7 +188,7 @@ export default function () {
   const withinTtl = Math.random() * 100 < RECONNECT_WITHIN_TTL_PCT;
   let gapSec = withinTtl
     ? Math.random() * (TTL * TTL_MAX_GAP_PCT) + TTL_MIN_GAP_PCT * TTL // 0.1 .. 30% of TTL
-    : TTL + 1 + Math.random() * 2; // TTL+1 .. TTL+3
+    : jitter(1.5 * TTL, 0.1); // 1.5 TTL ±10%
 
   // works only for browser memory adapter
   // gapSec = Math.max(gapSec - FIRST_WAIT_SEC, 1);

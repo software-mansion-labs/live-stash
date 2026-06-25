@@ -1,4 +1,17 @@
 ---
+# --- Public access (Grafana + Prometheus UI/API from your laptop) ---------
+- name: Allow Grafana from anywhere
+  community.general.ufw:
+    rule: allow
+    port: "3000"
+    proto: tcp
+
+- name: Allow Prometheus from anywhere
+  community.general.ufw:
+    rule: allow
+    port: "9090"
+    proto: tcp
+
 # --- Prometheus -----------------------------------------------------------
 - name: Create prometheus system user
   ansible.builtin.user:

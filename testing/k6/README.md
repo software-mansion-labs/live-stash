@@ -41,15 +41,15 @@ K6_PROMETHEUS_RW_TREND_AS_NATIVE_HISTOGRAM=true \
 | Variable                   | Default                      | Description                                                       |
 | -------------------------- | ---------------------------- | ----------------------------------------------------------------- |
 | `HOST`                     | `localhost:4000`             | Host and port of the Phoenix app                                  |
-| `SIZE_KB`                  | `100`                        | Payload size in KB                                                |
+| `SIZE_KB`                  | `5`                          | Payload size in KB                                                |
 | `BASE_PATH`                | `/performance/livestash_ets` | Which live view to test                                           |
 | `VUS`                      | `50`                         | Peak concurrent virtual users                                     |
-| `TTL`                      | `5`                          | Adapter TTL in seconds (must match `:ttl` on the LiveView module) |
-| `RECONNECT_WITHIN_TTL_PCT` | `80`                         | % of iterations that reconnect while the stash is still alive     |
-| `TEST_DURATION_SEC`        | `300`                        | Total test duration (incl. ramp up/down)                          |
+| `TTL`                      | `60`                         | Adapter TTL in seconds (must match `LIVE_STASH_TTL` on the app)   |
+| `RECONNECT_WITHIN_TTL_PCT` | `40`                         | % of iterations that reconnect while the stash is still alive     |
+| `TEST_DURATION_SEC`        | auto from TTL                | 180 / 600 / 1500 for TTL 60 / 300 / 900                           |
 | `RAMP_UP_SEC`              | `30`                         | Ramp-up duration                                                  |
 | `RAMP_DOWN_SEC`            | `30`                         | Ramp-down duration                                                |
-| `SOCKET_TIMEOUT_MS`        | `60000`                      | Per-socket safety timeout                                         |
+| `SOCKET_TIMEOUT_MS`        | auto from waits              | Per-socket safety timeout                                         |
 
 ```sh
 # LiveStash ETS (default)

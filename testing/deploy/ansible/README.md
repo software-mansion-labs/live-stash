@@ -92,7 +92,19 @@ For 15k+ VUs, `run-k6.sh` targets the load VM private IP (`10.10.0.6:80`) instea
 of `127.0.0.1` to avoid loopback ephemeral-port exhaustion. Redeploy with
 `--tags load` after changing sysctl or `run-k6.sh`.
 
+Log runs to CSV and generate charts:
+
+```sh
+# on load VM — one comparison group (all adapters)
+/opt/k6/run_matrix.sh --ttl 60 --vus 1000 --adapter all
+
+# copy log back, export charts
+scp -P 2222 root@46.62.151.189:/opt/k6/runs.csv testing/observability/charts/
+cd testing/observability/charts && ./generate_charts.sh --group ttl60s-vus1000
+```
+
 Grafana: http://37.27.16.253:3000
+Prometheus: http://37.27.16.253:9090 (chart export, ad-hoc queries from your laptop)
 
 ## What Ansible does NOT do
 

@@ -1,0 +1,6 @@
+# Prometheus connection settings for export_charts.py / generate_charts.sh
+prometheus_url: "http://37.27.16.253:9090"
+step: "5s"
+
+# When using runs.csv, export only this group unless --group is passed
+default_group: comparison

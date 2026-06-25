@@ -16,6 +16,11 @@ redis_private_ip: "{{ hostvars[groups['redis'][0]].private_ip }}"
 obs_private_ip: "{{ hostvars[groups['obs'][0]].private_ip }}"
 load_private_ip: "{{ hostvars[groups['load'][0]].private_ip }}"
 cluster_hosts: "{{ groups['app'] | map('extract', hostvars, 'private_ip') | map('regex_replace', '^(.*)$', 'testing@\\1') | join(',') }}"
+app_private_ips: "{{ groups['app'] | map('extract', hostvars, 'private_ip') | list }}"
+
+# ---- LiveStash load-test defaults (app.env + configure_app_perf.sh) ---------
+live_stash_ttl: 60
+live_stash_cleanup_interval_s: 30
 
 # ---- Pinned component versions (match the docker stack) ---------------------
 node_exporter_version: "1.8.2"

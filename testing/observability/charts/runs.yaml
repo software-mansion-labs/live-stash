@@ -2,7 +2,8 @@
 # Copy this file, fill in real timestamps, and run:
 #   python export_charts.py runs.yaml
 
-prometheus_url: "http://localhost:9090"
+# obs VM public IP — port 9090 opened by ansible on the obs group
+prometheus_url: "http://37.27.16.253:9090"
 step: "5s"
 
 runs:
@@ -15,5 +16,6 @@ runs:
     end: "2026-06-16T13:29:35+2:00"
 
   - label: "Redis"
+    tags: [redis]
     start: "2026-06-16T10:17:00+2:00"
     end: "2026-06-16T10:19:20+2:00"

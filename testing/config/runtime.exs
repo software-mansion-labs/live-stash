@@ -26,6 +26,18 @@ config :testing, TestingWeb.Endpoint,
 config :live_stash,
   redis: System.get_env("LIVE_STASH_REDIS_URL", "redis://localhost:6379")
 
+cleanup_ms =
+  fn env, default ->
+    case System.get_env(env) do
+      nil -> default
+      val -> String.to_integer(val)
+    end
+  end
+
+config :live_stash,
+  ets_cleanup_interval: cleanup_ms.("LIVE_STASH_ETS_CLEANUP_INTERVAL_MS", 30_000),
+  mnesia_cleanup_interval: cleanup_ms.("LIVE_STASH_MNESIA_CLEANUP_INTERVAL_MS", 30_000)
+
 if config_env() == :prod do
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
