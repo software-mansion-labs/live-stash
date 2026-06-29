@@ -17,22 +17,22 @@ const TTL = parseFloat(__ENV.TTL || "60");
 
 function testDurationForTtl(ttlSec) {
   if (ttlSec <= 60) return 180;
-  if (ttlSec <= 300) return 600;
-  return 1500;
+  if (ttlSec <= 300) return 900;
+  return 2700;
 }
 
 const TTL_MIN_GAP_PCT = parseFloat(__ENV.TTL_MIN_GAP_PCT || "0.1");
-const TTL_MAX_GAP_PCT = parseFloat(__ENV.TTL_MAX_GAP_PCT || "0.3");
+const TTL_MAX_GAP_PCT = parseFloat(__ENV.TTL_MAX_GAP_PCT || "0.4");
 
 // Probability (0-100) that the gap between disconnect and reconnect is shorter
 // than TTL (the stash is still recoverable).
 const RECONNECT_WITHIN_TTL_PCT = parseFloat(
-  __ENV.RECONNECT_WITHIN_TTL_PCT || "40",
+  __ENV.RECONNECT_WITHIN_TTL_PCT || "50",
 );
 
 // Test profile: ramp up + hold + ramp down.
-const RAMP_UP_SEC = parseInt(__ENV.RAMP_UP_SEC || "30");
-const RAMP_DOWN_SEC = parseInt(__ENV.RAMP_DOWN_SEC || "30");
+const RAMP_UP_SEC = Math.round(testDurationForTtl(TTL) / 4);
+const RAMP_DOWN_SEC = Math.round(testDurationForTtl(TTL) / 4);
 const TEST_DURATION_SEC = parseInt(
   __ENV.TEST_DURATION_SEC || String(testDurationForTtl(TTL)),
 );
@@ -187,7 +187,7 @@ export default function () {
   // still recoverable; the rest wait long enough that it has expired.
   const withinTtl = Math.random() * 100 < RECONNECT_WITHIN_TTL_PCT;
   let gapSec = withinTtl
-    ? Math.random() * (TTL * TTL_MAX_GAP_PCT) + TTL_MIN_GAP_PCT * TTL // 0.1 .. 30% of TTL
+    ? Math.random() * (TTL * TTL_MAX_GAP_PCT) + TTL_MIN_GAP_PCT * TTL // 0.1 .. 0.4 of TTL
     : jitter(1.5 * TTL, 0.1); // 1.5 TTL ±10%
 
   // works only for browser memory adapter

@@ -2,5 +2,10 @@
 prometheus_url: "http://37.27.16.253:9090"
 step: "5s"
 
+# node_exporter targets for app VMs (used to average node CPU/memory across the cluster)
+app_node_instances:
+  - "10.10.0.3:9100"
+  - "10.10.0.4:9100"
+
 # When using runs.csv, export only this group unless --group is passed
 default_group: comparison

@@ -10,6 +10,9 @@ pip install requests matplotlib pyyaml numpy
 
 # 1. run load tests (load VM)
 
+clear logs
+`ssh root@46.62.151.189 'cp /opt/k6/runs.csv /opt/k6/runs.csv.bak 2>/dev/null; printf "%s\n" "run_id,group,label,adapter,base_path,ttl_s,vus,cleanup_s,size_kb,tags,start,end,notes" > /opt/k6/runs.csv'`
+
 `run_matrix.sh` sets app TTL/cleanup, runs k6, logs to `/opt/k6/runs.csv`:
 
 ```
@@ -30,10 +33,10 @@ scp -P 2222 root@LOAD_VM:/opt/k6/runs.csv testing/observability/charts/
 
 ```
 ./generate_charts.sh --group ttl60s-vus1000
-./generate_charts.sh --format svg --metrics beam_binary beam_ets
+./generate_charts.sh --format svg --metrics beam_scheduler_utilization node_cpu
 ```
 
-Settings: `chart_config.yaml` (`prometheus_url`, `step`, `default_group`).
+Settings: `chart_config.yaml` (`prometheus_url`, `step`, `default_group`, `app_node_instances`).
 
 # env vars (app VMs)
 
@@ -43,7 +46,13 @@ Settings: `chart_config.yaml` (`prometheus_url`, `step`, `default_group`).
 | `LIVE_STASH_ETS_CLEANUP_INTERVAL_MS` | 30000 | ETS cleaner interval |
 | `LIVE_STASH_MNESIA_CLEANUP_INTERVAL_MS` | 30000 | Mnesia cleaner interval |
 
-Set manually or via `/opt/k6/configure_app_perf.sh --ttl 300 --cleanup 30`.
+Set manually via  ansible 
+```bash
+cd testing/deploy/ansible
+ansible-playbook site.yml --tags app \
+  -e live_stash_ttl=60 \
+  -e live_stash_cleanup_interval_s=30.
+```
 
 # k6 defaults (must match app TTL)
 

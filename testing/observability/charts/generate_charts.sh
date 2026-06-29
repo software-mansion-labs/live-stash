@@ -4,7 +4,7 @@
 # Usage:
 #   ./generate_charts.sh
 #   ./generate_charts.sh --group ttl60s-vus1000
-#   ./generate_charts.sh -- --format svg --metrics beam_binary beam_ets
+#   ./generate_charts.sh -- --format svg --metrics beam_scheduler_utilization node_cpu
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

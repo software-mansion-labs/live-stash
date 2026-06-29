@@ -95,13 +95,20 @@ of `127.0.0.1` to avoid loopback ephemeral-port exhaustion. Redeploy with
 Log runs to CSV and generate charts:
 
 ```sh
-# on load VM — one comparison group (all adapters)
-/opt/k6/run_matrix.sh --ttl 60 --vus 1000 --adapter all
+# 1. Set app TTL/cleanup from your laptop (load VM has no SSH keys to app nodes)
+cd testing/deploy/ansible
+ansible-playbook site.yml --tags app -e live_stash_ttl=60 -e live_stash_cleanup_interval_s=30
+
+# 2. On load VM — run k6 matrix (--no-configure skips SSH to app nodes)
+ssh root@46.62.151.189 '/opt/k6/run_matrix.sh --no-configure --ttl 60 --vus 1000 --adapter all'
 
 # copy log back, export charts
 scp -P 2222 root@46.62.151.189:/opt/k6/runs.csv testing/observability/charts/
 cd testing/observability/charts && ./generate_charts.sh --group ttl60s-vus1000
 ```
+
+`--matrix` without `--vus` loops `DEFAULT_VUSS` in run_matrix.sh (currently 25000).
+Pass `--vus 1000` to run a single VU level: `--no-configure --ttl 60 --vus 1000 --matrix`.
 
 Grafana: http://37.27.16.253:3000
 Prometheus: http://37.27.16.253:9090 (chart export, ad-hoc queries from your laptop)

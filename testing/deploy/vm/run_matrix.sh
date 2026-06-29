@@ -6,8 +6,15 @@
 #
 # Usage (on load VM):
 #   ./run_matrix.sh --ttl 60 --vus 1000 --adapter all
-#   ./run_matrix.sh --ttl 60 --matrix
-#   ./run_matrix.sh --matrix-full
+#   ./run_matrix.sh --ttl 60 --vus 1000 --matrix    # one TTL, explicit VUs
+#   ./run_matrix.sh --ttl 60 --matrix               # one TTL, all DEFAULT_VUSS
+#   ./run_matrix.sh --matrix-full                   # all TTLs × DEFAULT_VUSS
+#
+# App TTL/cleanup: configure_app_perf.sh SSHs from load → app nodes (needs keys).
+# If that fails, either:
+#   1. From your laptop: ansible-playbook site.yml --tags app \
+#        -e live_stash_ttl=60 -e live_stash_cleanup_interval_s=30
+#   2. Then on load VM: ./run_matrix.sh --no-configure --ttl 60 --vus 1000 --adapter all
 #
 # Copy runs.csv back for charts:
 #   scp -P 2222 root@LOAD_VM:/opt/k6/runs.csv testing/observability/charts/
@@ -21,15 +28,15 @@ RUN_LOG="${RUN_LOG:-/opt/k6/runs.csv}"
 
 SIZE_KB="${SIZE_KB:-5}"
 CLEANUP_S="${CLEANUP_S:-30}"
-PAUSE_SEC="${PAUSE_SEC:-30}"
+PAUSE_SEC="${PAUSE_SEC:-60}"
 RECONNECT_PCT="${RECONNECT_PCT:-50}"
 CONFIGURE_APP="${CONFIGURE_APP:-1}"
 
 CSV_HEADER="run_id,group,label,adapter,base_path,ttl_s,vus,cleanup_s,size_kb,tags,start,end,notes"
 
-ADAPTER_ORDER=(baseline ets redis mnesia)
-DEFAULT_TTLS=(60 300 900)
-DEFAULT_VUSS=(1000 10000 20000 30000)
+ADAPTER_ORDER=(baseline ets redis mnesia browser_memory)
+DEFAULT_TTLS=(300)
+DEFAULT_VUSS=(25000)
 
 adapter_label() {
   case "$1" in
@@ -37,6 +44,7 @@ adapter_label() {
     ets) echo ETS ;;
     redis) echo Redis ;;
     mnesia) echo Mnesia ;;
+    browser_memory) echo "Browser Memory" ;;
     *) return 1 ;;
   esac
 }
@@ -47,6 +55,7 @@ adapter_path() {
     ets) echo /performance/livestash_ets ;;
     redis) echo /performance/livestash_redis ;;
     mnesia) echo /performance/livestash_mnesia ;;
+    browser_memory) echo /performance/livestash_browser_memory ;;
     *) return 1 ;;
   esac
 }
@@ -76,6 +85,7 @@ apply_app_config() {
   local ttl="$1" cleanup="$2"
   if [[ "$CONFIGURE_APP" != "1" || "$NO_CONFIGURE" -eq 1 ]]; then
     echo "skip app configure (LIVE_STASH_TTL=${ttl}s cleanup=${cleanup}s)"
+    echo "  (set TTL on app nodes separately, e.g. ansible --tags app -e live_stash_ttl=${ttl})"
     return 0
   fi
   if [[ "$DRY_RUN" -eq 1 ]]; then
@@ -83,17 +93,22 @@ apply_app_config() {
     return 0
   fi
   if [[ ! -x "$APP_CONFIG" ]]; then
-    echo "error: missing $APP_CONFIG — deploy with ansible --tags load or set NO_CONFIGURE=1" >&2
+    echo "error: missing $APP_CONFIG — deploy with ansible --tags load or use --no-configure" >&2
     exit 1
   fi
-  "$APP_CONFIG" --ttl "$ttl" --cleanup "$cleanup"
+  if ! "$APP_CONFIG" --ttl "$ttl" --cleanup "$cleanup"; then
+    echo "error: app configure failed (load VM cannot SSH to app nodes?)" >&2
+    echo "  configure from laptop: ansible-playbook site.yml --tags app -e live_stash_ttl=${ttl} -e live_stash_cleanup_interval_s=${cleanup}" >&2
+    echo "  then re-run with: --no-configure" >&2
+    exit 1
+  fi
 }
 
 test_duration_for_ttl() {
   case "$1" in
     60) echo 180 ;;
-    300) echo 600 ;;
-    900) echo 1500 ;;
+    300) echo 900 ;;
+    900) echo 2700 ;;
     *) echo 180 ;;
   esac
 }
@@ -191,6 +206,14 @@ run_block() {
   done < <(adapters_for "$adapter_pick")
 }
 
+vus_list_for_matrix() {
+  if [[ -n "$VUS" ]]; then
+    printf '%s\n' "$VUS"
+  else
+    printf '%s\n' "${DEFAULT_VUSS[@]}"
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --csv) RUN_LOG="$2"; shift 2 ;;
@@ -214,28 +237,28 @@ if [[ "$MATRIX_FULL" -eq 1 ]]; then
   for ttl in "${DEFAULT_TTLS[@]}"; do
     echo ""
     echo "######## TTL=${ttl}s ########"
-    for vus in "${DEFAULT_VUSS[@]}"; do
+    while IFS= read -r vus; do
       run_block "$ttl" "$vus" all "$CLEANUP_S"
-      # if [[ "$ttl" -eq 900 ]]; then
-      #   echo "######## TTL=${ttl}s cleanup=450s (ETS + Mnesia only) ########"
-      #   run_block "$ttl" "$vus" ets 450
-      #   run_block "$ttl" "$vus" mnesia 450
-      # fi
-    done
+    done < <(vus_list_for_matrix)
+    # if [[ "$ttl" -eq 900 ]]; then
+    #   echo "######## TTL=${ttl}s cleanup=450s (ETS + Mnesia only) ########"
+    #   run_block "$ttl" "$vus" ets 450
+    #   run_block "$ttl" "$vus" mnesia 450
+    # fi
   done
 elif [[ "$MATRIX" -eq 1 ]]; then
   [[ -n "$TTL" ]] || { echo "error: --matrix requires --ttl" >&2; exit 1; }
-  for vus in "${DEFAULT_VUSS[@]}"; do
+  while IFS= read -r vus; do
     run_block "$TTL" "$vus" all "$CLEANUP_S"
-  done
+  done < <(vus_list_for_matrix)
 elif [[ -n "$ADAPTER" && -n "$TTL" && -n "$VUS" ]]; then
   if [[ "$ADAPTER" != all ]] && ! adapter_label "$ADAPTER" >/dev/null; then
-    echo "error: unknown adapter '$ADAPTER' (baseline|ets|redis|mnesia|all)" >&2
+    echo "error: unknown adapter '$ADAPTER' (baseline|ets|redis|mnesia|browser_memory|all)" >&2
     exit 1
   fi
   run_block "$TTL" "$VUS" "$ADAPTER" "$CLEANUP_S"
 else
-  echo "error: specify --ttl --vus --adapter, --matrix, or --matrix-full" >&2
+  echo "error: specify --ttl --vus --adapter, --matrix [--vus N], or --matrix-full" >&2
   usage 1
 fi
 

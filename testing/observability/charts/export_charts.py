@@ -24,7 +24,9 @@ Requirements
 
 import argparse
 import csv
+import re
 import sys
+from collections import defaultdict
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -101,10 +103,10 @@ PORT_IO_EXPRS = {
     },
 }
 
-IO_COMPONENT_STYLE = {
-    "http_ws": ("-", 0.9),
-    "node": ("--", 0.85),
-    "redis": (":", 0.85),
+IO_COMPONENT_LABELS = {
+    "http_ws": "HTTP/WS",
+    "node": "Node",
+    "redis": "Redis",
 }
 
 # ---------------------------------------------------------------------------
@@ -258,10 +260,86 @@ def save(fig: plt.Figure, out_dir: Path, name: str, fmt: str) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# PromQL helpers — average app-1 + app-2 into one series per adapter run
+# ---------------------------------------------------------------------------
+
+DEFAULT_APP_NODE_INSTANCES = ["10.10.0.3:9100", "10.10.0.4:9100"]
+
+
+def app_node_instances(settings: dict | None) -> list[str]:
+    if settings and settings.get("app_node_instances"):
+        return list(settings["app_node_instances"])
+    return DEFAULT_APP_NODE_INSTANCES
+
+
+def app_node_selector(settings: dict | None) -> str:
+    # PromQL regex matchers use RE2; do not backslash-escape dots (invalid in PromQL).
+    pat = "|".join(app_node_instances(settings))
+    return f'instance=~"{pat}"'
+
+
+def avg_across_apps(expr: str) -> str:
+    """Average a testing_app metric across app-1 and app-2 (instance label)."""
+    return f"avg({expr})"
+
+
+def node_cpu_expr(settings: dict | None) -> str:
+    sel = app_node_selector(settings)
+    return f'avg(1 - rate(node_cpu_seconds_total{{{sel}, mode="idle"}}[1m]))'
+
+
+def node_memory_expr(settings: dict | None) -> str:
+    sel = app_node_selector(settings)
+    return f"avg(node_memory_MemTotal_bytes{{{sel}}} - node_memory_MemAvailable_bytes{{{sel}}})"
+
+
+def _k6_rtt_metrics() -> list[dict]:
+    """One chart per quantile; all adapters overlaid on each chart."""
+    specs = [
+        ("First Render", "first_render", "k6_first_render_rtt_ms_seconds", False),
+        ("Stash", "stash", "k6_stash_rtt_ms_seconds", True),
+        ("Reconnect", "reconnect", "k6_reconnect_rtt_ms_seconds", True),
+    ]
+    quantiles = [("p50", "0.50"), ("p95", "0.95"), ("p99", "0.99")]
+    metrics: list[dict] = []
+    for title, slug, histogram, aggregate in specs:
+        hist_expr = f"sum({histogram})" if aggregate else histogram
+        for q_label, q_val in quantiles:
+            metrics.append({
+                "title": f"k6 - {title} RTT ({q_label})",
+                "name": f"k6_{slug}_rtt_{q_label}",
+                "ylabel": "Latency",
+                "unit": "s",
+                "post_fmt": seconds_formatter,
+                "series": [
+                    {"expr": f"histogram_quantile({q_val}, {hist_expr})", "label": None},
+                ],
+            })
+    return metrics
+
+
+def _beam_port_io_metrics() -> list[dict]:
+    """One chart per direction × component; only adapters that use that path are plotted."""
+    metrics: list[dict] = []
+    for direction, title_dir in [("input", "Input"), ("output", "Output")]:
+        for component in ("http_ws", "node", "redis"):
+            metrics.append({
+                "title": f"BEAM - Port {title_dir} ({IO_COMPONENT_LABELS[component]})",
+                "name": f"beam_{direction}_{component}",
+                "ylabel": "Throughput",
+                "unit": "Bps",
+                "post_fmt": bps_formatter,
+                "port_io_direction": direction,
+                "port_io_component": component,
+            })
+    return metrics
+
+
+# ---------------------------------------------------------------------------
 # Metric definitions
 # ---------------------------------------------------------------------------
 
-def build_metrics(step: str) -> list[dict]:
+def build_metrics(step: str, settings: dict | None = None) -> list[dict]:
     """
     Each entry describes one output chart.
 
@@ -277,45 +355,8 @@ def build_metrics(step: str) -> list[dict]:
       post_fmt    – optional callable(ax) to apply custom y-axis formatting
     """
     return [
-        # --- k6 round-trip times ---
-        {
-            "title": "k6 - First Render RTT",
-            "name": "k6_first_render_rtt",
-            "ylabel": "Latency",
-            "unit": "s",
-            "post_fmt": seconds_formatter,
-            "series": [
-                {"expr": "histogram_quantile(0.50, k6_first_render_rtt_ms_seconds)", "label": "p50"},
-                {"expr": "histogram_quantile(0.95, k6_first_render_rtt_ms_seconds)", "label": "p95"},
-                {"expr": "histogram_quantile(0.99, k6_first_render_rtt_ms_seconds)", "label": "p99"},
-            ],
-        },
-        {
-            "title": "k6 - Stash RTT",
-            "name": "k6_stash_rtt",
-            "ylabel": "Latency",
-            "unit": "s",
-            "post_fmt": seconds_formatter,
-            "per_adapter": True,
-            "series": [
-                {"expr": "histogram_quantile(0.50, sum(k6_stash_rtt_ms_seconds))", "label": "p50"},
-                {"expr": "histogram_quantile(0.95, sum(k6_stash_rtt_ms_seconds))", "label": "p95"},
-                {"expr": "histogram_quantile(0.99, sum(k6_stash_rtt_ms_seconds))", "label": "p99"},
-            ],
-        },
-        {
-            "title": "k6 - Reconnect RTT",
-            "name": "k6_reconnect_rtt",
-            "ylabel": "Latency",
-            "unit": "s",
-            "post_fmt": seconds_formatter,
-            "per_adapter": True,
-            "series": [
-                {"expr": "histogram_quantile(0.50, sum(k6_reconnect_rtt_ms_seconds))", "label": "p50"},
-                {"expr": "histogram_quantile(0.95, sum(k6_reconnect_rtt_ms_seconds))", "label": "p95"},
-                {"expr": "histogram_quantile(0.99, sum(k6_reconnect_rtt_ms_seconds))", "label": "p99"},
-            ],
-        },
+        # --- k6 round-trip times (p50 / p95 / p99 × first render, stash, reconnect) ---
+        *_k6_rtt_metrics(),
         # --- BEAM ---
         {
             "title": "BEAM - Scheduler Utilization",
@@ -324,7 +365,7 @@ def build_metrics(step: str) -> list[dict]:
             "unit": "percentunit",
             "post_fmt": percent_formatter,
             "series": [
-                {"expr": "testing_scheduler_utilization_average", "label": None},
+                {"expr": avg_across_apps("testing_scheduler_utilization_average"), "label": None},
             ],
         },
         {
@@ -333,7 +374,7 @@ def build_metrics(step: str) -> list[dict]:
             "ylabel": "Processes",
             "unit": "short",
             "series": [
-                {"expr": "testing_prom_ex_beam_stats_process_count", "label": None},
+                {"expr": avg_across_apps("testing_prom_ex_beam_stats_process_count"), "label": None},
             ],
         },
         {
@@ -343,7 +384,7 @@ def build_metrics(step: str) -> list[dict]:
             "unit": "bytes",
             "post_fmt": bytes_formatter,
             "series": [
-                {"expr": "testing_prom_ex_beam_memory_binary_total_bytes", "label": None},
+                {"expr": avg_across_apps("testing_prom_ex_beam_memory_binary_total_bytes"), "label": None},
             ],
         },
         {
@@ -352,48 +393,12 @@ def build_metrics(step: str) -> list[dict]:
             "ylabel": "Memory",
             "unit": "bytes",
             "post_fmt": bytes_formatter,
+            "include_adapters": ["ets", "mnesia"],
             "series": [
-                {"expr": "testing_prom_ex_beam_memory_ets_total_bytes", "label": None},
+                {"expr": avg_across_apps("testing_prom_ex_beam_memory_ets_total_bytes"), "label": None},
             ],
         },
-        {
-            "title": "BEAM - Port Input",
-            "name": "beam_input",
-            "ylabel": "Throughput",
-            "unit": "Bps",
-            "post_fmt": bps_formatter,
-            "port_io_direction": "input",
-        },
-        {
-            "title": "BEAM - Port Output",
-            "name": "beam_output",
-            "ylabel": "Throughput",
-            "unit": "Bps",
-            "post_fmt": bps_formatter,
-            "port_io_direction": "output",
-        },
-        # --- LiveStash ---
-        {
-            "title": "LiveStash - Stash Rate (Called vs Executed)",
-            "name": "livestash_stash_rate",
-            "ylabel": "req/s",
-            "unit": "reqps",
-            "per_adapter": True,
-            "series": [
-                {"expr": "sum by (adapter) (rate(live_stash_stash_called_total[1m]))",   "label": "called",   "filter_by": "adapter"},
-                {"expr": "sum by (adapter) (rate(live_stash_stash_executed_total[1m]))", "label": "executed", "filter_by": "adapter"},
-            ],
-        },
-        {
-            "title": "LiveStash - Recover State Rate by Status",
-            "name": "livestash_recover_state",
-            "ylabel": "req/s",
-            "unit": "reqps",
-            "per_adapter": True,
-            "series": [
-                {"expr": "sum by (status) (rate(live_stash_recover_state_total[1m]))", "label": "{prom_label}"},
-            ],
-        },
+        *_beam_port_io_metrics(),
         # --- Infrastructure ---
         {
             "title": "Node - CPU Utilization",
@@ -402,7 +407,7 @@ def build_metrics(step: str) -> list[dict]:
             "unit": "percentunit",
             "post_fmt": percent_formatter,
             "series": [
-                {"expr": "1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[1m]))", "label": None},
+                {"expr": node_cpu_expr(settings), "label": None},
             ],
         },
         {
@@ -412,74 +417,7 @@ def build_metrics(step: str) -> list[dict]:
             "unit": "bytes",
             "post_fmt": bytes_formatter,
             "series": [
-                {"expr": "node_memory_active_bytes + node_memory_wired_bytes + node_memory_compressed_bytes or node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes", "label": None},
-            ],
-        },
-        {
-            "title": "Redis - Operations/sec",
-            "name": "redis_ops",
-            "require_tag": "redis",
-            "ylabel": "ops/s",
-            "unit": "ops",
-            "series": [
-                {"expr": "rate(redis_commands_processed_total[1m])", "label": None},
-            ],
-        },
-        {
-            "title": "Redis - Memory Used",
-            "name": "redis_memory",
-            "require_tag": "redis",
-            "ylabel": "Memory",
-            "unit": "bytes",
-            "post_fmt": bytes_formatter,
-            "series": [
-                {"expr": "redis_memory_used_bytes",     "label": "used"},
-                {"expr": "redis_memory_used_rss_bytes", "label": "rss"},
-            ],
-        },
-        {
-            "title": "Redis - Connected Clients",
-            "name": "redis_clients",
-            "require_tag": "redis",
-            "ylabel": "Clients",
-            "unit": "short",
-            "series": [
-                {"expr": "redis_connected_clients", "label": "connected"},
-                {"expr": "redis_blocked_clients",   "label": "blocked"},
-            ],
-        },
-        {
-            "title": "Redis - Keyspace Hit Ratio",
-            "name": "redis_hit_ratio",
-            "require_tag": "redis",
-            "ylabel": "Hit ratio",
-            "unit": "percentunit",
-            "post_fmt": percent_formatter,
-            "series": [
-                {"expr": "rate(redis_keyspace_hits_total[1m]) / clamp_min(rate(redis_keyspace_hits_total[1m]) + rate(redis_keyspace_misses_total[1m]), 1)", "label": None},
-            ],
-        },
-        {
-            "title": "Redis - Network I/O",
-            "name": "redis_network_io",
-            "require_tag": "redis",
-            "ylabel": "Throughput",
-            "unit": "Bps",
-            "post_fmt": bps_formatter,
-            "series": [
-                {"expr": "rate(redis_net_input_bytes_total[1m])",  "label": "rx"},
-                {"expr": "rate(redis_net_output_bytes_total[1m])", "label": "tx"},
-            ],
-        },
-        {
-            "title": "Redis - Command Latency (avg)",
-            "name": "redis_cmd_latency",
-            "require_tag": "redis",
-            "ylabel": "Latency",
-            "unit": "s",
-            "post_fmt": seconds_formatter,
-            "series": [
-                {"expr": "rate(redis_commands_duration_seconds_total[1m]) / clamp_min(rate(redis_commands_total[1m]), 1)", "label": "{prom_label}"},
+                {"expr": node_memory_expr(settings), "label": None},
             ],
         },
     ]
@@ -500,6 +438,8 @@ def _is_quantile_series(series_list: list[dict]) -> bool:
 def _adapter_kind(label: str) -> str:
     """Map a run label to an adapter kind for conditional I/O series."""
     l = label.lower()
+    if "browser" in l and "memory" in l:
+        return "browser_memory"
     if "redis" in l:
         return "redis"
     if "mnesia" in l:
@@ -509,15 +449,16 @@ def _adapter_kind(label: str) -> str:
     return "baseline"
 
 
-def _io_components_for_run(label: str) -> list[tuple[str, str]]:
-    """Return (component_key, legend_suffix) pairs to plot for a run."""
+def _run_has_io_component(label: str, component_key: str) -> bool:
+    """Whether an adapter run should appear on a port-I/O component chart."""
     kind = _adapter_kind(label)
-    components = [("http_ws", "HTTP/WS")]
-    if kind in ("ets", "mnesia"):
-        components.append(("node", "node"))
-    if kind == "redis":
-        components.append(("redis", "redis"))
-    return components
+    if component_key == "http_ws":
+        return True
+    if component_key == "node":
+        return kind in ("ets", "mnesia")
+    if component_key == "redis":
+        return kind == "redis"
+    return False
 
 
 def _prom_label(result_item: dict) -> str:
@@ -528,6 +469,52 @@ def _prom_label(result_item: dict) -> str:
             return m[key]
     # fall back to all labels concatenated
     return " ".join(f"{k}={v}" for k, v in m.items()) or "value"
+
+
+def _should_aggregate_instances(series_def: dict) -> bool:
+    if "aggregate_instances" in series_def:
+        return series_def["aggregate_instances"]
+    label = series_def.get("label")
+    if label in (None, ""):
+        return True
+    if label and "{prom_label}" in label:
+        return False
+    return True
+
+
+def _collapse_instance_results(results: list[dict], method: str = "avg") -> list[dict]:
+    """Merge series that differ only by the instance label (e.g. app-1 + app-2)."""
+    groups: dict[tuple, list[dict]] = defaultdict(list)
+    for result in results:
+        metric = result["metric"]
+        key = tuple(sorted((k, v) for k, v in metric.items() if k != "instance"))
+        groups[key].append(result)
+
+    collapsed: list[dict] = []
+    for items in groups.values():
+        if len(items) == 1:
+            collapsed.append(items[0])
+            continue
+
+        by_ts: dict[float, list[float]] = defaultdict(list)
+        for item in items:
+            for t, v in item["values"]:
+                try:
+                    by_ts[float(t)].append(float(v))
+                except (TypeError, ValueError):
+                    continue
+
+        if not by_ts:
+            continue
+
+        merged_metric = dict(items[0]["metric"])
+        merged_metric.pop("instance", None)
+        merged_values = [
+            [t, str(sum(vals) / len(vals) if method == "avg" else sum(vals))]
+            for t, vals in sorted(by_ts.items())
+        ]
+        collapsed.append({"metric": merged_metric, "values": merged_values})
+    return collapsed
 
 
 def _series_line_label(series_def: dict, adapter_label: str, result_item: dict) -> str:
@@ -596,6 +583,9 @@ def _plot_chart(
                     print(f"  WARN: no data after filtering {filter_by}={run_name!r}")
                     continue
 
+            if _should_aggregate_instances(series_def):
+                results = _collapse_instance_results(results)
+
             for result_item in results:
                 xs, ys = series_to_xy(result_item, t_start)
                 if len(xs) == 0:
@@ -641,7 +631,8 @@ def _plot_port_io_chart(
     fmt: str,
 ) -> bool:
     direction = metric["port_io_direction"]
-    exprs = PORT_IO_EXPRS[direction]
+    component_key = metric["port_io_component"]
+    expr = PORT_IO_EXPRS[direction][component_key]
     title = metric["title"]
     print(f"\n[{title}]")
 
@@ -652,38 +643,41 @@ def _plot_port_io_chart(
 
     for run_idx, run in runs:
         adapter = run["label"]
+        if not _run_has_io_component(adapter, component_key):
+            continue
+
         adapter_color = ADAPTER_COLORS[run_idx % len(ADAPTER_COLORS)]
         t_start = parse_iso(run["start"])
         t_end = parse_iso(run["end"])
 
-        for component_key, component_label in _io_components_for_run(adapter):
-            expr = exprs[component_key]
-            line_label = f"{adapter} {component_label}"
-            ls, alpha = IO_COMPONENT_STYLE[component_key]
+        try:
+            results = query_range(prom_url, expr, t_start, t_end, step)
+        except Exception as exc:
+            print(f"  WARN: query failed for '{expr}' run={adapter}: {exc}")
+            continue
 
-            try:
-                results = query_range(prom_url, expr, t_start, t_end, step)
-            except Exception as exc:
-                print(f"  WARN: query failed for '{expr}' run={adapter}: {exc}")
-                continue
+        if not results:
+            print(f"  WARN: no data (run={adapter})")
+            continue
 
-            if not results:
-                print(f"  WARN: no data for '{component_label}' (run={adapter})")
-                continue
+        results = _collapse_instance_results(results, method="sum")
 
-            xs, ys = series_to_xy(results[0], t_start)
-            if len(xs) == 0:
-                continue
+        if not results:
+            continue
 
-            ax.plot(xs, ys, color=adapter_color, linestyle=ls, alpha=alpha, label=line_label)
-            plotted += 1
+        xs, ys = series_to_xy(results[0], t_start)
+        if len(xs) == 0:
+            continue
+
+        ax.plot(xs, ys, color=adapter_color, linestyle="-", alpha=0.9, label=adapter)
+        plotted += 1
 
     if plotted == 0:
         print("  WARN: no data -skipping chart")
         plt.close(fig)
         return False
 
-    ax.legend(loc="upper left", ncol=2)
+    ax.legend(loc="upper left", ncol=max(1, min(4, plotted)))
     ax.set_xlim(left=0)
 
     post_fmt = metric.get("post_fmt")
@@ -701,8 +695,19 @@ def render_metric(metric: dict, runs: list[dict], prom_url: str, step: str, out_
         if not require_tag or require_tag in (run.get("tags") or [])
     ]
 
+    include = metric.get("include_adapters")
+    if include:
+        allowed = {a.lower() for a in include}
+        active = [
+            (i, run) for i, run in active
+            if (run.get("prom_name") or run["label"]).lower() in allowed
+        ]
+
     if not active:
-        print(f"\n[{metric['title']}] skipped - no runs have tag {require_tag!r}")
+        if include:
+            print(f"\n[{metric['title']}] skipped - no runs for adapters {include!r}")
+        else:
+            print(f"\n[{metric['title']}] skipped - no runs have tag {require_tag!r}")
         return 0
 
     if metric.get("port_io_direction"):
@@ -766,7 +771,7 @@ def main():
 
     matplotlib.rcParams.update(ARTICLE_STYLE)
 
-    all_metrics = build_metrics(step)
+    all_metrics = build_metrics(step, settings)
     if args.metrics:
         all_metrics = [m for m in all_metrics if m["name"] in args.metrics]
         if not all_metrics:

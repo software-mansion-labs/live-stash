@@ -9,6 +9,7 @@ set -euo pipefail
 APP_HOSTS="${APP_HOSTS:-{{ app_private_ips | join(' ') }}}"
 SSH_PORT="${SSH_PORT:-2222}"
 SSH_USER="${SSH_USER:-root}"
+SSH_OPTS="${SSH_OPTS:--o BatchMode=yes -o StrictHostKeyChecking=accept-new}"
 
 TTL=60
 CLEANUP_S=30
@@ -33,7 +34,7 @@ echo "configuring app cluster: LIVE_STASH_TTL=${TTL}s cleanup=${CLEANUP_S}s (${C
 
 for host in $APP_HOSTS; do
   echo "  → ${host}"
-  ssh -p "$SSH_PORT" -o BatchMode=yes "${SSH_USER}@${host}" \
+  ssh -p "$SSH_PORT" $SSH_OPTS "${SSH_USER}@${host}" \
     "TTL=${TTL} CLEANUP_MS=${CLEANUP_MS} bash -s" <<'REMOTE'
 set -euo pipefail
 ENV=/etc/livestash/app.env
