@@ -40,8 +40,8 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
   TTL bumping for live LiveViews is handled by
   `LiveStash.Adapters.Mnesia.Hook` via periodic keep-alive ticks on the owning
   process, so this cleaner only needs to delete records whose owners stopped
-  bumping them. The actual select+delete runs inside a single Mnesia
-  transaction in `State.delete_expired!/1` and projects only ids to keep memory pressure low.
+  bumping them. Deletion uses dirty Mnesia select/delete in `State.delete_expired!/1`
+  so cleanup does not run inside a transaction.
   """
   @spec clean_expired_states!() :: :ok
   def clean_expired_states!() do

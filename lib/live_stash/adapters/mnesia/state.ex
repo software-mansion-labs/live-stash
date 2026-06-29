@@ -20,8 +20,6 @@ defmodule LiveStash.Adapters.Mnesia.State do
   # but in reality returns :ok. The `:ok ->` branch in `put!/3` is therefore reachable.
   @dialyzer {:no_match, put!: 3}
 
-  @batch_size Application.compile_env(:live_stash, :mnesia_cleanup_batch_size, 100)
-
   @type t :: %__MODULE__{
           id: term(),
           pid: pid(),
@@ -380,25 +378,65 @@ defmodule LiveStash.Adapters.Mnesia.State do
   end
 
   @doc """
-  Deletes every record whose `delete_at` is strictly less than `now` in batches.
+  Deletes every record whose `delete_at` is strictly less than `now`.
+
+  Uses dirty Mnesia operations so cleanup does not hold a lock on the table.
   """
-  @spec delete_expired!(now :: integer(), batch_size :: pos_integer()) :: integer()
-  def delete_expired!(now, batch_size \\ @batch_size) when is_integer(now) do
-    deleted_in_batch =
-      Memento.transaction!(fn ->
-        guard = {:<, :delete_at, now}
+  @spec delete_expired!(now :: integer()) :: integer()
+  def delete_expired!(now) when is_integer(now) do
+    records = dirty_select_expired!(now)
 
-        records = Memento.Query.select(__MODULE__, guard, limit: batch_size)
+    deleted =
+      Enum.reduce(records, 0, fn record, count ->
+        case dirty_delete_record!(record) do
+          :ok ->
+            count + 1
 
-        Enum.each(records, &Memento.Query.delete_record/1)
+          {:error, reason} ->
+            Logger.warning(
+              Utils.reason_message(
+                "Failed to delete expired Mnesia record #{inspect(elem(record, 1))}",
+                reason
+              )
+            )
 
-        length(records)
+            count
+        end
       end)
 
-    if deleted_in_batch == batch_size do
-      deleted_in_batch + delete_expired!(now, batch_size)
-    else
-      deleted_in_batch
-    end
+    deleted
+  end
+
+  defp expired_match_spec(now) do
+    info = __MODULE__.__info__()
+    guards = Memento.Query.Spec.build({:<, :delete_at, now}, info.query_map)
+
+    [{info.query_base, guards, [:"$_"]}]
+  end
+
+  defp dirty_select_expired!(now) do
+    __MODULE__
+    |> :mnesia.dirty_select(expired_match_spec(now))
+  rescue
+    error ->
+      Logger.warning(
+        Utils.exception_message("Failed to select expired Mnesia records", error, __STACKTRACE__)
+      )
+
+      []
+  catch
+    :exit, reason ->
+      Logger.warning(Utils.reason_message("Failed to select expired Mnesia records", reason))
+
+      []
+  end
+
+  defp dirty_delete_record!(record) when is_tuple(record) do
+    :mnesia.dirty_delete_object(record)
+    :ok
+  rescue
+    error -> {:error, error}
+  catch
+    :exit, reason -> {:error, reason}
   end
 end

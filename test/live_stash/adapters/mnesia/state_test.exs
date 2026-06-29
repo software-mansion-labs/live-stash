@@ -140,7 +140,7 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
       assert {:ok, _} = State.get_by_id!("fresh")
     end
 
-    test "deletes records in batches when expired records exceed batch_size" do
+    test "deletes all expired records" do
       for i <- 1..5 do
         assert :ok = State.put!("batch_expired_#{i}", %{key: "val"}, ttl: 1)
       end
@@ -158,7 +158,7 @@ defmodule LiveStash.Adapters.Mnesia.StateTest do
         end
       end)
 
-      assert State.delete_expired!(System.os_time(:second), 2) == 5
+      assert State.delete_expired!(System.os_time(:second)) == 5
 
       for i <- 1..5 do
         assert :not_found == State.get_by_id!("batch_expired_#{i}")
