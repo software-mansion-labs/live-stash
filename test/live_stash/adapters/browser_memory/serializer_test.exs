@@ -61,14 +61,14 @@ defmodule LiveStash.Adapters.BrowserMemory.SerializerTest do
                Serializer.decode_token(socket, "invalid_or_malformed_token", opts)
     end
 
-    test "returns an error for expired tokens", %{socket: socket} do
+    test "returns :not_found for expired tokens", %{socket: socket} do
       opts = %{security_mode: :sign, secret: "my_secret", ttl: 1}
 
       token = Serializer.encode_token(socket, %{time_test: "data"}, opts)
 
       Process.sleep(2000)
 
-      assert {:error, :expired} = Serializer.decode_token(socket, token, opts)
+      assert :not_found = Serializer.decode_token(socket, token, opts)
     end
   end
 end

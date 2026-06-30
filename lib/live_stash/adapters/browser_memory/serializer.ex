@@ -18,18 +18,22 @@ defmodule LiveStash.Adapters.BrowserMemory.Serializer do
   end
 
   @spec decode_token(socket :: Socket.t(), value :: binary(), opts :: map()) ::
-          {:error, :expired | :invalid | :missing} | {:ok, term()}
+          :not_found | {:error, :invalid | :missing} | {:ok, term()}
   def decode_token(socket, value, %{security_mode: :sign} = opts) do
-    with {:ok, binary} <- Phoenix.Token.verify(socket, opts.secret, value, max_age: opts.ttl) do
-      decompress_term(binary)
-    end
+    socket
+    |> Phoenix.Token.verify(opts.secret, value, max_age: opts.ttl)
+    |> decode_verified()
   end
 
   def decode_token(socket, value, %{security_mode: :encrypt} = opts) do
-    with {:ok, binary} <- Phoenix.Token.decrypt(socket, opts.secret, value, max_age: opts.ttl) do
-      decompress_term(binary)
-    end
+    socket
+    |> Phoenix.Token.decrypt(opts.secret, value, max_age: opts.ttl)
+    |> decode_verified()
   end
+
+  defp decode_verified({:ok, binary}), do: decompress_term(binary)
+  defp decode_verified({:error, :expired}), do: :not_found
+  defp decode_verified(error), do: error
 
   defp compress_term(term) do
     :erlang.term_to_binary(term, [{:compressed, 1}])

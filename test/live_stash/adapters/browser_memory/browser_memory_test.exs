@@ -174,6 +174,33 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       assert returned_socket == socket
     end
 
+    test "returns :not_found when stashed state token has expired", %{socket: socket} do
+      socket = put_in(socket.private.live_stash_context.reconnected?, true)
+      socket = put_in(socket.private.live_stash_context.ttl, 1)
+
+      settings = %{
+        ttl: 1,
+        secret: socket.private.live_stash_context.secret,
+        security_mode: :sign
+      }
+
+      stashed_state =
+        Serializer.encode_token(socket, %{version: nil, assigns: %{player_id: 999}}, settings)
+
+      Process.sleep(2000)
+
+      params = %{
+        "liveStash" => %{
+          "stashedState" => stashed_state
+        }
+      }
+
+      socket_with_params = put_in(socket.private.connect_params, params)
+
+      assert {:not_found, returned_socket} = BrowserMemory.recover_state(socket_with_params)
+      assert returned_socket == socket_with_params
+    end
+
     test "returns :error, logs warning and pushes init-browser-memory event when token decryption fails",
          %{socket: socket} do
       socket = put_in(socket.private.live_stash_context.reconnected?, true)
