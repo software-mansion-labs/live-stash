@@ -18,16 +18,17 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
 
   @enforce_keys [
     :stored_keys,
-    :reconnected?
+    :reconnected?,
+    :security_mode
   ]
 
   defstruct [
     :stored_keys,
     :reconnected?,
+    :security_mode,
     stash_fingerprint: nil,
     secret: "live_stash",
     ttl: 5 * 60,
-    security_mode: :sign,
     version: nil
   ]
 

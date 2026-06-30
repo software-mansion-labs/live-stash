@@ -82,14 +82,14 @@ By default, LiveStash uses a hardcoded default secret (`"live_stash"`) to secure
 You can do this by providing a `:session_key`. LiveStash will extract the value from the connection session securely hash it (SHA-256) to use as the operational secret. If you provide the key and it is not present in the session, `Argument Error` will be raised.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, session_key: "user_token", stored_keys: [:count]
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, session_key: "user_token", stored_keys: [:count]
 ```
 
 ### Security mode
 
 In browser mode, the secret defined in the configuration section is used as part of the key to sign or encrypt your stashed state, which is stored in the browser.
 
-Additionally, you can configure how the data is secured in client mode using the `:security_mode` option. It defaults to `:sign`, but can be set to `:encrypt` for sensitive payloads.
+You must explicitly configure how the data is secured in client mode using the `:security_mode` option. The options are `:sign` and `:encrypt` for sensitive payloads.
 
 ```elixir
 use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, stored_keys: [:count]
