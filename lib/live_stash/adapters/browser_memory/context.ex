@@ -72,16 +72,23 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
   end
 
   defp ensure_security_mode!(attrs) do
-    if Keyword.has_key?(attrs, :security_mode) do
-      attrs
-    else
-      msg =
-        Utils.reason_message(
-          "Missing required option: :security_mode. You must explicitly configure how client-side data is secured. Example: use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, stored_keys: [:count]",
-          :invalid
+    case Keyword.get(attrs, :security_mode) do
+      mode when mode in [:sign, :encrypt] ->
+        attrs
+
+      nil ->
+        raise_security_mode_error!(
+          "Missing required option: :security_mode. You must explicitly configure how client-side data is secured. Example: use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, stored_keys: [:count]"
         )
 
-      raise ArgumentError, msg
+      mode ->
+        raise_security_mode_error!(
+          "Invalid security_mode: #{inspect(mode)}. Expected :sign or :encrypt."
+        )
     end
+  end
+
+  defp raise_security_mode_error!(message) do
+    raise ArgumentError, Utils.reason_message(message, :invalid)
   end
 end

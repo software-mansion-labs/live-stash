@@ -41,6 +41,18 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
       end
     end
 
+    test "raises ArgumentError when security_mode is nil", %{socket: socket} do
+      assert_raise ArgumentError, ~r/Missing required option: :security_mode/, fn ->
+        BrowserMemory.init_stash(socket, %{}, stored_keys: [:player_id], security_mode: nil)
+      end
+    end
+
+    test "raises ArgumentError when security_mode is invalid", %{socket: socket} do
+      assert_raise ArgumentError, ~r/Invalid security_mode: :unknown/, fn ->
+        BrowserMemory.init_stash(socket, %{}, stored_keys: [:player_id], security_mode: :unknown)
+      end
+    end
+
     test "does not push reset event if reconnected? is true", %{socket: socket} do
       socket = put_in(socket.private[:connect_params], %{"_mounts" => 1})
 

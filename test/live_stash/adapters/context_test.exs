@@ -114,6 +114,24 @@ defmodule LiveStash.Adapters.ContextTest do
       end
     end
 
+    test "raises ArgumentError when security_mode is nil", %{socket: socket} do
+      session = %{}
+      opts = [stored_keys: [:username], security_mode: nil]
+
+      assert_raise ArgumentError, ~r/Missing required option: :security_mode/, fn ->
+        @browser_memory.new(socket, session, opts)
+      end
+    end
+
+    test "raises ArgumentError when security_mode is invalid", %{socket: socket} do
+      session = %{}
+      opts = [stored_keys: [:username], security_mode: :unknown]
+
+      assert_raise ArgumentError, ~r/Invalid security_mode: :unknown/, fn ->
+        @browser_memory.new(socket, session, opts)
+      end
+    end
+
     test "fetches, hashes, and base64 encodes secret from session when session_key is provided",
          %{socket: socket} do
       session = %{"my_stash_key" => "super_secret_token"}
