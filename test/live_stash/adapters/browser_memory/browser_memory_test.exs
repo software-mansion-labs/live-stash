@@ -38,7 +38,11 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     test "does not push reset event if reconnected? is true", %{socket: socket} do
       socket = put_in(socket.private[:connect_params], %{"_mounts" => 1})
 
-      result_socket = BrowserMemory.init_stash(socket, %{}, stored_keys: [:player_id])
+      result_socket =
+        BrowserMemory.init_stash(socket, %{},
+          stored_keys: [:player_id],
+          security_mode: :sign
+        )
 
       assert result_socket.private.live_stash_context.reconnected? == true
 
@@ -54,7 +58,11 @@ defmodule LiveStash.Adapters.BrowserMemoryTest do
     } do
       socket = put_in(socket.private.live_stash_context.reconnected?, false)
 
-      initialized_socket = BrowserMemory.init_stash(socket, %{}, stored_keys: [:player_id])
+      initialized_socket =
+        BrowserMemory.init_stash(socket, %{},
+          stored_keys: [:player_id],
+          security_mode: :sign
+        )
 
       queued_events = get_in(initialized_socket.private, [:live_temp, :push_events]) || []
 
