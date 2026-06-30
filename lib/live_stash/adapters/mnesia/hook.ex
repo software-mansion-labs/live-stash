@@ -43,7 +43,7 @@ defmodule LiveStash.Adapters.Mnesia.Hook do
   defp handle_keep_alive(_msg, socket), do: {:cont, socket}
 
   defp send_keep_alive(ttl) do
-    interval = div(ttl * 1_000, 2)
+    interval = div(ttl * 1_000, 4)
     Process.send_after(self(), @hook_name, interval)
   end
 end
