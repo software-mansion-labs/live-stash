@@ -3,6 +3,8 @@ defmodule LiveStash.Adapters.Mnesia.Storage do
 
   use GenServer
 
+  @compile {:no_warn_undefined, [Memento, LiveStash.Adapters.Mnesia.State]}
+
   require Logger
 
   alias LiveStash.Adapters.Mnesia.State

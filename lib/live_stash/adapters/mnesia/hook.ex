@@ -5,6 +5,8 @@ defmodule LiveStash.Adapters.Mnesia.Hook do
   alias Phoenix.LiveView
   alias LiveStash.Utils
 
+  @compile {:no_warn_undefined, [LiveStash.Adapters.Mnesia.State]}
+
   require Logger
 
   @hook_name :live_stash_keep_alive
