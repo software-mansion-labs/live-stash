@@ -47,7 +47,7 @@ and want to discard state persisted by an older deploy rather than recovering
 potentially incompatible data.
 
 ```elixir
-use LiveStash, stored_keys: [:count], version: 1
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, stored_keys: [:count], version: 1
 ```
 
 When a reconnect occurs, the recovered payload's version is compared to the
@@ -58,7 +58,7 @@ Increment the version whenever the structure of your stashed assigns changes
 in a backwards-incompatible way:
 
 ```elixir
-use LiveStash, stored_keys: [:count, :step], version: 2
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, stored_keys: [:count, :step], version: 2
 ```
 
 Omitting `:version` or setting it to `nil` disables the check.
@@ -70,7 +70,7 @@ Stashed data has a Time-To-Live (TTL) that is used to determine how long the dat
 **Default:** `300` seconds (5 minutes)
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, ttl: 60, stored_keys: [:count]
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, ttl: 60, stored_keys: [:count]
 ```
 
 ## Security
@@ -82,14 +82,14 @@ By default, LiveStash uses a hardcoded default secret (`"live_stash"`) to secure
 You can do this by providing a `:session_key`. LiveStash will extract the value from the connection session securely hash it (SHA-256) to use as the operational secret. If you provide the key and it is not present in the session, `Argument Error` will be raised.
 
 ```elixir
-use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, session_key: "user_token", stored_keys: [:count]
+use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, session_key: "user_token", stored_keys: [:count]
 ```
 
 ### Security mode
 
 In browser mode, the secret defined in the configuration section is used as part of the key to sign or encrypt your stashed state, which is stored in the browser.
 
-Additionally, you can configure how the data is secured in client mode using the `:security_mode` option. It defaults to `:sign`, but can be set to `:encrypt` for sensitive payloads.
+`:security_mode` is required for the browser memory adapter. You must explicitly configure how the data is secured using `:sign` or `:encrypt`.
 
 ```elixir
 use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :encrypt, stored_keys: [:count]

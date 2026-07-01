@@ -99,7 +99,7 @@ defmodule LiveStash do
 
       defmodule MyAppWeb.CounterLive do
         use MyAppWeb, :live_view
-        use LiveStash, adapter: LiveStash.Adapters.BrowserMemory
+        use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, stored_keys: [:count]
       end
   """
   defmacro __using__(opts) do
