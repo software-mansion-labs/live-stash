@@ -1,7 +1,7 @@
 defmodule LiveStash.MixProject do
   use Mix.Project
 
-  @version "0.4.0-dev"
+  @version "1.1.0-dev"
 
   def project do
     [
@@ -93,6 +93,7 @@ defmodule LiveStash.MixProject do
   defp filter_modules(LiveStash.Adapters.BrowserMemory, _meta), do: true
   defp filter_modules(LiveStash.Adapters.ETS, _meta), do: true
   defp filter_modules(LiveStash.Adapters.Mnesia, _meta), do: true
+  defp filter_modules(LiveStash.Adapters.Redis, _meta), do: true
   defp filter_modules(_, _meta), do: false
 
   defp elixirc_paths(:test), do: ["lib", "test/support"]

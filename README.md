@@ -71,7 +71,7 @@ Add `live_stash` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:live_stash, "~> 0.3.0"}
+    {:live_stash, "~> 1.0"}
   ]
 end
 ```
@@ -89,7 +89,7 @@ const liveSocket = new LiveSocket("/live", Socket, {
 
 ## Storage modes
 
-You can control where the stashed data is kept by passing appropriate adapter module. LiveStash currently supports two adapters:
+You can control where the stashed data is kept by passing appropriate adapter module. LiveStash currently supports four adapters:
 
 - **ETS** - (default) The data is kept on the server side in the ETS table.
 - **Browser memory** - The data is saved in the client browser.
