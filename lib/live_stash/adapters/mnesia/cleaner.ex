@@ -3,6 +3,8 @@ defmodule LiveStash.Adapters.Mnesia.Cleaner do
 
   use GenServer
 
+  @compile {:no_warn_undefined, [LiveStash.Adapters.Mnesia.State]}
+
   require Logger
 
   alias LiveStash.Adapters.Mnesia.State
