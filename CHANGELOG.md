@@ -1,5 +1,28 @@
 # Changelog
 
+## 1.0.0 (2026-07-01)
+
+### Breaking Changes
+
+- **Security mode now required:** `:security_mode` (`:sign` or `:encrypt`) must be explicitly configured for the browser memory adapter; it no longer falls back to a default in [#116](https://github.com/software-mansion-labs/live-stash/pull/116)
+
+### Core Architecture & Features
+
+- **Mnesia adapter:** Added `LiveStash.Adapters.Mnesia` for server-side state in Mnesia with cluster replication and split-brain auto-heal in [#91](https://github.com/software-mansion-labs/live-stash/pull/91)
+- **Mnesia dirty ops:** Switched Mnesia adapter reads/writes to dirty operations for lower latency in [#114](https://github.com/software-mansion-labs/live-stash/pull/114)
+- **ETS TTL change:** Reworked TTL handling in the ETS adapter in [#101](https://github.com/software-mansion-labs/live-stash/pull/101)
+- **Nested LiveView guard:** Raise a clear error when `use LiveStash` is applied inside a nested LiveView in [#107](https://github.com/software-mansion-labs/live-stash/pull/107)
+
+### Bug Fixes
+
+- **Mnesia boot up:** Fixed a race in Mnesia adapter startup in [#111](https://github.com/software-mansion-labs/live-stash/pull/111)
+- **Versioning:** Fixed `:version` mismatch handling on stash recovery in [#106](https://github.com/software-mansion-labs/live-stash/pull/106)
+- **Browser adapter recover status:** Unified recovery status reporting across browser memory code paths in [#117](https://github.com/software-mansion-labs/live-stash/pull/117)
+
+### Documentation & Maintenance
+
+- **Docs and hook interval:** Documentation pass plus adjustments to the `:after_render` hook interval in [#115](https://github.com/software-mansion-labs/live-stash/pull/115)
+
 ## 0.3.0 (2026-05-14)
 
 ### Core Architecture & Features

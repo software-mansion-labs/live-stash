@@ -69,7 +69,7 @@ Add `live_stash` to your dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:live_stash, "~> 0.3.0"}
+    {:live_stash, "~> 1.0"}
   ]
 end
 ```
@@ -87,11 +87,12 @@ const liveSocket = new LiveSocket("/live", Socket, {
 
 ## Storage modes
 
-You can control where the stashed data is kept by passing appropriate adapter module. LiveStash currently supports three adapters:
+You can control where the stashed data is kept by passing appropriate adapter module. LiveStash currently supports four adapters:
 
 - **ETS** - (default) The data is kept on the server side in the ETS table.
 - **Browser memory** - The data is saved in the client browser.
 - **Redis** - The data is kept on the server side in Redis.
+- **Mnesia** - The data is kept on the server side in Mnesia.
 
 ```elixir
 use LiveStash, adapter: LiveStash.Adapters.ETS, stored_keys: [:count, :user_id]
@@ -100,12 +101,12 @@ use LiveStash, adapter: LiveStash.Adapters.ETS, stored_keys: [:count, :user_id]
 Remember to define adapters you would like to activate in your `config.exs` file.
 
 ```elixir
-config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis]
+config :live_stash, adapters: [LiveStash.Adapters.ETS, LiveStash.Adapters.BrowserMemory, LiveStash.Adapters.Redis, LiveStash.Adapters.Mnesia]
 ```
 
 The default adapter is `LiveStash.Adapters.ETS` and it is always activated.
 
-See [ETS Adapter Guide](./ets.md), [Browser Memory Adapter Guide](./browser_memory.md), and [Redis Adapter Guide](./redis.md) for details on how to customize LiveStash to your needs.
+See [ETS Adapter Guide](./ets.md), [Browser Memory Adapter Guide](./browser_memory.md), [Redis Adapter Guide](./redis.md), and [Mnesia Adapter Guide](./mnesia.md) for details on how to customize LiveStash to your needs.
 
 ## When not to use
 
