@@ -77,18 +77,18 @@ defmodule LiveStash.Adapters.BrowserMemory.Context do
         attrs
 
       nil ->
-        raise_security_mode_error!(
-          "Missing required option: :security_mode. You must explicitly configure how client-side data is secured. Example: use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, stored_keys: [:count]"
-        )
+        raise ArgumentError,
+              Utils.reason_message(
+                "Missing required option: :security_mode. You must explicitly configure how client-side data is secured. Example: use LiveStash, adapter: LiveStash.Adapters.BrowserMemory, security_mode: :sign, stored_keys: [:count]",
+                :invalid
+              )
 
       mode ->
-        raise_security_mode_error!(
-          "Invalid security_mode: #{inspect(mode)}. Expected :sign or :encrypt."
-        )
+        raise ArgumentError,
+              Utils.reason_message(
+                "Invalid security_mode: #{inspect(mode)}. Expected :sign or :encrypt.",
+                :invalid
+              )
     end
-  end
-
-  defp raise_security_mode_error!(message) do
-    raise ArgumentError, Utils.reason_message(message, :invalid)
   end
 end
