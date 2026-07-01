@@ -162,9 +162,17 @@ defmodule LiveStash do
   """
   @spec stash(socket :: Socket.t()) :: Socket.t()
   def stash(socket) do
+    adapter = get_adapter(socket)
+    before_fp = socket.private.live_stash_context.stash_fingerprint
+    socket = apply(adapter, :stash, [socket])
+    meta = %{adapter: adapter, live_view_module: socket.view}
+    :telemetry.execute([:live_stash, :stash, :called], %{count: 1}, meta)
+
+    if socket.private.live_stash_context.stash_fingerprint != before_fp do
+      :telemetry.execute([:live_stash, :stash, :executed], %{count: 1}, meta)
+    end
+
     socket
-    |> get_adapter()
-    |> apply(:stash, [socket])
   end
 
   @doc """
@@ -189,9 +197,18 @@ defmodule LiveStash do
   """
   @spec recover_state(socket :: Socket.t()) :: {recovery_status(), Socket.t()}
   def recover_state(socket) do
-    socket
-    |> get_adapter()
-    |> apply(:recover_state, [socket])
+    adapter = get_adapter(socket)
+    {status, socket} = apply(adapter, :recover_state, [socket])
+
+    if Phoenix.LiveView.connected?(socket) do
+      :telemetry.execute(
+        [:live_stash, :recover_state],
+        %{count: 1},
+        %{adapter: adapter, live_view_module: socket.view, status: status}
+      )
+    end
+
+    {status, socket}
   end
 
   @doc """

@@ -32,6 +32,7 @@ defmodule LiveStash.MixProject do
     [
       {:memento, "~> 0.5.0", optional: true},
       {:phoenix_live_view, "~> 1.0"},
+      {:telemetry, "~> 1.0"},
       {:uniq, "~> 0.6"},
       {:redix, "~> 1.1", optional: true},
       {:castore, ">= 0.0.0", optional: true},

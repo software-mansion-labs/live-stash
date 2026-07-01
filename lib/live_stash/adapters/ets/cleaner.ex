@@ -8,7 +8,6 @@ defmodule LiveStash.Adapters.ETS.Cleaner do
   alias LiveStash.Adapters.ETS.State
   alias LiveStash.Utils
 
-  @cleanup_interval Application.compile_env(:live_stash, :ets_cleanup_interval, 1 * 60 * 1_000)
   @table_name Application.compile_env(:live_stash, :ets_table_name, :live_stash_server_storage)
 
   def start_link(opts \\ []) do
@@ -57,5 +56,10 @@ defmodule LiveStash.Adapters.ETS.Cleaner do
     end
   end
 
-  defp schedule_cleanup(), do: Process.send_after(self(), :cleanup, @cleanup_interval)
+  defp schedule_cleanup(),
+    do: Process.send_after(self(), :cleanup, cleanup_interval())
+
+  defp cleanup_interval do
+    Application.get_env(:live_stash, :ets_cleanup_interval, 60_000)
+  end
 end
