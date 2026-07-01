@@ -7,6 +7,7 @@ defmodule LiveStash.Adapters.Mnesia do
   """
 
   @behaviour LiveStash.Adapter
+  @compile {:no_warn_undefined, [Memento, LiveStash.Adapters.Mnesia.State]}
 
   require Logger
 
@@ -23,24 +24,30 @@ defmodule LiveStash.Adapters.Mnesia do
   @doc false
   @impl true
   def child_spec(opts \\ []) do
-    unless Code.ensure_loaded?(Memento) do
-      msg =
-        Utils.reason_message(
-          """
-          To use the Mnesia adapter, please add the following to your mix.exs dependencies:
-          {:memento, "~> 0.5.0"}
-          """,
-          :missing_dependency
-        )
+    if Code.ensure_loaded?(Memento) do
+      %{
+        id: __MODULE__,
+        start: {__MODULE__, :start_link, [opts]},
+        type: :supervisor
+      }
+    else
+      Logger.warning(missing_memento_message())
 
-      raise RuntimeError, msg
+      %{
+        id: __MODULE__,
+        start: :ignore
+      }
     end
+  end
 
-    %{
-      id: __MODULE__,
-      start: {__MODULE__, :start_link, [opts]},
-      type: :supervisor
-    }
+  defp missing_memento_message do
+    Utils.reason_message(
+      """
+      To use the Mnesia adapter, please add the following to your mix.exs dependencies:
+      {:memento, "~> 0.5.0"}
+      """,
+      :missing_dependency
+    )
   end
 
   @doc false
