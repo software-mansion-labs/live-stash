@@ -65,6 +65,18 @@ defmodule LiveStash.Adapters.ETS.StateTest do
       assert state == %{key2: "new_value"}
     end
 
+    test "replaces one tuple-containing state with another" do
+      id = "tuple_state_id"
+      initial_state = %{coordinates: {0, 0}}
+      replacement_state = %{coordinates: {10, 20}}
+
+      assert :ok = State.put!(id, initial_state, ttl: 1)
+      assert {:ok, ^initial_state, _} = State.get_by_id!(id)
+
+      assert :ok = State.put!(id, replacement_state, ttl: 1)
+      assert {:ok, ^replacement_state, _} = State.get_by_id!(id)
+    end
+
     test "raises exception if state is owned by a different process (PID mismatch)" do
       id = "test_id"
       opts = [ttl: 1]
