@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 (2026-07-20)
+
+### Bug Fixes
+
+- **ETS tuple state:** Fixed ETS stashing for tuple-containing state in [#122](https://github.com/software-mansion-labs/live-stash/pull/122)
+
 ## 1.0.0 (2026-07-01)
 
 ### Breaking Changes
